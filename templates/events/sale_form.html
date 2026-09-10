@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block heading %}Savdo kiritish{% endblock %}
+{% block content %}
+<div class="card" style="max-width:520px">
+  <h3>{{ shop.name }} — yangi savdo</h3>
+  <div id="ok"></div>
+  <form method="post" hx-post="{% url 'events:sale_create' %}" hx-target="#ok" hx-swap="innerHTML">
+    {% csrf_token %}
+    <label>Summa (so'm)</label>
+    <input name="total_amount" type="number" step="500" inputmode="numeric" autofocus required
+           style="font-size:22px;padding:16px">
+    <label>To'lov turi</label>
+    <select name="payment_type">
+      {% for val,label in payment_types %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+    </select>
+    <label style="display:flex;align-items:center;gap:8px;flex-direction:row">
+      <input type="checkbox" name="is_wholesale" style="width:auto"> Ulgurji savdo
+    </label>
+    <label>Izoh (ixtiyoriy)</label>
+    <input name="note" placeholder="masalan: 3 kg pomidor">
+    <button class="btn big" style="margin-top:18px">✓ Savdoni saqlash</button>
+  </form>
+  <div style="margin-top:16px">
+    <a class="btn gray" href="{% url 'events:writeoff_create' %}">🗑 Hisobdan chiqarish (chirigan mahsulot)</a>
+  </div>
+</div>
+{% endblock %}

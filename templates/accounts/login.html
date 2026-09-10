@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Kirish{% endblock %}
+{% block anon_content %}
+<div class="login-wrap">
+  <div class="login-box">
+    <h1>🛰️ Savdo Nazorat</h1>
+    <div class="sub">AI orqali bozor savdosini nazorat tizimi</div>
+    {% if form.errors %}
+      <div class="msg error">Login yoki parol noto'g'ri.</div>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label>Login</label>
+      <input name="username" autofocus required>
+      <label>Parol</label>
+      <input name="password" type="password" required>
+      <button class="btn big" style="margin-top:20px">Kirish</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

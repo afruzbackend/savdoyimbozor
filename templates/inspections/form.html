@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block nav_insp %}active{% endblock %}
+{% block heading %}Tekshiruv qo'shish{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px">
+  {% if alert %}
+  <div class="msg info">Signal: <b>{{ alert.shop.name }}</b> — {{ alert.message }}</div>
+  {% endif %}
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% if alert %}<input type="hidden" name="alert" value="{{ alert.pk }}">{% endif %}
+    <label>Do'kon</label>
+    <select name="shop" required>
+      {% for s in shops %}
+        <option value="{{ s.pk }}" {% if shop and s.pk == shop.pk %}selected{% endif %}>{{ s.name }} — {{ s.market.name }}</option>
+      {% endfor %}
+    </select>
+    <label>Natija</label>
+    <select name="result">
+      {% for val,label in results %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+    </select>
+    <label>Dalolatnoma raqami</label>
+    <input name="act_number" placeholder="masalan: A-2026-0142">
+    <label>Jarima (so'm)</label>
+    <input name="fine_amount" type="number" step="1000" placeholder="0">
+    <label>Izoh</label>
+    <textarea name="notes" rows="3"></textarea>
+    <label>Rasmlar</label>
+    <input type="file" name="photos" accept="image/*" capture="environment" multiple>
+    <button class="btn big" style="margin-top:18px">Saqlash</button>
+  </form>
+</div>
+{% endblock %}

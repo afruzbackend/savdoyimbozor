@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load humanize static %}
+{% block nav_markets %}active{% endblock %}
+{% block heading %}{{ shop.name }}{% endblock %}
+{% block topbar_right %}
+  <a class="btn" href="{% url 'inspections:create' %}?shop={{ shop.pk }}">📋 Tekshiruv qo'shish</a>
+{% endblock %}
+{% block content %}
+
+<div class="grid grid-3" style="margin-bottom:20px">
+  <div class="card">
+    <h3>Do'kon ma'lumoti</h3>
+    <p class="muted" style="margin:4px 0">Bozor: <b>{{ shop.market.name }}</b></p>
+    <p class="muted" style="margin:4px 0">Toifa: <b>{{ shop.category.name|default:"—" }}</b></p>
+    <p class="muted" style="margin:4px 0">STIR: <b class="mono">{{ shop.stir|default:"—" }}</b></p>
+    <p class="muted" style="margin:4px 0">Egasi: <b>{{ shop.owner_name|default:"—" }}</b></p>
+    <p class="muted" style="margin:4px 0">Tel: <b>{{ shop.owner_phone|default:"—" }}</b></p>
+  </div>
+
+  <div class="card">
+    <h3>O'xshash do'konlar bilan solishtirish</h3>
+    {% if peer.peer_count >= 1 %}
+    <table>
+      <tr><td>Bu do'kon — xaridor</td><td class="right mono"><b>{{ peer.shop_visitors }}</b></td></tr>
+      <tr><td>O'xshashlar o'rtacha</td><td class="right mono">{{ peer.peer_avg_visitors }}</td></tr>
+      <tr><td>Bu do'kon — savdo</td><td class="right mono"><b>{{ peer.shop_sales|floatformat:0|intcomma }}</b></td></tr>
+      <tr><td>O'xshashlar o'rtacha</td><td class="right mono">{{ peer.peer_avg_sales|floatformat:0|intcomma }}</td></tr>
+    </table>
+    <p class="muted" style="font-size:12px;margin-top:8px">{{ peer.peer_count }} ta o'xshash do'kon bilan taqqoslandi</p>
+    {% else %}<p class="muted">Solishtirishga o'xshash do'kon yetarli emas.</p>{% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Deklaratsiya vs AI taxmini</h3>
+    <table>
+      <thead><tr><th>Davr</th><th class="right">Deklaratsiya</th></tr></thead>
+      {% for d in declarations %}
+      <tr><td>{{ d.year }}-{{ d.month }}</td><td class="right mono">{{ d.declared_amount|floatformat:0|intcomma }}</td></tr>
+      {% empty %}<tr><td colspan="2" class="muted">Deklaratsiya yuklanmagan.</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <h3>So'nggi 14 kun — xaridorlar va savdo</h3>
+  <canvas id="chart" height="90"></canvas>
+  <p class="muted" style="font-size:12px;margin-top:8px">
+    Kamera ulanmaguncha "xaridorlar" bo'sh; savdo — sotuvchi kiritgan ma'lumot.</p>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h3>Ogohlantirishlar tarixi</h3>
+    <table>
+      <thead><tr><th>Sana</th><th>Sabab</th><th></th></tr></thead>
+      {% for a in alerts %}
+      <tr><td>{{ a.date }}</td><td>{{ a.message }}</td><td><span class="badge {{ a.level }}">{{ a.get_level_display }}</span></td></tr>
+      {% empty %}<tr><td colspan="3" class="muted">Signal yo'q.</td></tr>{% endfor %}
+    </table>
+  </div>
+  <div class="card">
+    <h3>AI sotuv kuzatuvlari (video dalil)</h3>
+    {% if observations %}
+    <table>
+      <thead><tr><th>Vaqt</th><th>Mahsulot</th><th>Ishonch</th></tr></thead>
+      {% for o in observations %}
+      <tr><td>{{ o.timestamp|date:"d.m H:i" }}</td><td>{{ o.product_guess|default:"—" }}</td>
+          <td>{{ o.confidence|floatformat:2 }}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="muted">Kamera ulangach bu yerda AI kuzatuvlari va qisqa video kliplar chiqadi.</p>{% endif %}
+  </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/chart.umd.min.js' %}"></script>
+{{ chart|json_script:"chart-data" }}
+<script>
+try{
+  const d = JSON.parse(document.getElementById('chart-data').textContent);
+  const ctx = document.getElementById('chart');
+  if(window.Chart && ctx){
+    new Chart(ctx,{type:'bar',
+      data:{labels:d.labels,datasets:[
+        {label:'Xaridorlar',data:d.visitors,backgroundColor:'#93c5fd',yAxisID:'y'},
+        {label:'Savdo (so\'m)',data:d.sales,type:'line',borderColor:'#1d4ed8',yAxisID:'y1',tension:.3},
+        {label:'AI taxmini',data:d.estimated,type:'line',borderColor:'#16a34a',borderDash:[5,5],yAxisID:'y1',tension:.3}
+      ]},
+      options:{responsive:true,scales:{
+        y:{position:'left',title:{display:true,text:'Xaridor'}},
+        y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'so\'m'}}
+      }}});
+  }
+}catch(e){console.warn('chart',e)}
+</script>
+{% endblock %}

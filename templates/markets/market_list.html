@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block nav_markets %}active{% endblock %}
+{% block heading %}Bozorlar{% endblock %}
+{% block content %}
+<div class="grid grid-3">
+  {% for c in cards %}
+  <a href="{% url 'markets:detail' c.market.pk %}" class="card" style="color:inherit">
+    <h3>{{ c.market.name }}</h3>
+    <div class="muted">{{ c.market.region }}</div>
+    <div style="margin-top:14px;display:flex;gap:16px">
+      <div><div style="font-size:22px;font-weight:700">{{ c.shop_count }}</div><div class="muted" style="font-size:12px">do'kon</div></div>
+      <div><div style="font-size:22px;font-weight:700;color:var(--red)">{{ c.red }}</div><div class="muted" style="font-size:12px">qizil</div></div>
+      <div><div style="font-size:22px;font-weight:700;color:var(--yellow)">{{ c.yellow }}</div><div class="muted" style="font-size:12px">sariq</div></div>
+    </div>
+  </a>
+  {% empty %}<p class="muted">Bozor topilmadi.</p>{% endfor %}
+</div>
+{% endblock %}

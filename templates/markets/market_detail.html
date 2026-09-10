@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block nav_markets %}active{% endblock %}
+{% block heading %}{{ market.name }}{% endblock %}
+{% block content %}
+<div class="card">
+  <h3>Do'konlar (xavflilar tepada)</h3>
+  <table>
+    <thead><tr><th>Do'kon</th><th>Toifa</th><th>STIR</th><th class="right">Xaridor</th><th class="right">Savdo</th><th>Holat</th></tr></thead>
+    <tbody>
+    {% for s in shops %}
+      <tr class="{% if s.level == 'red' %}row-red{% elif s.level == 'yellow' %}row-yellow{% endif %}">
+        <td><a href="{% url 'markets:shop_detail' s.shop.pk %}">{{ s.shop.name }}</a>
+            <div class="muted" style="font-size:12px">{{ s.shop.owner_name }}</div></td>
+        <td>{{ s.shop.category.name|default:"—" }}</td>
+        <td class="mono">{{ s.shop.stir|default:"—" }}</td>
+        <td class="right mono">{{ s.visitors }}</td>
+        <td class="right mono">{{ s.sales|floatformat:0|intcomma }}</td>
+        <td><span class="badge {{ s.level }}">{{ s.level }}</span></td>
+      </tr>
+    {% empty %}<tr><td colspan="6" class="muted">Do'kon yo'q.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

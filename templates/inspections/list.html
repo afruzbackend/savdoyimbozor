@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block nav_insp %}active{% endblock %}
+{% block heading %}Tekshiruvlar{% endblock %}
+{% block topbar_right %}<a class="btn" href="{% url 'inspections:create' %}">➕ Yangi</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <table>
+    <thead><tr><th>Sana</th><th>Do'kon</th><th>Inspektor</th><th>Natija</th><th class="right">Jarima</th><th>Akt</th></tr></thead>
+    <tbody>
+    {% for i in inspections %}
+      <tr>
+        <td>{{ i.created_at|date:"d.m.Y" }}</td>
+        <td><a href="{% url 'markets:shop_detail' i.shop.pk %}">{{ i.shop.name }}</a></td>
+        <td>{{ i.inspector.get_full_name|default:i.inspector.username|default:"—" }}</td>
+        <td>{% if i.result == 'confirmed' %}<span class="badge red">Tasdiqlandi</span>
+            {% elif i.result == 'false_signal' %}<span class="badge gray">Noto'g'ri signal</span>
+            {% else %}<span class="badge yellow">Jarayonda</span>{% endif %}</td>
+        <td class="right mono">{{ i.fine_amount|floatformat:0|intcomma|default:"—" }}</td>
+        <td class="mono">{{ i.act_number|default:"—" }}</td>
+      </tr>
+    {% empty %}<tr><td colspan="6" class="muted">Tekshiruv yo'q.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

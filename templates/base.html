@@ -1,0 +1,64 @@
+{% load static %}
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>{% block title %}Savdo Nazorat{% endblock %} — AI Bozor Nazorati</title>
+  <meta name="theme-color" content="#0f172a">
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
+</head>
+<body>
+{% if user.is_authenticated %}
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">🛰️ Savdo Nazorat</div>
+    <nav>
+      <a href="{% url 'dashboard:home' %}" class="{% block nav_home %}{% endblock %}">🏠 Bosh sahifa</a>
+      <a href="{% url 'markets:list' %}" class="{% block nav_markets %}{% endblock %}">🏬 Bozorlar</a>
+      <a href="{% url 'analytics:alerts' %}" class="{% block nav_alerts %}{% endblock %}">🚨 Ogohlantirishlar</a>
+      <a href="{% url 'inspections:list' %}" class="{% block nav_insp %}{% endblock %}">📋 Tekshiruvlar</a>
+      <a href="{% url 'cameras:list' %}" class="{% block nav_cam %}{% endblock %}">📷 Kameralar</a>
+      {% if is_manager %}
+      <a href="{% url 'reports:summary' %}" class="{% block nav_rep %}{% endblock %}">📊 Hisobotlar</a>
+      <a href="{% url 'analytics:declaration_upload' %}">📥 Deklaratsiya yuklash</a>
+      <a href="/admin/">⚙️ Boshqaruv</a>
+      {% endif %}
+    </nav>
+    <div class="foot">
+      {{ user.get_full_name|default:user.username }}<br>
+      <span class="muted">{{ user.get_role_display }}</span><br>
+      <a href="{% url 'accounts:logout' %}" style="color:#94a3b8">Chiqish →</a>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <h1>{% block heading %}{% endblock %}</h1>
+      <div>{% block topbar_right %}{% endblock %}</div>
+    </div>
+    <div class="content">
+      {% if messages %}{% for m in messages %}
+        <div class="msg {{ m.tags }}">{{ m }}</div>
+      {% endfor %}{% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+<!-- Mobil pastki menyu (inspektor/sotuvchi PWA) -->
+<nav class="tabbar">
+  <a href="{% url 'dashboard:home' %}"><span class="ic">🏠</span>Asosiy</a>
+  <a href="{% url 'analytics:alerts' %}"><span class="ic">🚨</span>Signal</a>
+  <a href="{% url 'inspections:create' %}"><span class="ic">➕</span>Tekshiruv</a>
+  <a href="{% url 'accounts:profile' %}"><span class="ic">👤</span>Profil</a>
+</nav>
+{% else %}
+  {% block anon_content %}{% endblock %}
+{% endif %}
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register("{% static 'sw.js' %}").catch(()=>{});}
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

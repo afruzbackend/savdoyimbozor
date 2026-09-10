@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block nav_home %}active{% endblock %}
+{% block heading %}Bosh sahifa{% endblock %}
+{% block topbar_right %}<span class="muted">{{ today }}</span>{% endblock %}
+{% block content %}
+
+<div class="grid grid-4" style="margin-bottom:20px">
+  <div class="stat red"><div class="n">{{ red_count }}</div><div class="l">Qizil signal (bugun)</div></div>
+  <div class="stat yellow"><div class="n">{{ new_alert_count }}</div><div class="l">Jami yangi signal</div></div>
+  <div class="stat brand"><div class="n">{{ market_cards|length }}</div><div class="l">Nazoratdagi bozor</div></div>
+  <div class="stat green"><div class="n">{{ camera_online }}/{{ camera_total }}</div><div class="l">Kamera online</div></div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h3>Bozorlar</h3>
+    <table>
+      <thead><tr><th>Bozor</th><th>Do'kon</th><th>🔴</th><th>🟡</th></tr></thead>
+      <tbody>
+      {% for c in market_cards %}
+        <tr>
+          <td><a href="{% url 'markets:detail' c.market.pk %}">{{ c.market.name }}</a></td>
+          <td>{{ c.shop_count }}</td>
+          <td>{% if c.red %}<span class="badge red">{{ c.red }}</span>{% else %}—{% endif %}</td>
+          <td>{% if c.yellow %}<span class="badge yellow">{{ c.yellow }}</span>{% else %}—{% endif %}</td>
+        </tr>
+      {% empty %}<tr><td colspan="4" class="muted">Bozor biriktirilmagan.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>So'nggi ogohlantirishlar</h3>
+    <table>
+      <thead><tr><th>Do'kon</th><th>Sabab</th><th></th></tr></thead>
+      <tbody>
+      {% for a in alerts %}
+        <tr class="{% if a.level == 'red' %}row-red{% elif a.level == 'yellow' %}row-yellow{% endif %}">
+          <td><a href="{% url 'markets:shop_detail' a.shop.pk %}">{{ a.shop.name }}</a>
+              <div class="muted" style="font-size:12px">{{ a.shop.market.name }}</div></td>
+          <td>{{ a.message }}</td>
+          <td><span class="badge {{ a.level }}">{{ a.get_level_display }}</span></td>
+        </tr>
+      {% empty %}<tr><td colspan="3" class="muted">Signal yo'q. 👍</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

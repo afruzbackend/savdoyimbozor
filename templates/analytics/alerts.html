@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block nav_alerts %}active{% endblock %}
+{% block heading %}Ogohlantirishlar{% endblock %}
+{% block content %}
+<div class="pill-row">
+  <a class="badge {% if not level %}gray{% else %}gray{% endif %}" href="?">Barchasi</a>
+  <a class="badge red" href="?level=red">Qizil</a>
+  <a class="badge yellow" href="?level=yellow">Sariq</a>
+  <a class="badge gray" href="?status=new">Yangi</a>
+  <a class="badge gray" href="?status=resolved">Yakunlangan</a>
+</div>
+<div class="card">
+  <table>
+    <thead><tr><th>Sana</th><th>Do'kon</th><th>Bozor</th><th>Sabab</th><th>Daraja</th><th>Holat</th><th></th></tr></thead>
+    <tbody>
+    {% for a in alerts %}
+      <tr class="{% if a.level == 'red' %}row-red{% elif a.level == 'yellow' %}row-yellow{% endif %}">
+        <td>{{ a.date }}</td>
+        <td><a href="{% url 'markets:shop_detail' a.shop.pk %}">{{ a.shop.name }}</a></td>
+        <td class="muted">{{ a.shop.market.name }}</td>
+        <td>{{ a.message }}</td>
+        <td><span class="badge {{ a.level }}">{{ a.get_level_display }}</span></td>
+        <td><span class="badge gray">{{ a.get_status_display }}</span></td>
+        <td><a class="btn gray" style="padding:6px 12px" href="{% url 'inspections:create' %}?alert={{ a.pk }}">Tekshirish</a></td>
+      </tr>
+    {% empty %}<tr><td colspan="7" class="muted">Ogohlantirish yo'q.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

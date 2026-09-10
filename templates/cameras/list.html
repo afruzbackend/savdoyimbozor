@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block nav_cam %}active{% endblock %}
+{% block heading %}Kameralar{% endblock %}
+{% block content %}
+<div class="grid grid-2" style="margin-bottom:20px">
+  <div class="stat green"><div class="n">{{ online_count }}</div><div class="l">Online kameralar</div></div>
+  <div class="stat brand"><div class="n">{{ total_count }}</div><div class="l">Jami kameralar</div></div>
+</div>
+<div class="card">
+  <h3>Kamera holati</h3>
+  {% if cameras %}
+  <table>
+    <thead><tr><th>Kamera</th><th>Bozor</th><th>Holat</th><th>Oxirgi signal</th></tr></thead>
+    <tbody>
+    {% for c in cameras %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td>{{ c.market.name }}</td>
+        <td>{% if c.is_online %}<span class="dot green"></span> Online{% else %}<span class="dot red"></span> Offline{% endif %}</td>
+        <td class="muted">{{ c.last_heartbeat|default:"—" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Hali kamera qo'shilmagan.</p>
+  <div class="msg info" style="margin-top:12px">
+    <b>Kamera qo'shish tayyor.</b> Boshqaruv panelidan (/admin/) kamera qo'shiladi,
+    unga <span class="mono">ingest token</span> beriladi. Bozor serveridagi AI worker
+    o'sha token bilan <span class="mono">POST /api/events/</span> ga hodisa yuboradi.
+    Batafsil: loyihadagi <b>CAMERA_INTEGRATION.md</b> faylida.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

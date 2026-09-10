@@ -1,0 +1,3 @@
+{% load humanize %}
+<div class="msg success">✓ Savdo qo'shildi: <b>{{ sale.total_amount|floatformat:0|intcomma }} so'm</b>. Yangisini kiritishingiz mumkin.</div>
+<script>document.querySelector('input[name=total_amount]').value='';document.querySelector('input[name=total_amount]').focus();</script>

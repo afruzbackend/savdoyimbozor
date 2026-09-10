@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block nav_rep %}active{% endblock %}
+{% block heading %}Hisobot{% endblock %}
+{% block topbar_right %}
+  <a class="btn" href="{% url 'reports:export' %}?start={{ start|date:'Y-m-d' }}&end={{ end|date:'Y-m-d' }}">⬇ Excel</a>
+{% endblock %}
+{% block content %}
+<form method="get" class="card" style="display:flex;gap:12px;align-items:end;margin-bottom:20px">
+  <div style="flex:1"><label>Boshlanish</label><input type="date" name="start" value="{{ start|date:'Y-m-d' }}"></div>
+  <div style="flex:1"><label>Tugash</label><input type="date" name="end" value="{{ end|date:'Y-m-d' }}"></div>
+  <button class="btn">Ko'rsatish</button>
+</form>
+
+<div class="grid grid-4" style="margin-bottom:20px">
+  <div class="stat brand"><div class="n">{{ total_visitors|intcomma }}</div><div class="l">Xaridorlar</div></div>
+  <div class="stat"><div class="n">{{ total_sales|floatformat:0|intcomma }}</div><div class="l">Kiritilgan savdo (so'm)</div></div>
+  <div class="stat red"><div class="n">{{ red_count }}</div><div class="l">Qizil signal</div></div>
+  <div class="stat green"><div class="n">{{ total_fines|floatformat:0|intcomma }}</div><div class="l">Jarima (so'm)</div></div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h3>Signal va tekshiruv</h3>
+    <table>
+      <tr><td>Jami ogohlantirish</td><td class="right mono">{{ alert_count }}</td></tr>
+      <tr><td>Tekshiruvlar</td><td class="right mono">{{ inspection_count }}</td></tr>
+      <tr><td>Tasdiqlangan (savdo yashirilgan)</td><td class="right mono">{{ confirmed }}</td></tr>
+      <tr><td>Noto'g'ri signal</td><td class="right mono">{{ false_signal }}</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>AI aniqligi</h3>
+    {% if accuracy is not None %}
+      <div style="font-size:44px;font-weight:700;color:var(--green)">{{ accuracy }}%</div>
+      <p class="muted">Tasdiqlangan signallar ulushi. Bu raqam yuqoriga taqdim etiladigan asosiy dalil.</p>
+    {% else %}
+      <p class="muted">Aniqlikni hisoblash uchun yetarli tekshiruv yo'q.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

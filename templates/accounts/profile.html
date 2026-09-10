@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block heading %}Profil{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px">
+  <h3>{{ user.get_full_name|default:user.username }}</h3>
+  <p class="muted">Rol: {{ user.get_role_display }}</p>
+  {% if user.assigned_shop %}<p class="muted">Do'kon: {{ user.assigned_shop.name }}</p>{% endif %}
+  {% if user.assigned_market %}<p class="muted">Bozor: {{ user.assigned_market.name }}</p>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <label>Til / Til / Язык</label>
+    <select name="language">
+      <option value="uz" {% if user.language == 'uz' %}selected{% endif %}>O'zbekcha (lotin)</option>
+      <option value="uz-cyrl" {% if user.language == 'uz-cyrl' %}selected{% endif %}>Ўзбекча (кирилл)</option>
+      <option value="ru" {% if user.language == 'ru' %}selected{% endif %}>Русский</option>
+    </select>
+    <button class="btn" style="margin-top:14px">Saqlash</button>
+  </form>
+  <p style="margin-top:20px"><a href="{% url 'accounts:logout' %}">Chiqish →</a></p>
+</div>
+{% endblock %}
