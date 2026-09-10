@@ -14,15 +14,7 @@
     <thead><tr><th>Sana</th><th>Do'kon</th><th>Bozor</th><th>Sabab</th><th>Daraja</th><th>Holat</th><th></th></tr></thead>
     <tbody>
     {% for a in alerts %}
-      <tr class="{% if a.level == 'red' %}row-red{% elif a.level == 'yellow' %}row-yellow{% endif %}">
-        <td>{{ a.date }}</td>
-        <td><a href="{% url 'markets:shop_detail' a.shop.pk %}">{{ a.shop.name }}</a></td>
-        <td class="muted">{{ a.shop.market.name }}</td>
-        <td>{{ a.message }}</td>
-        <td><span class="badge {{ a.level }}">{{ a.get_level_display }}</span></td>
-        <td><span class="badge gray">{{ a.get_status_display }}</span></td>
-        <td><a class="btn gray" style="padding:6px 12px" href="{% url 'inspections:create' %}?alert={{ a.pk }}">Tekshirish</a></td>
-      </tr>
+      {% include "analytics/_alert_row.html" %}
     {% empty %}<tr><td colspan="7" class="muted">Ogohlantirish yo'q.</td></tr>{% endfor %}
     </tbody>
   </table>

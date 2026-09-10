@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from markets.models import Shop
 
@@ -23,6 +24,33 @@ def alert_list(request):
         "level": level or "",
         "status": status or "",
     })
+
+
+@login_required
+@require_POST
+def alert_action(request, pk):
+    """Signal holatini o'zgartirish: menga biriktirish / e'tiborsiz qoldirish.
+
+    HTMX so'rovida yangilangan qatorni qaytaradi, aks holda ro'yxatga qaytadi.
+    """
+    markets = request.user.visible_markets()
+    alert = get_object_or_404(Alert, pk=pk, shop__market__in=markets)
+    action = request.POST.get("action")
+
+    if action == "assign_me":
+        alert.assigned_to = request.user
+        alert.status = Alert.Status.ASSIGNED
+        alert.save(update_fields=["assigned_to", "status"])
+    elif action == "dismiss":
+        alert.status = Alert.Status.DISMISSED
+        alert.save(update_fields=["status"])
+    elif action == "reopen":
+        alert.status = Alert.Status.NEW
+        alert.save(update_fields=["status"])
+
+    if request.htmx:
+        return render(request, "analytics/_alert_row.html", {"a": alert})
+    return redirect("analytics:alerts")
 
 
 @login_required

@@ -130,5 +130,12 @@ def generate_alerts(day: date_cls | None = None):
                 shop=shop, date=day, level=level, message=msg,
                 assigned_to=shop.market.inspectors.first(),
             )
+            # Qizil signal → inspektorga darrov Telegram xabar (token bo'lsa)
+            if level == Alert.Level.RED:
+                try:
+                    from .notifications import notify_alert
+                    notify_alert(alert)
+                except Exception:
+                    pass  # xabar yuborish asosiy oqimni buzmasin
             created.append(alert)
     return created
