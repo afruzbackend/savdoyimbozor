@@ -1,0 +1,30 @@
+{% extends 'seller/base.html' %}
+{% load humanize %}
+{% block title %}Kirim{% endblock %}
+{% block heading %}Kirim (mahsulot kelishi){% endblock %}
+{% block content %}
+<div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
+  <div class="card">
+    <form method="post">{% csrf_token %}
+      <div class="field"><label class="label">Mahsulot</label>
+        <select class="select-native" name="product" required>
+          {% for p in products %}<option value="{{ p.pk }}">{{ p.name }} ({{ p.stock }} {{ p.unit }})</option>{% endfor %}</select></div>
+      <div class="field"><label class="label">Miqdor</label><input class="input num" type="number" step="0.1" name="quantity" required></div>
+      <label class="switch" style="margin-bottom:var(--sp-3)"><input type="checkbox" name="in_packs"><span class="track"></span><span class="thumb"></span>
+        <span>Qopda/qutida (koeffitsient bo'yicha)</span></label>
+      <div class="field"><label class="label">Kelish narxi (birlik)</label><input class="input num" type="number" name="unit_price" value="0"></div>
+      <button class="btn btn-block" type="submit">Kirim qo'shish</button>
+    </form>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">So'nggi kirimlar</div>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Sana</th><th>Mahsulot</th><th class="num">Miqdor</th><th class="num">Narx</th></tr></thead>
+      <tbody>
+      {% for s in recent %}<tr><td class="num">{{ s.created_at|date:"d.m H:i" }}</td><td>{{ s.product.name }}</td>
+        <td class="num">{{ s.quantity }}{% if s.in_packs %} qop{% endif %}</td><td class="num">{{ s.unit_price|intcomma }}</td></tr>
+      {% empty %}<tr><td colspan="4" class="muted">Kirim yo'q.</td></tr>{% endfor %}
+      </tbody></table></div>
+  </div>
+</div>
+{% endblock %}

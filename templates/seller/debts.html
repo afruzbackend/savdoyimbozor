@@ -1,0 +1,37 @@
+{% extends 'seller/base.html' %}
+{% load humanize %}
+{% block title %}Nasiya{% endblock %}
+{% block heading %}Nasiya daftari{% endblock %}
+{% block content %}
+<div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Yangi nasiya</div>
+    <form method="post">{% csrf_token %}
+      <div class="field"><label class="label">Xaridor</label><input class="input" name="customer_name" required></div>
+      <div class="field"><label class="label">Telefon</label><input class="input" name="customer_phone"></div>
+      <div class="field"><label class="label">Summa (so'm)</label><input class="input num" type="number" name="amount" required></div>
+      <div class="field"><label class="label">Izoh</label><input class="input" name="note"></div>
+      <button class="btn btn-block" type="submit">Qo'shish</button>
+    </form>
+  </div>
+  <div class="stack gap-4">
+    <div class="card" style="border-left:3px solid var(--warn)">
+      <small class="muted">Jami nasiya (to'lanmagan)</small>
+      <div class="truth-big num" style="font-size:var(--t-3)">{{ total|intcomma }} so'm</div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-3)">Faol nasiyalar</div>
+      <div class="table-wrap"><table class="data">
+        <thead><tr><th>Xaridor</th><th>Telefon</th><th class="num">Summa</th><th></th></tr></thead>
+        <tbody>
+        {% for d in debts %}
+        <tr><td>{{ d.customer_name }}</td><td class="muted num">{{ d.customer_phone|default:"—" }}</td>
+          <td class="num">{{ d.amount|intcomma }}</td>
+          <td><form method="post">{% csrf_token %}<input type="hidden" name="pay" value="{{ d.pk }}">
+            <button class="btn btn-ghost" style="padding:6px 10px">To'landi</button></form></td></tr>
+        {% empty %}<tr><td colspan="4" class="muted">Nasiya yo'q.</td></tr>{% endfor %}
+        </tbody></table></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

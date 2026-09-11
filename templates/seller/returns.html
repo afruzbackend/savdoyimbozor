@@ -1,0 +1,24 @@
+{% extends 'seller/base.html' %}
+{% load humanize %}
+{% block title %}Qaytarish{% endblock %}
+{% block heading %}Qaytarish{% endblock %}
+{% block content %}
+<div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
+  <div class="card">
+    <form method="post">{% csrf_token %}
+      <div class="field"><label class="label">Summa (so'm)</label><input class="input num" type="number" name="amount" required></div>
+      <div class="field"><label class="label">Sabab</label><input class="input" name="reason" placeholder="masalan: mahsulot yaroqsiz"></div>
+      <button class="btn btn-block" type="submit">Qaytarishni qayd etish</button>
+    </form>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">So'nggi qaytarishlar</div>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Sana</th><th>Sabab</th><th class="num">Summa</th></tr></thead>
+      <tbody>
+      {% for r in recent %}<tr><td class="num">{{ r.created_at|date:"d.m H:i" }}</td><td>{{ r.reason|default:"—" }}</td><td class="num">{{ r.amount|intcomma }}</td></tr>
+      {% empty %}<tr><td colspan="3" class="muted">Qaytarish yo'q.</td></tr>{% endfor %}
+      </tbody></table></div>
+  </div>
+</div>
+{% endblock %}

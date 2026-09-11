@@ -46,6 +46,26 @@ def create_sale_api(request):
 
 
 @api_view(["GET"])
+def product_lookup_api(request):
+    """Skaner uchun: barkod yoki nom bo'yicha mahsulot qidirish (o'z do'koni)."""
+    shop = _seller_shop(request)
+    if shop is None:
+        return Response([], status=200)
+    from apps.catalog.models import Product
+    q = request.GET.get("q", "").strip()
+    qs = Product.objects.filter(shop=shop, is_active=True)
+    if q:
+        exact = qs.filter(barcode=q).first()
+        if exact:
+            return Response([{"id": exact.id, "name": exact.name,
+                              "price": exact.sell_price, "unit": exact.unit}])
+        qs = qs.filter(name__icontains=q)
+    data = [{"id": p.id, "name": p.name, "price": p.sell_price, "unit": p.unit}
+            for p in qs[:20]]
+    return Response(data)
+
+
+@api_view(["GET"])
 def today_summary_api(request):
     """Bugungi savdo yig'indisi (sotuvchi bosh sahifasi uchun)."""
     shop = _seller_shop(request)

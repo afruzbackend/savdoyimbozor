@@ -1,19 +1,10 @@
-{% extends 'shell.html' %}
+{% extends 'seller/base.html' %}
 {% load static humanize %}
 {% block title %}Sotuvchi — Bosh sahifa{% endblock %}
 {% block heading %}Bosh sahifa{% endblock %}
-
-{% block nav %}
-<a class="navlink active" href="{% url 'seller:home' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg> Bosh sahifa</a>
-<a class="navlink" href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Sotuv</a>
-<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg> Kirim</a>
-<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg> Hisobot</a>
-{% endblock %}
-
 {% block topbar_actions %}
-<a class="btn" href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Yangi sotuv</a>
+<a class="btn" href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg> Yangi sotuv</a>
 {% endblock %}
-
 {% block content %}
 <div class="grid grid-2" style="margin-bottom:var(--sp-4)">
   <div class="card">
@@ -28,6 +19,13 @@
   </div>
 </div>
 
+{% if low_stock %}
+<div class="card" style="margin-bottom:var(--sp-4);border-left:3px solid var(--warn)">
+  <div class="card-title" style="margin-bottom:var(--sp-2)">Kam qolgan mahsulotlar</div>
+  {% for p in low_stock %}<span class="badge badge-warn" style="margin:2px">{{ p.name }}: {{ p.stock }}</span>{% endfor %}
+</div>
+{% endif %}
+
 <div class="card">
   <div class="card-header"><span class="card-title">So'nggi sotuvlar</span></div>
   {% if recent %}
@@ -36,12 +34,10 @@
       <thead><tr><th>Vaqt</th><th>To'lov</th><th class="num">Chegirma</th><th class="num">Summa</th></tr></thead>
       <tbody>
       {% for s in recent %}
-        <tr>
-          <td class="num">{{ s.created_at|date:"H:i" }}</td>
+        <tr><td class="num">{{ s.created_at|date:"H:i" }}</td>
           <td>{{ s.get_payment_type_display }}{% if s.is_wholesale %} · ulgurji{% endif %}</td>
           <td class="num">{% if s.discount %}{{ s.discount|intcomma }}{% else %}—{% endif %}</td>
-          <td class="num"><b>{{ s.total|intcomma }}</b></td>
-        </tr>
+          <td class="num"><b>{{ s.total|intcomma }}</b></td></tr>
       {% endfor %}
       </tbody>
     </table>
@@ -55,11 +51,4 @@
   </div>
   {% endif %}
 </div>
-{% endblock %}
-
-{% block bottom_nav %}
-<a href="{% url 'seller:home' %}" class="active"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg>Asosiy</a>
-<a href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg>Sotuv</a>
-<a href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg>Kirim</a>
-<a href="{% url 'profile' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg>Profil</a>
 {% endblock %}

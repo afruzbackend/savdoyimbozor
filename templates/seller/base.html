@@ -1,0 +1,20 @@
+{% extends 'shell.html' %}
+{% load static %}
+{% block nav %}
+<a class="navlink {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'seller:home' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg> Bosh sahifa</a>
+<a class="navlink {% if request.resolver_match.url_name == 'sale' %}active{% endif %}" href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg> Tez sotuv</a>
+<a class="navlink {% if request.resolver_match.url_name == 'scan' %}active{% endif %}" href="{% url 'seller:scan' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Skaner sotuv</a>
+<a class="navlink {% if request.resolver_match.url_name == 'stock_in' %}active{% endif %}" href="{% url 'seller:stock_in' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg> Kirim</a>
+<a class="navlink {% if request.resolver_match.url_name == 'products' %}active{% endif %}" href="{% url 'seller:products' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-store"></use></svg> Mahsulotlar</a>
+<a class="navlink {% if request.resolver_match.url_name == 'daily_close' %}active{% endif %}" href="{% url 'seller:daily_close' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Kun yakuni</a>
+<a class="navlink {% if request.resolver_match.url_name == 'returns' %}active{% endif %}" href="{% url 'seller:returns' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-rotate-ccw"></use></svg> Qaytarish</a>
+<a class="navlink {% if request.resolver_match.url_name == 'writeoff' %}active{% endif %}" href="{% url 'seller:writeoff' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-trash-2"></use></svg> Hisobdan chiqarish</a>
+<a class="navlink {% if request.resolver_match.url_name == 'debts' %}active{% endif %}" href="{% url 'seller:debts' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-wallet"></use></svg> Nasiya</a>
+<a class="navlink {% if request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'seller:report' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg> Hisobot</a>
+{% endblock %}
+{% block bottom_nav %}
+<a href="{% url 'seller:home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg>Asosiy</a>
+<a href="{% url 'seller:sale' %}" class="{% if request.resolver_match.url_name == 'sale' %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg>Sotuv</a>
+<a href="{% url 'seller:stock_in' %}" class="{% if request.resolver_match.url_name == 'stock_in' %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg>Kirim</a>
+<a href="{% url 'seller:report' %}" class="{% if request.resolver_match.url_name == 'report' %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg>Hisobot</a>
+{% endblock %}

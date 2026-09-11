@@ -1,0 +1,55 @@
+{% extends 'seller/base.html' %}
+{% load static humanize %}
+{% block title %}Hisobot{% endblock %}
+{% block heading %}Mening hisobotim{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:var(--sp-4)">
+  <div class="card center">
+    <small class="muted">Rostlik darajasi</small>
+    {% if latest %}<div class="truth-big" style="color:var({% if latest.truth_pct >= 80 %}--ok{% elif latest.truth_pct >= 50 %}--warn{% else %}--bad{% endif %})">{{ latest.truth_pct }}%</div>
+    {% else %}<div class="truth-big">—</div>{% endif %}
+  </div>
+  <div class="card center"><small class="muted">14 kunlik savdo</small><div class="truth-big num" style="font-size:var(--t-3)">{{ revenue|intcomma }}</div><small class="muted">so'm</small></div>
+  <div class="card center"><small class="muted">Taxminiy foyda</small><div class="truth-big num" style="font-size:var(--t-3);color:var(--ok)">{{ profit|intcomma }}</div><small class="muted">so'm</small></div>
+</div>
+
+<div class="grid" style="grid-template-columns:1fr 340px;gap:var(--sp-4);align-items:start">
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Rostlik va savdo (14 kun)</div>
+    <canvas id="repChart" height="110"></canvas>
+  </div>
+  <div class="stack gap-4">
+    <div class="card" style="background:var(--brand-50);border-color:var(--primary)">
+      <div class="row gap-2" style="align-items:flex-start">
+        <img class="emoji" src="{% static 'emoji/star.svg' %}" alt="" style="width:24px;height:24px">
+        <div><div style="font-weight:600">Qanday oshiraman?</div>
+          <p class="muted" style="margin:4px 0 0">{{ advice }}</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-2)">Rostlik tarkibi</div>
+      {% for p in parts %}
+      <div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:var(--t--1)">
+        <span>{{ p.label }}</span><span class="num" style="font-weight:600">{% if p.value is not None %}{{ p.value }}%{% else %}—{% endif %}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/chart.umd.min.js' %}"></script>
+{{ chart|json_script:"rep-data" }}
+<script>
+  (function(){ const d=JSON.parse(document.getElementById('rep-data').textContent);
+    const ctx=document.getElementById('repChart'); if(!ctx||!window.Chart) return;
+    const css=getComputedStyle(document.documentElement); const c=n=>css.getPropertyValue(n).trim();
+    new Chart(ctx,{data:{labels:d.labels,datasets:[
+      {type:'bar',label:'Savdo',data:d.entered,backgroundColor:c('--brand-300')},
+      {type:'line',label:'Rostlik %',data:d.truth,borderColor:c('--ok'),yAxisID:'y1',tension:.3,borderWidth:2,pointRadius:2}
+    ]},options:{responsive:true,scales:{y:{ticks:{callback:v=>(v/1000000)+'M'}},
+      y1:{position:'right',min:0,max:100,grid:{drawOnChartArea:false}}},
+      plugins:{legend:{labels:{boxWidth:12,font:{size:11}}}}}});
+  })();
+</script>
+{% endblock %}

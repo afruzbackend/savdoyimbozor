@@ -1,0 +1,86 @@
+{% extends 'seller/base.html' %}
+{% load static %}
+{% block title %}Skaner sotuv{% endblock %}
+{% block heading %}Skaner sotuv{% endblock %}
+{% block topbar_actions %}<a class="btn btn-ghost" href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg> Tez rejim</a>{% endblock %}
+{% block content %}
+<div x-data="scanSale()" style="max-width:560px;margin:0 auto">
+  <div class="card" style="margin-bottom:var(--sp-4)">
+    <label class="label">Barkod yoki nom</label>
+    <div class="row gap-2">
+      <input class="input" x-model="q" @input.debounce.250ms="search()" @keydown.enter="quickAdd()"
+             placeholder="Barkodni skanerlang yoki nom yozing" autofocus x-ref="scan">
+    </div>
+    <div x-show="results.length" x-cloak style="margin-top:var(--sp-2);border:1px solid var(--border);border-radius:var(--r-sm)">
+      <template x-for="r in results" :key="r.id">
+        <div class="option" @click="add(r)"><span x-text="r.name"></span>
+          <span class="num muted" x-text="fmt(r.price)+' so\'m'"></span></div>
+      </template>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--sp-4)">
+    <div class="card-title" style="margin-bottom:var(--sp-2)">Savat</div>
+    <template x-if="!cart.length"><p class="muted">Bo'sh. Mahsulot qo'shing.</p></template>
+    <template x-for="(it,idx) in cart" :key="idx">
+      <div class="row" style="justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div class="grow"><div x-text="it.name" style="font-weight:600"></div>
+          <small class="muted"><span class="num" x-text="fmt(it.price)"></span> × </small>
+          <input class="input" style="width:70px;display:inline-block;padding:4px 8px" type="number" step="0.1" x-model.number="it.qty">
+        </div>
+        <div class="num" style="font-weight:700;align-self:center" x-text="fmt(it.price*it.qty)"></div>
+        <button class="btn-quiet btn-icon" @click="cart.splice(idx,1)"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg></button>
+      </div>
+    </template>
+  </div>
+
+  <div class="card" style="text-align:center">
+    <small class="muted">Jami</small>
+    <div class="truth-big num" style="font-size:var(--t-4)" x-text="fmt(total)+' so\'m'"></div>
+    <div class="row gap-2 wrap-flex" style="justify-content:center;margin:var(--sp-3) 0" x-show="subtotal>0">
+      <template x-for="b in discountButtons" :key="b">
+        <button class="chip" @click="addDiscount(b)">−<span x-text="fmtK(b)"></span></button></template>
+      <button class="chip" @click="discount=0" x-show="discount>0">Bekor</button>
+    </div>
+    <div class="segmented" style="margin-bottom:var(--sp-3)">
+      <button :aria-selected="pay==='cash'" @click="pay='cash'">Naqd</button>
+      <button :aria-selected="pay==='card'" @click="pay='card'">Karta</button>
+      <button :aria-selected="pay==='transfer'" @click="pay='transfer'">O'tkazma</button>
+    </div>
+    <button class="btn btn-lg btn-block" :disabled="total<=0||saving" @click="submit()">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>
+      <span x-text="saving?'Saqlanmoqda...':'Sotildi'"></span></button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  window.__PRICING__ = {{ pricing_config|safe }};
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('scanSale', () => ({
+      cfg: window.__PRICING__, q: '', results: [], cart: [], discount: 0, pay: 'cash', saving: false,
+      fmt(n){ return window.BN.fmt(Math.round(n)); },
+      fmtK(n){ return n>=1000 ? (n/1000)+'k' : n; },
+      get subtotal(){ return Math.round(this.cart.reduce((s,i)=>s+i.price*i.qty,0)); },
+      get total(){ return Math.max(0, this.subtotal - this.discount); },
+      get discountButtons(){ for(const [l,b] of this.cfg.discount_tiers){ if(l===null||this.subtotal<=l) return b; } return []; },
+      async search(){ if(!this.q){ this.results=[]; return; }
+        const r = await fetch('/api/products/lookup/?q='+encodeURIComponent(this.q));
+        this.results = r.ok ? await r.json() : []; },
+      add(r){ const e=this.cart.find(c=>c.id===r.id); if(e) e.qty++; else this.cart.push({id:r.id,name:r.name,price:r.price,qty:1});
+        this.q=''; this.results=[]; this.$refs.scan.focus(); },
+      async quickAdd(){ await this.search(); if(this.results.length) this.add(this.results[0]); },
+      addDiscount(b){ const cap=Math.floor(this.subtotal*this.cfg.max_discount_no_cost_pct/100); this.discount=Math.min(this.discount+b,cap); },
+      async submit(){ if(this.total<=0) return; this.saving=true;
+        const body={ items:this.cart.map(i=>({product_id:i.id,name:i.name,qty:i.qty,unit_price:i.price})),
+          discount:this.discount, rounding:0, payment_type:this.pay, mode:'scan', client_ts:new Date().toISOString() };
+        try{ const r=await fetch('/api/sales/',{method:'POST',headers:{'Content-Type':'application/json',
+          'X-CSRFToken':document.cookie.match(/csrftoken=([^;]+)/)?.[1]||''},body:JSON.stringify(body)});
+          if(!r.ok) throw new Error(); const d=await r.json();
+          window.toast('Sotildi: '+window.BN.fmt(d.total)+' so\'m','ok'); this.cart=[]; this.discount=0; this.$refs.scan.focus();
+        }catch(e){ window.toast('Xatolik — qayta urinib ko\'ring','bad'); } finally{ this.saving=false; } },
+    }));
+  });
+</script>
+{% endblock %}

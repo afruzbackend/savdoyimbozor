@@ -1,14 +1,8 @@
-{% extends 'shell.html' %}
+{% extends 'seller/base.html' %}
 {% load static %}
-{% block title %}Sotuv{% endblock %}
+{% block title %}Tez sotuv{% endblock %}
 {% block heading %}Tez sotuv{% endblock %}
-
-{% block nav %}
-<a class="navlink" href="{% url 'seller:home' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg> Bosh sahifa</a>
-<a class="navlink active" href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Sotuv</a>
-<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg> Kirim</a>
-<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg> Hisobot</a>
-{% endblock %}
+{% block topbar_actions %}<a class="btn btn-ghost" href="{% url 'seller:scan' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Skaner</a>{% endblock %}
 
 {% block content %}
 <div x-data="saleScreen()" x-init="init()" style="max-width:460px;margin:0 auto">
@@ -71,13 +65,6 @@
     <span x-text="saving?'Saqlanmoqda...':'Sotildi'"></span>
   </button>
 </div>
-{% endblock %}
-
-{% block bottom_nav %}
-<a href="{% url 'seller:home' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg>Asosiy</a>
-<a href="{% url 'seller:sale' %}" class="active"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg>Sotuv</a>
-<a href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg>Kirim</a>
-<a href="{% url 'profile' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg>Profil</a>
 {% endblock %}
 
 {% block extra_js %}
