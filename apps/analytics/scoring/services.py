@@ -130,6 +130,29 @@ def _cash_declared(shop, day):
     return sum(c.amount for c in CashRecord.objects.filter(shop=shop, date=day))
 
 
+def _stock_estimate(shop, day):
+    """Qoldiq bo'yicha sotilgan qiymat: kun yakuni (DailyClose) asosida.
+
+    Σ(ertalab + kirim + qaytgan − chiqarilgan − kechqurun) × narx.
+    Kun yakuni kiritilmagan bo'lsa None (qoldiq qismi hisobga olinmaydi).
+    """
+    from apps.sales.models import DailyClose, SaleReturn, StockIn, WriteOff
+    close = DailyClose.objects.filter(shop=shop, date=day).prefetch_related("lines").first()
+    if not close:
+        return None
+    value = 0
+    for line in close.lines.all():
+        sold_qty = float(line.morning_qty) - float(line.evening_qty)
+        if sold_qty > 0:
+            value += int(sold_qty * line.unit_price)
+    # Kun ichidagi kirim qo'shiladi, hisobdan chiqarish/qaytarish tuzatiladi
+    stock_in = sum(int(float(s.quantity) * s.unit_price)
+                   for s in StockIn.objects.filter(shop=shop, created_at__date=day))
+    value += stock_in
+    # (WriteOff/SaleReturn summasi kelajakda narx bilan aniqroq ulanadi)
+    return value if value > 0 else None
+
+
 def _camera_estimate(shop, day, buyer_ratio):
     """Kamera bahosi: tashriflar × buyer_ratio × o'rtacha chek. Kamera bo'lmasa None."""
     from apps.cameras.models import CameraEvent
@@ -167,12 +190,13 @@ def recompute_for_date(day) -> int:
         entered = _entered_sales(shop, day)
         cash = _cash_declared(shop, day)
         cam = _camera_estimate(shop, day, cfg.buyer_ratio)
+        stock_val = _stock_estimate(shop, day)
         price_val = _shop_price_score(shop, medians_by_market.get(shop.market_id, {}))
 
         parts = {
             "cash": match(cash, entered),
             "camera": match(cam, entered) if cam is not None else None,
-            "stock": None,  # DailyClose asosida keyin
+            "stock": match(stock_val, entered) if stock_val is not None else None,
             "price": price_val,
         }
         result = weighted_truth(parts, weights,

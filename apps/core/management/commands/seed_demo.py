@@ -19,7 +19,7 @@ from apps.analytics.scoring.services import recompute_for_date
 from apps.cash.models import CashRecord
 from apps.catalog.models import Product, ProductCategory, ShopCategory, Unit
 from apps.geo.models import Market, Region, Row
-from apps.sales.models import Sale, SaleItem
+from apps.sales.models import DailyClose, DailyCloseLine, Sale, SaleItem
 from apps.shops.models import Shop
 
 User = get_user_model()
@@ -55,8 +55,9 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         random.seed(2026)
         if opts["reset"]:
-            for M in (SaleItem, Sale, CashRecord, Alert, DailyScore, MarketPrice,
-                      Product, Shop, Row, ProductCategory, ShopCategory, Market, Region):
+            for M in (DailyCloseLine, DailyClose, SaleItem, Sale, CashRecord, Alert,
+                      DailyScore, MarketPrice, Product, Shop, Row, ProductCategory,
+                      ShopCategory, Market, Region):
                 M.objects.all().delete()
             self.stdout.write("Eski ma'lumot tozalandi.")
 
@@ -101,9 +102,10 @@ class Command(BaseCommand):
                 shops.append((shop, scat))
                 num += 1
 
-        # Yashiruvchilar: 3 ta kassa yashiradi, 1 ta narx past
+        # Yashiruvchilar: kassa / narx / qoldiq
         cash_hiders = {shops[0][0].id, shops[9][0].id, shops[15][0].id}
         price_hider = shops[3][0].id
+        stock_hiders = {shops[6][0].id, shops[18][0].id}  # kun yakunida qoldiqni yashiradi
         # Narx yashiruvchisi: har mahsulotni bozor narxining ~42% ига tushiradi
         price_map = {pn: pr for prods in CATALOG.values() for pn, _u, pr in prods}
         for p in Product.objects.filter(shop_id=price_hider):
@@ -125,6 +127,7 @@ class Command(BaseCommand):
             for shop, scat in shops:
                 self._gen_day(shop, scat, day, prod_cats,
                               is_cash_hider=shop.id in cash_hiders)
+                self._gen_close(shop, day, is_stock_hider=shop.id in stock_hiders)
 
         # Rostlik + signal
         for d in range(opts["days"]):
@@ -165,6 +168,30 @@ class Command(BaseCommand):
         CashRecord.objects.update_or_create(
             shop=shop, date=day, source="excel",
             defaults={"amount": int(entered * factor)})
+
+    def _gen_close(self, shop, day, is_stock_hider):
+        """Kun yakuni: sotilgan miqdorni qoldiqqa aylantiradi. Yashiruvchi kam ko'rsatadi."""
+        from django.db.models import Sum
+        rows = (SaleItem.objects
+                .filter(sale__shop=shop, sale__created_at__date=day, product__isnull=False)
+                .values("product", "product_name", "unit_price")
+                .annotate(q=Sum("quantity")))
+        if not rows:
+            return
+        factor = random.uniform(0.3, 0.45) if is_stock_hider else random.uniform(0.95, 1.0)
+        close, _ = DailyClose.objects.update_or_create(shop=shop, date=day)
+        close.lines.all().delete()
+        computed = 0
+        for r in rows:
+            sold = float(r["q"]) * factor          # ko'rsatilgan sotuv (qoldiq harakati)
+            computed += int(sold * r["unit_price"])
+            DailyCloseLine.objects.create(
+                close=close, product_id=r["product"], product_name=r["product_name"],
+                morning_qty=sold, evening_qty=0, unit_price=r["unit_price"])
+        entered = sum(s.total for s in Sale.objects.filter(shop=shop, created_at__date=day))
+        close.computed_sales = computed
+        close.entered_sales = entered
+        close.save(update_fields=["computed_sales", "entered_sales"])
 
     def _user(self, username, full, role, is_super=False, shop=None, is_owner=False):
         u, _ = User.objects.get_or_create(username=username, defaults={
