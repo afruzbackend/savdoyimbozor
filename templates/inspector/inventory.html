@@ -1,0 +1,41 @@
+{% extends 'inspector/base.html' %}
+{% load static humanize %}
+{% block title %}Joriy ombor{% endblock %}
+{% block heading %}Joriy ombor{% endblock %}
+{% block content %}
+{% if markets.count > 1 %}
+<div class="segmented" style="margin-bottom:var(--sp-4)" data-noloc>
+  {% for m in markets %}
+  <a href="{% url 'inspector:inventory_market' m.pk %}"><button {% if market and m.pk == market.pk %}aria-selected="true"{% endif %}>{{ m.name }}</button></a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="grid grid-2" style="margin-bottom:var(--sp-4)">
+  <div class="card"><small class="muted">Bozordagi umumiy ombor qiymati</small>
+    <div class="truth-big num" style="font-size:var(--t-3)">{{ total_value|intcomma }}</div><small class="muted">so'm</small></div>
+  <div class="card"><small class="muted">Mahsulot turlari (qoldiqda)</small>
+    <div class="truth-big num" style="font-size:var(--t-3)">{{ total_items|intcomma }}</div></div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">{{ market.name }} — do'konlar ombori</span>
+    <small class="muted">Yong'in/nazorat holatida: qaysi do'konda qancha mahsulot bor</small></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Do'kon</th><th>Egasi</th><th class="num">Turlari</th><th class="num">Ombor qiymati (so'm)</th><th></th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+      <tr>
+        <td><a href="{% url 'inspector:shop_inventory' r.shop.pk %}">№{{ r.shop.number }}</a></td>
+        <td>{{ r.shop.owner_name }}</td>
+        <td class="num">{{ r.items }}</td>
+        <td class="num"><b>{{ r.value|intcomma }}</b></td>
+        <td><a class="btn btn-ghost" style="padding:6px 10px" href="{% url 'inspector:shop_inventory' r.shop.pk %}">Ro'yxat</a></td>
+      </tr>
+      {% empty %}<tr><td colspan="5" class="muted">Ma'lumot yo'q.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

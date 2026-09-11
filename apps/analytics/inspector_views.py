@@ -351,6 +351,57 @@ def appeal_respond(request, pk):
 
 
 @login_required
+def inventory(request, pk=None):
+    """Joriy ombor — har do'konda hozir qancha mahsulot bor (yong'in/nazorat uchun).
+
+    Prokuratura ssenariysi: "bozor yondi, qaysi do'konda qancha mahsulot bor edi".
+    """
+    from apps.catalog.models import Product
+
+    markets = Market.objects.filter(id__in=_visible_shops(request).values("market_id")).distinct()
+    market = get_object_or_404(markets, pk=pk) if pk else markets.first()
+    rows = []
+    total_value = total_items = 0
+    if market:
+        for shop in market.shops.filter(is_active=True).order_by("number"):
+            prods = list(Product.objects.filter(shop=shop, is_active=True))
+            value = sum(int(p.stock * p.sell_price) for p in prods)
+            items = sum(1 for p in prods if p.stock > 0)
+            total_value += value
+            total_items += items
+            rows.append({"shop": shop, "value": value, "items": items, "products": len(prods)})
+        rows.sort(key=lambda r: r["value"], reverse=True)
+    return render(
+        request,
+        "inspector/inventory.html",
+        {
+            "markets": markets,
+            "market": market,
+            "rows": rows,
+            "total_value": total_value,
+            "total_items": total_items,
+        },
+    )
+
+
+@login_required
+def shop_inventory(request, pk):
+    """Bitta do'kon joriy ombori — mahsulotlar ro'yxati (miqdor + qiymat)."""
+    from apps.catalog.models import Product
+
+    shop = get_object_or_404(_visible_shops(request), pk=pk)
+    prods = list(Product.objects.filter(shop=shop, is_active=True).order_by("-stock"))
+    for p in prods:
+        p.line_value = int(p.stock * p.sell_price)
+    total = sum(p.line_value for p in prods)
+    return render(
+        request,
+        "inspector/shop_inventory.html",
+        {"shop": shop, "products": prods, "total": total},
+    )
+
+
+@login_required
 def cameras_status(request):
     shops = _visible_shops(request)
     cams = Camera.objects.filter(market__in=shops.values("market_id")).select_related(
