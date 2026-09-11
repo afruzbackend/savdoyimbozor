@@ -1,0 +1,39 @@
+{% extends 'panel/base.html' %}
+{% load static %}
+{% block title %}Hisob ochish{% endblock %}
+{% block heading %}Hisob ochish{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px" x-data="{role:'seller'}">
+  <form method="post">
+    {% csrf_token %}
+    <div class="field"><label class="label">Rol</label>
+      <div class="segmented">
+        <button type="button" :aria-selected="role==='seller'" @click="role='seller'">Sotuvchi</button>
+        <button type="button" :aria-selected="role==='inspector'" @click="role='inspector'">Tekshiruvchi</button>
+      </div>
+      <input type="hidden" name="role" :value="role">
+    </div>
+    <div class="field"><label class="label">F.I.O.</label>
+      <input class="input" name="full_name" placeholder="Ism Familiya"></div>
+    <div class="field"><label class="label">Telefon</label>
+      <input class="input" name="phone" placeholder="+998..."></div>
+
+    <div x-show="role==='seller'" x-cloak>
+      <div class="field"><label class="label">Do'kon (sotuvchisiz)</label>
+        <select class="select-native" name="shop">
+          {% for s in shops %}<option value="{{ s.pk }}">№{{ s.number }} — {{ s.owner_name }} ({{ s.market.name }})</option>{% endfor %}
+        </select>
+        <div class="hint">Login avtomatik: STIR-do'kon raqami. Vaqtinchalik parol beriladi.</div>
+      </div>
+    </div>
+    <div x-show="role==='inspector'" x-cloak>
+      <div class="field"><label class="label">Biriktirilgan bozorlar</label>
+        <div class="stack gap-1">
+        {% for m in markets %}<label class="check"><input type="checkbox" name="markets" value="{{ m.pk }}"> {{ m.name }}</label>{% endfor %}
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-lg" type="submit">Hisob ochish</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends 'shell.html' %}
+{% load static %}
+{% block nav %}
+<a class="navlink {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'panel:home' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-layout-dashboard"></use></svg> Boshqaruv</a>
+<a class="navlink {% if request.resolver_match.url_name == 'users' %}active{% endif %}" href="{% url 'panel:users' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-users"></use></svg> Foydalanuvchilar</a>
+<a class="navlink {% if request.resolver_match.url_name == 'account_create' %}active{% endif %}" href="{% url 'panel:account_create' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-plus"></use></svg> Hisob ochish</a>
+<a class="navlink {% if request.resolver_match.url_name == 'import_shops' %}active{% endif %}" href="{% url 'panel:import_shops' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-store"></use></svg> Do'kon import</a>
+<a class="navlink {% if request.resolver_match.url_name == 'import_cash' %}active{% endif %}" href="{% url 'panel:import_cash' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-file-text"></use></svg> Kassa import</a>
+<a class="navlink {% if request.resolver_match.url_name == 'settings' %}active{% endif %}" href="{% url 'panel:settings' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-settings"></use></svg> Sozlamalar</a>
+<a class="navlink {% if request.resolver_match.url_name == 'audit' %}active{% endif %}" href="{% url 'panel:audit' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-eye"></use></svg> Audit jurnali</a>
+<a class="navlink" href="/django-admin/"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg> Texnik admin</a>
+{% endblock %}
+{% block bottom_nav %}
+<a href="{% url 'panel:home' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-layout-dashboard"></use></svg>Panel</a>
+<a href="{% url 'panel:users' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-users"></use></svg>Hisob</a>
+<a href="{% url 'panel:settings' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-settings"></use></svg>Sozlama</a>
+<a href="{% url 'profile' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg>Profil</a>
+{% endblock %}

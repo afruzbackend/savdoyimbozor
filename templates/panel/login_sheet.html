@@ -1,0 +1,50 @@
+{% extends 'panel/base.html' %}
+{% load static %}
+{% block title %}Login varaqasi{% endblock %}
+{% block heading %}Login varaqalari{% endblock %}
+{% block topbar_actions %}
+  <button class="btn" onclick="window.print()"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Chop etish</button>
+{% endblock %}
+{% block head %}
+<style>
+  .sheet{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--sp-4)}
+  .ticket{border:1px solid var(--border-strong);border-radius:var(--r);padding:var(--sp-4);
+    position:relative;overflow:hidden}
+  .ticket .koshin{color:var(--brand-600);opacity:.05}
+  .ticket h3{margin:0 0 4px}
+  .cred{font-family:var(--font-serif);font-size:var(--t-2);font-weight:700;letter-spacing:.02em}
+  .cred-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border)}
+  @media print{
+    .sidebar,.topbar,.bottom-nav{display:none!important}
+    .content{padding:0;max-width:100%}
+    body{background:#fff}
+    .ticket{break-inside:avoid;box-shadow:none}
+    .sheet{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+{% endblock %}
+{% block content %}
+{% if creds %}
+<div class="msg info" style="margin-bottom:var(--sp-4)">
+  Bu parollar faqat bir marta ko'rsatiladi. Chop etib sotuvchilarga bering — birinchi
+  kirishda ular yangi parol o'rnatadi.</div>
+<div class="sheet">
+  {% for c in creds %}
+  <div class="ticket">
+    {% include 'components/_koshin.html' %}
+    <div style="position:relative">
+      <h3>{{ c.name|default:"Sotuvchi" }}</h3>
+      <small class="muted">{{ c.shop }}</small>
+      <div class="cred-row" style="margin-top:12px"><span class="muted">Login</span><span class="cred">{{ c.login }}</span></div>
+      <div class="cred-row"><span class="muted">Parol</span><span class="cred">{{ c.password }}</span></div>
+      <small class="faint" style="display:block;margin-top:10px">Bozor Nazorat tizimi · birinchi kirishda parolni almashtiring</small>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty"><img class="emoji-xl" src="{% static 'emoji/box.svg' %}" alt="">
+  <h3>Varaqa bo'sh</h3><p class="muted">Hisob ochilgach login varaqalari shu yerda chiqadi.</p>
+  <a class="btn" href="{% url 'panel:account_create' %}">Hisob ochish</a></div>
+{% endif %}
+{% endblock %}

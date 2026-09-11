@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Ruxsat yo'q{% endblock %}
+{% block body %}
+<div style="min-height:100vh;display:grid;place-items:center;padding:var(--sp-5)">
+  <div class="card center" style="max-width:420px">
+    <h2>Ruxsat yo'q</h2>
+    <p class="muted">Bu bo'lim faqat super admin uchun.</p>
+    <a class="btn" href="{% url 'profile' %}">Profil</a>
+  </div>
+</div>
+{% endblock %}

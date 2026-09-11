@@ -1,0 +1,15 @@
+{% extends 'panel/base.html' %}
+{% block title %}Kassa import{% endblock %}
+{% block heading %}Kassa / deklaratsiya yuklash{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px">
+  <p class="muted">Ustunlar tartibi (1-qator sarlavha): <b>STIR · Sana (YYYY-MM-DD) · Summa</b></p>
+  <p class="hint">Yuklangach tegishli kunlar bo'yicha rostlik darajasi avtomatik qayta hisoblanadi.</p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="field"><label class="label">Excel fayl (.xlsx)</label>
+      <input class="input" type="file" name="file" accept=".xlsx" required></div>
+    <button class="btn btn-lg" type="submit">Yuklash va hisoblash</button>
+  </form>
+</div>
+{% endblock %}

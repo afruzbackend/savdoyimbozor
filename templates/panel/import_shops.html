@@ -1,0 +1,21 @@
+{% extends 'panel/base.html' %}
+{% block title %}Do'kon import{% endblock %}
+{% block heading %}Do'konlarni Excel'dan yuklash{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px">
+  <p class="muted">Ustunlar tartibi (1-qator sarlavha): <b>Raqam · STIR · Egasi · Telefon · Toifa · Qator</b></p>
+  <p class="hint">Har do'kon uchun avtomatik sotuvchi hisobi ochiladi. Yuklashdan so'ng
+     login varaqasi (chop etish uchun) ko'rsatiladi.</p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="field"><label class="label">Bozor</label>
+      <select class="select-native" name="market" required>
+        {% for m in markets %}<option value="{{ m.pk }}">{{ m.name }} ({{ m.region.name }})</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field"><label class="label">Excel fayl (.xlsx)</label>
+      <input class="input" type="file" name="file" accept=".xlsx" required></div>
+    <button class="btn btn-lg" type="submit">Yuklash</button>
+  </form>
+</div>
+{% endblock %}

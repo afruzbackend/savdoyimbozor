@@ -1,0 +1,38 @@
+{% extends 'panel/base.html' %}
+{% load static %}
+{% block title %}Foydalanuvchilar{% endblock %}
+{% block heading %}Foydalanuvchilar{% endblock %}
+{% block topbar_actions %}<a class="btn" href="{% url 'panel:account_create' %}">+ Hisob ochish</a>{% endblock %}
+{% block content %}
+<form method="get" class="row gap-2" style="margin-bottom:var(--sp-4)">
+  <input class="input" name="q" value="{{ q }}" placeholder="Login qidirish..." style="max-width:240px">
+  <a class="chip" href="?" {% if not role %}aria-pressed="true"{% endif %}>Barchasi</a>
+  <a class="chip" href="?role=seller" {% if role == 'seller' %}aria-pressed="true"{% endif %}>Sotuvchi</a>
+  <a class="chip" href="?role=inspector" {% if role == 'inspector' %}aria-pressed="true"{% endif %}>Inspektor</a>
+</form>
+<div class="card">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Login</th><th>F.I.O.</th><th>Rol</th><th>Do'kon</th><th>Holat</th><th></th></tr></thead>
+      <tbody>
+      {% for u in users %}
+      <tr>
+        <td class="num">{{ u.username }}</td>
+        <td>{{ u.get_full_name|default:"—" }}</td>
+        <td>{{ u.get_role_display }}</td>
+        <td>{% if u.shop %}№{{ u.shop.number }}{% else %}—{% endif %}</td>
+        <td>{% if u.is_active %}<span class="badge badge-ok">Faol</span>{% else %}<span class="badge badge-bad">Bloklangan</span>{% endif %}
+            {% if u.must_change_password %}<span class="badge badge-warn">Parol</span>{% endif %}</td>
+        <td style="white-space:nowrap">
+          <form method="post" action="{% url 'panel:user_reset' u.pk %}" style="display:inline">{% csrf_token %}
+            <button class="btn btn-ghost" style="padding:6px 10px">Parol tiklash</button></form>
+          <form method="post" action="{% url 'panel:user_toggle' u.pk %}" style="display:inline">{% csrf_token %}
+            <button class="btn btn-ghost" style="padding:6px 10px">{% if u.is_active %}Bloklash{% else %}Faollashtirish{% endif %}</button></form>
+        </td>
+      </tr>
+      {% empty %}<tr><td colspan="6" class="muted">Foydalanuvchi yo'q.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

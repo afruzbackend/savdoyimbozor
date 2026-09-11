@@ -1,0 +1,40 @@
+{% extends 'panel/base.html' %}
+{% block title %}Sozlamalar{% endblock %}
+{% block heading %}Tizim sozlamalari{% endblock %}
+{% block content %}
+<form method="post" class="stack gap-4" style="max-width:720px">
+  {% csrf_token %}
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Rostlik ranglari (%)</div>
+    <div class="grid grid-2">
+      <div class="field"><label class="label">Yashil chegara</label><input class="input num" type="number" name="green_threshold" value="{{ s.green_threshold }}"></div>
+      <div class="field"><label class="label">Sariq chegara</label><input class="input num" type="number" name="yellow_threshold" value="{{ s.yellow_threshold }}"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Rostlik og'irliklari</div>
+    <div class="grid grid-4">
+      <div class="field"><label class="label">Kassa</label><input class="input num" type="number" name="weight_cash" value="{{ s.weight_cash }}"></div>
+      <div class="field"><label class="label">Kamera</label><input class="input num" type="number" name="weight_camera" value="{{ s.weight_camera }}"></div>
+      <div class="field"><label class="label">Qoldiq</label><input class="input num" type="number" name="weight_stock" value="{{ s.weight_stock }}"></div>
+      <div class="field"><label class="label">Narx</label><input class="input num" type="number" name="weight_price" value="{{ s.weight_price }}"></div>
+    </div>
+    <div class="field"><label class="label">Eng zaif qism qo'shimchasi</label><input class="input num" type="number" name="weakest_part_cap" value="{{ s.weakest_part_cap }}"></div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Savdo qoidalari</div>
+    <div class="grid grid-2">
+      <div class="field"><label class="label">Tannarx noma'lum — maks chegirma (%)</label><input class="input num" type="number" name="max_discount_no_cost_pct" value="{{ s.max_discount_no_cost_pct }}"></div>
+      <div class="field"><label class="label">Yaxlitlash maksimum (so'm)</label><input class="input num" type="number" name="rounding_max" value="{{ s.rounding_max }}"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Xavfsizlik</div>
+    <div class="grid grid-2">
+      <div class="field"><label class="label">Maks kirish urinishi</label><input class="input num" type="number" name="login_max_attempts" value="{{ s.login_max_attempts }}"></div>
+      <div class="field"><label class="label">Blok davomiyligi (daq)</label><input class="input num" type="number" name="login_lock_minutes" value="{{ s.login_lock_minutes }}"></div>
+    </div>
+  </div>
+  <div><button class="btn btn-lg" type="submit">Saqlash</button></div>
+</form>
+{% endblock %}

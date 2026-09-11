@@ -1,0 +1,31 @@
+{% extends 'panel/base.html' %}
+{% load static %}
+{% block title %}Panel — Boshqaruv{% endblock %}
+{% block heading %}Boshqaruv{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:var(--sp-4)">
+  <div class="card"><small class="muted">Viloyatlar</small><div class="truth-big" style="font-size:var(--t-4)">{{ regions }}</div></div>
+  <div class="card"><small class="muted">Bozorlar</small><div class="truth-big" style="font-size:var(--t-4)">{{ markets }}</div></div>
+  <div class="card"><small class="muted">Do'konlar</small><div class="truth-big" style="font-size:var(--t-4)">{{ shops }}</div></div>
+  <div class="card"><small class="muted">Foydalanuvchilar</small><div class="truth-big" style="font-size:var(--t-4)">{{ sellers|add:inspectors }}</div><small class="muted">{{ sellers }} sotuvchi · {{ inspectors }} inspektor</small></div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Tezkor amallar</div>
+    <div class="stack gap-2">
+      <a class="btn" href="{% url 'panel:account_create' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-plus"></use></svg> Yangi hisob ochish</a>
+      <a class="btn btn-ghost" href="{% url 'panel:import_shops' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-store"></use></svg> Excel'dan do'konlar</a>
+      <a class="btn btn-ghost" href="{% url 'panel:import_cash' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-file-text"></use></svg> Kassa ma'lumotini yuklash</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">So'nggi audit</div>
+    {% for a in recent_audit %}
+    <div class="row" style="justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:var(--t--1)">
+      <span>{{ a.user.username|default:"—" }} · {{ a.get_action_display }}</span>
+      <span class="muted num">{{ a.created_at|date:"d.m H:i" }}</span>
+    </div>
+    {% empty %}<p class="muted">Yozuv yo'q.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}
