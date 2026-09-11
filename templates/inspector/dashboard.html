@@ -5,6 +5,14 @@
 {% block topbar_actions %}<span class="muted num">{{ today }}</span>{% endblock %}
 
 {% block content %}
+<div class="gov-banner">
+  {% include 'components/_koshin.html' %}
+  {% include 'components/_emblem.html' %}
+  <div class="gb-text">
+    <h2>Davlat soliq qo'mitasi — Bozor nazorati</h2>
+    <p>Savdo shaffofligi va soliq intizomini kuzatish tizimi</p>
+  </div>
+</div>
 <div class="grid grid-4" style="margin-bottom:var(--sp-4)">
   <div class="card">
     <small class="muted">Nazoratdagi do'kon</small>

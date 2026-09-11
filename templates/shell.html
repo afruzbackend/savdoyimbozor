@@ -6,8 +6,11 @@
 <div class="app" x-data="themeCtl">
   <aside class="sidebar">
     <div class="brand">
-      <span class="mark"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg></span>
-      <span>Bozor&nbsp;Nazorat</span>
+      <span class="brand-emblem">{% include 'components/_emblem.html' %}</span>
+      <div class="brand-text">
+        <div class="brand-name">Bozor Nazorat</div>
+        <div class="brand-sub">Soliq qo'mitasi</div>
+      </div>
     </div>
     <nav>
       {% block nav %}{% endblock %}

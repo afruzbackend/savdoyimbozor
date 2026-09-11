@@ -236,3 +236,41 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .cal-day.sel{background:var(--primary);color:var(--primary-ink)}
 .cal-day.in-range{background:var(--brand-50)}
 :root[data-theme="dark"] .cal-day.in-range{background:var(--brand-900)}
+
+/* =========================================================================
+   DIZAYN ELEVATSIYASI — davlat + milliy (bozorcha) ruh
+   ========================================================================= */
+/* Sidebar brend — emblem + rasmiy ikki qatorli nom */
+.sidebar .brand{align-items:center;gap:12px;
+  background:linear-gradient(135deg,var(--brand-700),var(--brand-900));color:#fff;
+  padding:var(--sp-5) var(--sp-4);position:relative;overflow:hidden}
+:root[data-theme="dark"] .sidebar .brand{background:linear-gradient(135deg,#20233a,#16140f)}
+.sidebar .brand::after{content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;
+  background:radial-gradient(circle,var(--clay-500),transparent 70%);opacity:.18}
+.brand-emblem{flex:none;width:40px;height:40px;color:#fff;position:relative;z-index:1}
+.brand-emblem .emblem{width:40px;height:40px}
+.brand-text{position:relative;z-index:1;line-height:1.15}
+.brand-name{font-family:var(--font-serif);font-weight:700;font-size:var(--t-1);color:#fff}
+.brand-sub{font-size:var(--t--1);color:rgba(255,255,255,.72);letter-spacing:.02em}
+
+/* Topbar — pastki milliy akцent chizig'i */
+.topbar{border-bottom:1px solid var(--border);
+  box-shadow:0 1px 0 0 var(--brand-600), 0 2px 0 0 var(--clay-500)}
+:root[data-theme="dark"] .topbar{box-shadow:0 1px 0 0 var(--brand-400),0 2px 0 0 var(--clay-400)}
+
+/* Milliy urg'uli karta sarlavhasi (ixtiyoriy: .card-national) */
+.card-national{position:relative}
+.card-national::before{content:"";position:absolute;left:0;top:var(--sp-5);bottom:var(--sp-5);
+  width:3px;border-radius:3px;background:linear-gradient(var(--brand-600),var(--clay-500))}
+
+/* Rasmiy davlat sarlavha kartasi (dashboard tepasi) */
+.gov-banner{display:flex;align-items:center;gap:var(--sp-4);
+  background:linear-gradient(135deg,var(--brand-700),var(--brand-900));color:#fff;
+  border-radius:var(--r-lg);padding:var(--sp-5);position:relative;overflow:hidden;margin-bottom:var(--sp-4)}
+:root[data-theme="dark"] .gov-banner{background:linear-gradient(135deg,#20233a,#16140f);
+  border:1px solid var(--border)}
+.gov-banner .koshin{color:#fff;opacity:.10}
+.gov-banner .emblem{width:56px;height:56px;color:#fff;flex:none;position:relative;z-index:1}
+.gov-banner .gb-text{position:relative;z-index:1}
+.gov-banner h2{color:#fff;margin:0;font-size:var(--t-2)}
+.gov-banner p{color:rgba(255,255,255,.8);margin:2px 0 0;font-size:var(--t--1)}
