@@ -1,0 +1,166 @@
+{% extends 'shell.html' %}
+{% load static %}
+{% block title %}Sotuv{% endblock %}
+{% block heading %}Tez sotuv{% endblock %}
+
+{% block nav %}
+<a class="navlink" href="{% url 'seller:home' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg> Bosh sahifa</a>
+<a class="navlink active" href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Sotuv</a>
+<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg> Kirim</a>
+<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg> Hisobot</a>
+{% endblock %}
+
+{% block content %}
+<div x-data="saleScreen()" x-init="init()" style="max-width:460px;margin:0 auto">
+
+  {# Offline navbat ko'rsatkichi #}
+  <div class="msg warning" x-show="pending>0" x-cloak style="display:flex;align-items:center;gap:8px">
+    <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-info"></use></svg>
+    <span x-text="`${pending} ta sotuv internet tiklanganda yuboriladi`"></span>
+  </div>
+
+  {# Summa ko'rsatkichi #}
+  <div class="card" style="text-align:center;padding:var(--sp-5) var(--sp-4)">
+    <small class="muted">Chek summasi</small>
+    <div class="truth-big num" style="font-size:var(--t-5);margin:6px 0"
+         x-text="fmt(total)"></div>
+    <div class="row gap-3 center" style="justify-content:center;font-size:var(--t--1)" x-show="discount>0||rounding>0" x-cloak>
+      <span class="muted">Oraliq: <span class="num" x-text="fmt(subtotal)"></span></span>
+      <span x-show="discount>0" style="color:var(--clay-600)">−<span class="num" x-text="fmt(discount)"></span> chegirma</span>
+      <span x-show="rounding>0" class="muted">−<span class="num" x-text="fmt(rounding)"></span> yaxlit</span>
+    </div>
+  </div>
+
+  {# Chegirma tugmalari (summaga qarab) #}
+  <div class="row gap-2 wrap-flex" style="margin:var(--sp-4) 0" x-show="subtotal>0" x-cloak>
+    <span class="muted" style="align-self:center;font-size:var(--t--1)">Chegirma:</span>
+    <template x-for="b in discountButtons" :key="b">
+      <button class="chip" @click="addDiscount(b)" :aria-pressed="false">−<span x-text="fmtK(b)"></span></button>
+    </template>
+    <button class="chip" @click="discount=0;rounding=0" x-show="discount>0||rounding>0">Bekor</button>
+    <button class="chip" @click="roundDown()" data-tip="1000 gacha pastga">Yaxlitlash</button>
+  </div>
+
+  {# Klaviatura #}
+  <div class="card card-flat" style="padding:var(--sp-3)">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-2)">
+      <template x-for="k in ['1','2','3','4','5','6','7','8','9']" :key="k">
+        <button class="btn btn-ghost" style="font-size:var(--t-2);padding:18px 0" @click="press(k)" x-text="k"></button>
+      </template>
+      <button class="btn btn-ghost" style="font-size:var(--t-2);padding:18px 0" @click="press('000')">000</button>
+      <button class="btn btn-ghost" style="font-size:var(--t-2);padding:18px 0" @click="press('0')">0</button>
+      <button class="btn btn-ghost" style="font-size:var(--t-2);padding:18px 0" @click="back()" aria-label="O'chirish">
+        <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg></button>
+    </div>
+  </div>
+
+  {# To'lov turi + ulgurji #}
+  <div class="row" style="justify-content:space-between;margin:var(--sp-4) 0">
+    <div class="segmented">
+      <button :aria-selected="pay==='cash'" @click="pay='cash'">Naqd</button>
+      <button :aria-selected="pay==='card'" @click="pay='card'">Karta</button>
+      <button :aria-selected="pay==='transfer'" @click="pay='transfer'">O'tkazma</button>
+    </div>
+    <label class="switch"><input type="checkbox" x-model="wholesale"><span class="track"></span><span class="thumb"></span>
+      <span style="font-size:var(--t--1)">Ulgurji</span></label>
+  </div>
+
+  {# Sotildi #}
+  <button class="btn btn-lg btn-block" style="padding:18px" :disabled="total<=0||saving" @click="submit()">
+    <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>
+    <span x-text="saving?'Saqlanmoqda...':'Sotildi'"></span>
+  </button>
+</div>
+{% endblock %}
+
+{% block bottom_nav %}
+<a href="{% url 'seller:home' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg>Asosiy</a>
+<a href="{% url 'seller:sale' %}" class="active"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg>Sotuv</a>
+<a href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg>Kirim</a>
+<a href="{% url 'profile' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg>Profil</a>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  window.__PRICING__ = {{ pricing_config|safe }};
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('saleScreen', () => ({
+      cfg: window.__PRICING__,
+      amount: 0, discount: 0, rounding: 0, pay: 'cash', wholesale: false,
+      saving: false, pending: 0,
+      init() { this.syncQueue(); window.addEventListener('online', () => this.syncQueue()); },
+      get subtotal() { return this.amount; },
+      get total() { return Math.max(0, this.subtotal - this.discount - this.rounding); },
+      get discountButtons() {
+        for (const [limit, btns] of this.cfg.discount_tiers) {
+          if (limit === null || this.subtotal <= limit) return btns;
+        }
+        return [];
+      },
+      fmt(n) { return window.BN.fmt(n) + ' so\'m'; },
+      fmtK(n) { return n >= 1000 ? (n/1000) + 'k' : n; },
+      press(d) { this.amount = parseInt(String(this.amount) + d, 10) || 0; },
+      back() { this.amount = Math.floor(this.amount / 10); },
+      addDiscount(b) {
+        // Cheklov: tannarx noma'lum → subtotal ning %; server baribir tekshiradi
+        const cap = Math.floor(this.subtotal * this.cfg.max_discount_no_cost_pct / 100);
+        this.discount = Math.min(this.discount + b, cap);
+      },
+      roundDown() {
+        const after = this.subtotal - this.discount;
+        const r = after % 1000;
+        this.rounding = Math.min(r, this.cfg.rounding_max);
+      },
+      reset() { this.amount = 0; this.discount = 0; this.rounding = 0; this.wholesale = false; },
+      payload() {
+        return { items: [{ name: 'Aralash', qty: 1, unit_price: this.subtotal }],
+          discount: this.discount, rounding: this.rounding, payment_type: this.pay,
+          is_wholesale: this.wholesale, mode: 'quick', client_ts: new Date().toISOString() };
+      },
+      async submit() {
+        if (this.total <= 0) return;
+        this.saving = true;
+        const body = this.payload();
+        try {
+          const r = await fetch('/api/sales/', { method: 'POST',
+            headers: { 'Content-Type': 'application/json',
+              'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '' },
+            body: JSON.stringify(body) });
+          if (!r.ok) throw new Error('server');
+          const d = await r.json();
+          window.toast('Sotildi: ' + window.BN.fmt(d.total) + ' so\'m', 'ok');
+          this.reset();
+        } catch (e) {
+          this.queue(body);
+          window.toast('Internet yo\'q — navbatga saqlandi', 'warn');
+          this.reset();
+        } finally { this.saving = false; }
+      },
+      // ---- Offline navbat (localStorage) ----
+      queue(body) {
+        const q = JSON.parse(localStorage.getItem('saleQueue') || '[]');
+        q.push(body); localStorage.setItem('saleQueue', JSON.stringify(q));
+        this.pending = q.length;
+      },
+      async syncQueue() {
+        let q = JSON.parse(localStorage.getItem('saleQueue') || '[]');
+        this.pending = q.length;
+        if (!q.length || !navigator.onLine) return;
+        const rest = [];
+        for (const body of q) {
+          try {
+            const r = await fetch('/api/sales/', { method: 'POST',
+              headers: { 'Content-Type': 'application/json',
+                'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '' },
+              body: JSON.stringify(body) });
+            if (!r.ok) rest.push(body);
+          } catch (e) { rest.push(body); }
+        }
+        localStorage.setItem('saleQueue', JSON.stringify(rest));
+        this.pending = rest.length;
+        if (q.length && !rest.length) window.toast('Navbatdagi sotuvlar yuborildi', 'ok');
+      },
+    }));
+  });
+</script>
+{% endblock %}

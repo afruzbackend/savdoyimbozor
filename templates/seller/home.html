@@ -1,29 +1,65 @@
 {% extends 'shell.html' %}
-{% load static %}
+{% load static humanize %}
 {% block title %}Sotuvchi — Bosh sahifa{% endblock %}
 {% block heading %}Bosh sahifa{% endblock %}
 
 {% block nav %}
-<a class="navlink active" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg> Bosh sahifa</a>
-<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Sotuv</a>
+<a class="navlink active" href="{% url 'seller:home' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg> Bosh sahifa</a>
+<a class="navlink" href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Sotuv</a>
 <a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg> Kirim</a>
-<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Kun yakuni</a>
 <a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg> Hisobot</a>
 {% endblock %}
 
+{% block topbar_actions %}
+<a class="btn" href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Yangi sotuv</a>
+{% endblock %}
+
 {% block content %}
-<div class="msg info">P2 bosqichida bu yerga tez sotuv ekrani va kunlik ko'rsatkichlar quriladi.</div>
-<div class="card" style="margin-top:var(--sp-4)">
-  <small class="muted">{% if shop %}{{ shop }}{% else %}Do'kon biriktirilmagan{% endif %}</small>
-  <div class="truth" style="margin-top:var(--sp-3)">
-    <div class="truth-ring lvl-green" style="--v:0"><span class="val num">—</span></div>
-    <div><small class="muted">Bugungi savdo</small><div class="truth-big" style="font-size:var(--t-3)">—</div></div>
+<div class="grid grid-2" style="margin-bottom:var(--sp-4)">
+  <div class="card">
+    <small class="muted">Bugungi savdo</small>
+    <div class="truth-big num" style="font-size:var(--t-4);margin-top:4px">{{ today_total|intcomma }}<span style="font-size:var(--t-1)"> so'm</span></div>
+    <small class="muted">{{ today_count }} ta chek</small>
+  </div>
+  <div class="card">
+    <small class="muted">Do'kon</small>
+    <div style="font-family:var(--font-serif);font-size:var(--t-2);margin-top:6px">{{ shop.display_name|default:"—" }}</div>
+    <small class="muted">{% if shop %}№{{ shop.number }} · {{ shop.market.name }}{% endif %}</small>
   </div>
 </div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">So'nggi sotuvlar</span></div>
+  {% if recent %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Vaqt</th><th>To'lov</th><th class="num">Chegirma</th><th class="num">Summa</th></tr></thead>
+      <tbody>
+      {% for s in recent %}
+        <tr>
+          <td class="num">{{ s.created_at|date:"H:i" }}</td>
+          <td>{{ s.get_payment_type_display }}{% if s.is_wholesale %} · ulgurji{% endif %}</td>
+          <td class="num">{% if s.discount %}{{ s.discount|intcomma }}{% else %}—{% endif %}</td>
+          <td class="num"><b>{{ s.total|intcomma }}</b></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <img class="emoji-xl" src="{% static 'emoji/seedling.svg' %}" alt="">
+    <h3>Bugun hali sotuv yo'q</h3>
+    <p class="muted">Birinchi sotuvni kiritish uchun "Yangi sotuv" tugmasini bosing.</p>
+    <a class="btn" href="{% url 'seller:sale' %}" style="margin-top:var(--sp-2)">Yangi sotuv</a>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}
+
 {% block bottom_nav %}
-<a href="#" class="active"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg>Asosiy</a>
-<a href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg>Sotuv</a>
+<a href="{% url 'seller:home' %}" class="active"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg>Asosiy</a>
+<a href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg>Sotuv</a>
 <a href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg>Kirim</a>
 <a href="{% url 'profile' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg>Profil</a>
 {% endblock %}

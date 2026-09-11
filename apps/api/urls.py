@@ -1,10 +1,13 @@
-"""DRF router — barcha app viewset'larini yig'adi (bosqichma-bosqich to'ldiriladi)."""
+"""DRF router + funksional endpointlar. Bosqichma-bosqich to'ldiriladi."""
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
+from apps.sales import api as sales_api
+
 router = DefaultRouter()
+# P3: router.register("scores", ...); router.register("alerts", ...)
 
-# P2: router.register("sales", SaleViewSet)
-# P3: router.register("scores", DailyScoreViewSet); router.register("alerts", AlertViewSet)
-# P5: kamera event/config endpoint'lari
-
-urlpatterns = router.urls
+urlpatterns = [
+    path("sales/", sales_api.create_sale_api, name="api_sale_create"),
+    path("sales/today/", sales_api.today_summary_api, name="api_sale_today"),
+] + router.urls
