@@ -109,7 +109,7 @@ def market_map(request, pk=None):
         key = shop_obj.row_id or 0
         by_row.setdefault(key, {"label": shop_obj.row.label if shop_obj.row else "Boshqa", "pts": []})
         by_row[key]["pts"].append(ms)
-    for key, z in by_row.items():
+    for z in by_row.values():
         xs = [p["x"] for p in z["pts"]]
         ys = [p["y"] for p in z["pts"]]
         reds = sum(1 for p in z["pts"] if p["level"] == "red")
