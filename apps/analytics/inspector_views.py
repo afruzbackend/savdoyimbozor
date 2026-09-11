@@ -80,38 +80,68 @@ def market_map(request, pk=None):
         s.shop_id: s.truth_pct for s in DailyScore.objects.filter(shop__market=market, date=today)
     }
 
-    rows = []
-    for row in market.rows.all():
-        cells = []
-        for shop in row.shops.filter(is_active=True):
-            t = scores.get(shop.id)
-            cells.append(
-                {"shop": shop, "truth": t, "level": _level(t, cfg) if t is not None else "none"}
-            )
-        rows.append({"row": row, "cells": cells})
-    # Qatorsiz do'konlar
-    orphan = market.shops.filter(is_active=True, row__isnull=True)
-    if orphan:
-        rows.append(
+    # Interaktiv xarita uchun ma'lumot: do'kon nuqtalari + qator zonalari
+    all_shops = list(market.shops.filter(is_active=True).select_related("row"))
+    map_shops = []
+    idx = 0
+    for shop in all_shops:
+        t = scores.get(shop.id)
+        x = shop.map_x if shop.map_x is not None else (idx % 8) * 90 + 40
+        y = shop.map_y if shop.map_y is not None else (idx // 8) * 90 + 40
+        idx += 1
+        map_shops.append(
             {
-                "row": None,
-                "cells": [
-                    {
-                        "shop": s,
-                        "truth": scores.get(s.id),
-                        "level": (
-                            _level(scores.get(s.id), cfg)
-                            if scores.get(s.id) is not None
-                            else "none"
-                        ),
-                    }
-                    for s in orphan
-                ],
+                "id": shop.id,
+                "x": x,
+                "y": y,
+                "number": shop.number,
+                "owner": shop.owner_name,
+                "truth": t,
+                "level": _level(t, cfg) if t is not None else "none",
             }
         )
 
+    # Zonalar (qatorlar) — o'rab turuvchi to'rtburchak + xavf darajasi
+    zones = []
+    by_row = {}
+    for ms in map_shops:
+        shop_obj = next(s for s in all_shops if s.id == ms["id"])
+        key = shop_obj.row_id or 0
+        by_row.setdefault(key, {"label": shop_obj.row.label if shop_obj.row else "Boshqa", "pts": []})
+        by_row[key]["pts"].append(ms)
+    for key, z in by_row.items():
+        xs = [p["x"] for p in z["pts"]]
+        ys = [p["y"] for p in z["pts"]]
+        reds = sum(1 for p in z["pts"] if p["level"] == "red")
+        yellows = sum(1 for p in z["pts"] if p["level"] == "yellow")
+        n = len(z["pts"]) or 1
+        if reds / n >= 0.25:
+            zlvl = "red"
+        elif (reds + yellows) / n >= 0.25:
+            zlvl = "yellow"
+        else:
+            zlvl = "green"
+        zones.append(
+            {
+                "label": z["label"],
+                "x": min(xs) - 45,
+                "y": min(ys) - 45,
+                "w": (max(xs) - min(xs)) + 90,
+                "h": (max(ys) - min(ys)) + 90,
+                "level": zlvl,
+                "reds": reds,
+                "count": n,
+            }
+        )
+
+    width = max([s["x"] for s in map_shops], default=600) + 90
+    height = max([s["y"] for s in map_shops], default=400) + 90
+    map_data = {"shops": map_shops, "zones": zones, "width": width, "height": height}
+
     return render(
-        request, "inspector/market_map.html", {"markets": markets, "market": market, "rows": rows}
+        request,
+        "inspector/market_map.html",
+        {"markets": markets, "market": market, "map_data": map_data},
     )
 
 

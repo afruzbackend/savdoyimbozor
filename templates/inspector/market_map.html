@@ -12,36 +12,45 @@
 
 {% block content %}
 {% if markets.count > 1 %}
-<div class="segmented" style="margin-bottom:var(--sp-4)">
+<div class="segmented" style="margin-bottom:var(--sp-4)" data-noloc>
   {% for m in markets %}
-  <a href="{% url 'inspector:map_market' m.pk %}"><button :aria-selected="{{ m.pk|yesno:'true,false' }}"
-     {% if market and m.pk == market.pk %}aria-selected="true"{% endif %}>{{ m.name }}</button></a>
+  <a href="{% url 'inspector:map_market' m.pk %}"><button {% if market and m.pk == market.pk %}aria-selected="true"{% endif %}>{{ m.name }}</button></a>
   {% endfor %}
 </div>
 {% endif %}
 
 {% if market %}
-<div class="card">
-  <div class="card-header"><span class="card-title">{{ market.name }}</span>
-    <small class="muted">{{ market.region.name }}</small></div>
-
-  <div class="stack gap-4">
-    {% for r in rows %}
-    <div>
-      <div class="muted" style="font-size:var(--t--1);font-weight:600;margin-bottom:8px">
-        {% if r.row %}{{ r.row.label }}{% else %}Boshqa{% endif %}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">
-        {% for c in r.cells %}
-        <a href="{% url 'inspector:shop_detail' c.shop.pk %}"
-           class="map-cell lvl-{{ c.level }}"
-           data-tip="№{{ c.shop.number }} {{ c.shop.owner_name }}{% if c.truth is not None %} · {{ c.truth }}%{% endif %}">
-          <span class="mc-num">{{ c.shop.number }}</span>
-          {% if c.truth is not None %}<span class="mc-t num">{{ c.truth }}</span>{% endif %}
-        </a>
-        {% endfor %}
-      </div>
+<div class="card" style="padding:0;overflow:hidden;position:relative" x-data="bazaarMap()" x-init="init()">
+  <div class="row" style="justify-content:space-between;padding:var(--sp-4) var(--sp-5)">
+    <div><span class="card-title">{{ market.name }}</span>
+      <small class="muted" style="margin-left:8px">{{ market.region.name }}</small></div>
+    <div class="row gap-2" data-noloc>
+      <button class="btn-ghost btn-icon" @click="zoomBy(1.25)" aria-label="Kattalashtirish"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-plus"></use></svg></button>
+      <button class="btn-ghost btn-icon" @click="zoomBy(0.8)" aria-label="Kichiklashtirish"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-minus"></use></svg></button>
+      <button class="btn-ghost btn-icon" @click="reset()" aria-label="Boshlang'ich"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-rotate-ccw"></use></svg></button>
     </div>
-    {% endfor %}
+  </div>
+
+  <div class="map-stage" @wheel.prevent="onWheel($event)"
+       @pointerdown="startPan($event)" @pointermove="onPan($event)"
+       @pointerup="endPan()" @pointerleave="endPan()">
+    <svg x-ref="svg" :viewBox="`0 0 ${d.width} ${d.height}`"
+         style="width:100%;height:520px;display:block" :style="panning ? 'cursor:grabbing' : 'cursor:grab'">
+      <defs>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M40 0H0V40" fill="none" stroke="var(--border)" stroke-width="0.5" opacity="0.5"/>
+        </pattern>
+      </defs>
+      <rect :width="d.width" :height="d.height" fill="url(#grid)"/>
+      <g x-ref="layer" :transform="`translate(${tx} ${ty}) scale(${scale})`"></g>
+    </svg>
+
+    {# Tooltip #}
+    <div class="map-tip" x-show="hover" x-cloak
+         x-text="hover ? ('№'+hover.number+' '+hover.owner+(hover.truth===null?'':' · '+hover.truth+'%')) : ''"></div>
+  </div>
+  <div class="muted" style="padding:10px var(--sp-5);font-size:var(--t--1);border-top:1px solid var(--border)">
+    Sichqoncha bilan suring, g'ildirak bilan kattalashtiring. Do'konni bosing — batafsil.
   </div>
 </div>
 {% else %}
@@ -52,15 +61,77 @@
 
 {% block head %}
 <style>
-  .map-cell{width:66px;height:66px;border-radius:var(--r-sm);display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:2px;border:1px solid var(--border-strong);
-    background:var(--surface-sunken);color:var(--ink);text-decoration:none;transition:transform var(--dur)}
-  .map-cell:hover{transform:translateY(-2px);text-decoration:none}
-  .map-cell .mc-num{font-size:var(--t--1);color:var(--ink-muted)}
-  .map-cell .mc-t{font-family:var(--font-serif);font-weight:700;font-size:var(--t-1)}
-  .map-cell.lvl-green{background:var(--ok-bg);border-color:var(--ok);color:var(--ok-ink)}
-  .map-cell.lvl-yellow{background:var(--warn-bg);border-color:var(--warn);color:var(--warn-ink)}
-  .map-cell.lvl-red{background:var(--bad-bg);border-color:var(--bad);color:var(--bad-ink)}
-  .map-cell.lvl-green .mc-num,.map-cell.lvl-yellow .mc-num,.map-cell.lvl-red .mc-num{color:inherit;opacity:.7}
+  .map-stage{position:relative;background:var(--surface-2);touch-action:none;user-select:none}
+  .map-tip{position:absolute;top:12px;left:12px;background:var(--sand-800);color:#fff;
+    padding:6px 11px;border-radius:8px;font-size:var(--t--1);box-shadow:var(--shadow-md);pointer-events:none}
 </style>
+{% endblock %}
+
+{% block extra_js %}
+{{ map_data|json_script:"map-data" }}
+<script>
+  document.addEventListener("alpine:init", () => {
+    Alpine.data("bazaarMap", () => ({
+      d: { shops: [], zones: [], width: 600, height: 400 },
+      scale: 1, tx: 0, ty: 0, panning: false, sx: 0, sy: 0, hover: null,
+      init() {
+        this.d = JSON.parse(document.getElementById("map-data").textContent);
+        this.$nextTick(() => this.build());
+      },
+      build() {
+        if (this._built) return;
+        this._built = true;
+        const NS = "http://www.w3.org/2000/svg";
+        const layer = this.$refs.layer;
+        const el = (t, a) => {
+          const n = document.createElementNS(NS, t);
+          for (const k in a) n.setAttribute(k, a[k]);
+          return n;
+        };
+        // Zonalar
+        for (const z of this.d.zones) {
+          layer.appendChild(el("rect", {
+            x: z.x, y: z.y, width: z.w, height: z.h, rx: 14,
+            fill: this.zoneStroke(z.level), "fill-opacity": 0.12,
+            stroke: this.zoneStroke(z.level), "stroke-width": 1.5, "stroke-dasharray": "6 5",
+          }));
+          const lbl = el("text", { x: z.x + 12, y: z.y + 22, "font-size": 13,
+            "font-weight": 600, fill: this.zoneStroke(z.level) });
+          lbl.textContent = `${z.label} — ${z.reds}/${z.count} xavf`;
+          layer.appendChild(lbl);
+        }
+        // Do'konlar
+        for (const s of this.d.shops) {
+          const g = el("g", { style: "cursor:pointer" });
+          g.appendChild(el("circle", { cx: s.x, cy: s.y, r: 26,
+            fill: this.fill(s.level), stroke: this.stroke(s.level), "stroke-width": 2 }));
+          const num = el("text", { x: s.x, y: s.y - 3, "text-anchor": "middle",
+            "font-size": 10, fill: this.ink(s.level) });
+          num.textContent = "№" + s.number;
+          const val = el("text", { x: s.x, y: s.y + 11, "text-anchor": "middle",
+            "font-size": 13, "font-weight": 700, fill: this.ink(s.level) });
+          val.textContent = s.truth === null ? "—" : s.truth;
+          g.appendChild(num);
+          g.appendChild(val);
+          g.addEventListener("click", () => this.go(s.id));
+          g.addEventListener("mouseenter", () => (this.hover = s));
+          g.addEventListener("mouseleave", () => (this.hover = null));
+          layer.appendChild(g);
+        }
+      },
+      zoomBy(f) { this.scale = Math.min(4, Math.max(0.4, this.scale * f)); },
+      onWheel(e) { this.zoomBy(e.deltaY < 0 ? 1.12 : 0.9); },
+      reset() { this.scale = 1; this.tx = 0; this.ty = 0; },
+      startPan(e) { this.panning = true; this.sx = e.clientX - this.tx; this.sy = e.clientY - this.ty; },
+      onPan(e) { if (!this.panning) return; this.tx = e.clientX - this.sx; this.ty = e.clientY - this.sy; },
+      endPan() { this.panning = false; },
+      go(id) { if (!this.panning) window.location.href = "/dokon/" + id + "/"; },
+      fill(l) { return { green: "var(--ok-bg)", yellow: "var(--warn-bg)", red: "var(--bad-bg)" }[l] || "var(--surface-sunken)"; },
+      stroke(l) { return { green: "var(--ok)", yellow: "var(--warn)", red: "var(--bad)" }[l] || "var(--border-strong)"; },
+      ink(l) { return { green: "var(--ok-ink)", yellow: "var(--warn-ink)", red: "var(--bad-ink)" }[l] || "var(--ink-muted)"; },
+      zoneFill(l) { return { green: "var(--ok-bg)", yellow: "var(--warn-bg)", red: "var(--bad-bg)" }[l] || "transparent"; },
+      zoneStroke(l) { return { green: "var(--ok)", yellow: "var(--warn)", red: "var(--bad)" }[l] || "var(--border-strong)"; },
+    }));
+  });
+</script>
 {% endblock %}
