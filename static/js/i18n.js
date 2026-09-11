@@ -70,6 +70,16 @@
     return out;
   }
 
+  // Tarjima qilinadigan atributlar (placeholder, tooltip, aria)
+  const ATTRS = ["placeholder", "title", "aria-label"];
+  function transformAttrs(el, transform) {
+    if (!el.getAttribute) return;
+    for (const a of ATTRS) {
+      const v = el.getAttribute(a);
+      if (v && v.trim()) el.setAttribute(a, transform(v));
+    }
+  }
+
   function walk(node, transform) {
     if (node.nodeType === Node.TEXT_NODE) {
       if (node.nodeValue && node.nodeValue.trim()) {
@@ -78,8 +88,9 @@
       return;
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return;
-    if (SKIP_TAGS.has(node.tagName)) return;
     if (node.hasAttribute && node.hasAttribute("data-noloc")) return;
+    transformAttrs(node, transform); // input'da ham atribut tarjima qilinadi
+    if (SKIP_TAGS.has(node.tagName)) return; // ichki matn (input qiymati) tegilmaydi
     for (const child of node.childNodes) walk(child, transform);
   }
 

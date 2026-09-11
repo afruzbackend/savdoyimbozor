@@ -369,6 +369,54 @@ window.RU_DICT = {
   "Varaqa bo'sh": "Лист пуст",
   "Hisob ochilgach login varaqalari shu yerda chiqadi.":
     "После создания аккаунта листы с логинами появятся здесь.",
+  // Placeholderlar
+  "Ism Familiya": "Имя Фамилия",
+  "Masalan: bugun ta'til edi, savdo bo'lmadi": "Например: сегодня выходной, продаж не было",
+  "STIR-raqam": "ИНН-номер",
+  "Yangi parol": "Новый пароль",
+  "Takrorlang": "Повторите",
+  "masalan: summa xato kiritilgan": "например: сумма введена неверно",
+  "masalan: mahsulot yaroqsiz": "например: товар непригоден",
+  "Qidirish...": "Поиск...",
+  "Login qidirish...": "Поиск по логину",
+  "Chegirma so'm": "Скидка сум",
+  "Barkodni skanerlang yoki nom yozing": "Отсканируйте штрихкод или введите название",
+  "Barkodni skanerlang va Enter": "Отсканируйте штрихкод и Enter",
+  "Javob matni": "Текст ответа",
+  "Do'kon raqami yoki STIR...": "Номер магазина или ИНН...",
+  // Statistika sahifasi
+  "Statistika": "Статистика",
+  "Sotuv statistikasi": "Статистика продаж",
+  "Sotuv dinamikasi": "Динамика продаж",
+  "Sotuvchilar statistikasi": "Статистика продавцов",
+  "Kiritilgan savdo, deklaratsiya va o'rtacha rostlik":
+    "Внесённая выручка, декларация и средняя достоверность",
+  "O'rtacha rostlik": "Средняя достоверность",
+  "Trend": "Тренд",
+  "Signal": "Сигнал",
+  "Saralash:": "Сортировка:",
+  "Rostlik": "Достоверность",
+  "Savdo": "Выручка",
+  "Bu davr uchun ma'lumot yo'q.": "Нет данных за этот период.",
+  "Trend — davrning ikkinchi yarmi o'rtacha rostligi birinchi yarmiga nisbatan (foiz punkti).":
+    "Тренд — средняя достоверность второй половины периода к первой (в пунктах).",
+  // Tuzatish sahifasi
+  "Tuzatish": "Корректировка",
+  "Bugungi sotuvlar": "Сегодняшние продажи",
+  "Tuzatishlar tarixi": "История корректировок",
+  "Yangi summa (so'm)": "Новая сумма (сум)",
+  "Sabab": "Причина",
+  "Saqlash": "Сохранить",
+  "Eski": "Старое",
+  "Yangi": "Новое",
+  "tuzatilgan": "исправлено",
+  "Hali tuzatish yo'q.": "Корректировок пока нет.",
+  "Bugun sotuv yo'q.": "Сегодня продаж нет.",
+  "Sotuv tuzatishlari": "Корректировки продаж",
+  // Mahsulot reytingi
+  "Mahsulotlaringiz reytingi": "Рейтинг ваших товаров",
+  "Boshqa do'konlar ma'lumoti maxfiy — faqat o'z o'rningizni ko'rasiz.":
+    "Данные других магазинов скрыты — вы видите только своё место.",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
