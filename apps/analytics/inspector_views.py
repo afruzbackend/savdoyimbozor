@@ -80,63 +80,30 @@ def market_map(request, pk=None):
         s.shop_id: s.truth_pct for s in DailyScore.objects.filter(shop__market=market, date=today)
     }
 
-    # Interaktiv xarita uchun ma'lumot: do'kon nuqtalari + qator zonalari
-    all_shops = list(market.shops.filter(is_active=True).select_related("row"))
-    map_shops = []
-    idx = 0
-    for shop in all_shops:
+    # Haqiqiy xarita uchun: do'kon markerlari (koordinata + rostlik %)
+    pts = []
+    lats, lngs = [], []
+    for shop in market.shops.filter(is_active=True):
+        if shop.latitude is None or shop.longitude is None:
+            continue
         t = scores.get(shop.id)
-        x = shop.map_x if shop.map_x is not None else (idx % 8) * 90 + 40
-        y = shop.map_y if shop.map_y is not None else (idx // 8) * 90 + 40
-        idx += 1
-        map_shops.append(
+        pts.append(
             {
                 "id": shop.id,
-                "x": x,
-                "y": y,
+                "lat": shop.latitude,
+                "lng": shop.longitude,
                 "number": shop.number,
                 "owner": shop.owner_name,
                 "truth": t,
                 "level": _level(t, cfg) if t is not None else "none",
             }
         )
+        lats.append(shop.latitude)
+        lngs.append(shop.longitude)
 
-    # Zonalar (qatorlar) — o'rab turuvchi to'rtburchak + xavf darajasi
-    zones = []
-    by_row = {}
-    for ms in map_shops:
-        shop_obj = next(s for s in all_shops if s.id == ms["id"])
-        key = shop_obj.row_id or 0
-        by_row.setdefault(key, {"label": shop_obj.row.label if shop_obj.row else "Boshqa", "pts": []})
-        by_row[key]["pts"].append(ms)
-    for z in by_row.values():
-        xs = [p["x"] for p in z["pts"]]
-        ys = [p["y"] for p in z["pts"]]
-        reds = sum(1 for p in z["pts"] if p["level"] == "red")
-        yellows = sum(1 for p in z["pts"] if p["level"] == "yellow")
-        n = len(z["pts"]) or 1
-        if reds / n >= 0.25:
-            zlvl = "red"
-        elif (reds + yellows) / n >= 0.25:
-            zlvl = "yellow"
-        else:
-            zlvl = "green"
-        zones.append(
-            {
-                "label": z["label"],
-                "x": min(xs) - 45,
-                "y": min(ys) - 45,
-                "w": (max(xs) - min(xs)) + 90,
-                "h": (max(ys) - min(ys)) + 90,
-                "level": zlvl,
-                "reds": reds,
-                "count": n,
-            }
-        )
-
-    width = max([s["x"] for s in map_shops], default=600) + 90
-    height = max([s["y"] for s in map_shops], default=400) + 90
-    map_data = {"shops": map_shops, "zones": zones, "width": width, "height": height}
+    center_lat = market.latitude or (sum(lats) / len(lats) if lats else 41.311)
+    center_lng = market.longitude or (sum(lngs) / len(lngs) if lngs else 69.2797)
+    map_data = {"shops": pts, "center": [center_lat, center_lng]}
 
     return render(
         request,

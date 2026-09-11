@@ -33,6 +33,9 @@ class Shop(TimeStampedModel):
     # Xarita o'rni (bozor sxemasida)
     map_x = models.FloatField(null=True, blank=True)
     map_y = models.FloatField(null=True, blank=True)
+    # Haqiqiy geo-koordinata (interaktiv xarita uchun)
+    latitude = models.FloatField(_("Kenglik"), null=True, blank=True)
+    longitude = models.FloatField(_("Uzunlik"), null=True, blank=True)
     # Dam olish kunlari (0=Du ... 6=Ya), vergul bilan — yopiq kunda signal berilmaydi
     closed_weekdays = models.CharField(_("Yopiq kunlar"), max_length=20, blank=True)
     is_active = models.BooleanField(_("Faol"), default=True)

@@ -102,8 +102,11 @@ class Command(BaseCommand):
 
         region, _ = Region.objects.get_or_create(name="Toshkent shahri", defaults={"code": "10"})
         market, _ = Market.objects.get_or_create(
-            region=region, name="Chorsu bozori", defaults={"address": "Chorsu, Olmazor"}
+            region=region,
+            name="Chorsu bozori",
+            defaults={"address": "Chorsu, Olmazor", "latitude": 41.3110, "longitude": 69.2797},
         )
+        MLAT, MLNG = 41.3110, 69.2797  # xarita markazi (do'konlar shu atrofda tarqaladi)
         rows = {
             name: Row.objects.get_or_create(market=market, label=name, defaults={"order": i})[0]
             for i, name in enumerate(ROWS)
@@ -129,7 +132,10 @@ class Command(BaseCommand):
         shops = []
         num = 1
         for scat, rowname, n in layout:
+            ri = ROWS.index(rowname)
             for j in range(n):
+                lat = MLAT + (ri - 1.5) * 0.0011 + random.uniform(-0.0003, 0.0003)
+                lng = MLNG + (j - 3) * 0.0013 + random.uniform(-0.0004, 0.0004)
                 shop, _ = Shop.objects.get_or_create(
                     market=market,
                     number=str(num),
@@ -140,7 +146,9 @@ class Command(BaseCommand):
                         "category": shop_cats[scat],
                         "row": rows[rowname],
                         "map_x": (j % 6) * 90 + 40,
-                        "map_y": ROWS.index(rowname) * 90 + 40,
+                        "map_y": ri * 90 + 40,
+                        "latitude": round(lat, 6),
+                        "longitude": round(lng, 6),
                     },
                 )
                 # Mahsulotlar
