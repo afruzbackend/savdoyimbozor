@@ -3,6 +3,18 @@
   const UZ_MONTHS = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul",
     "Avgust","Sentabr","Oktabr","Noyabr","Dekabr"];
   const UZ_WD = ["Du","Se","Cho","Pa","Ju","Sh","Ya"]; // Dushanbadan
+  // Tilga qarab oy/hafta nomlari (kalendar uchun)
+  const _MONTHS = {
+    cyrl: ["Январ","Феврал","Март","Апрел","Май","Июн","Июл","Август","Сентабр","Октабр","Ноябр","Декабр"],
+    ru: ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"],
+  };
+  const _WD = { cyrl: ["Ду","Се","Чо","Па","Жу","Ша","Як"], ru: ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"] };
+  function uiLang() {
+    const m = document.cookie.match("(^|;)\\s*uilang\\s*=\\s*([^;]+)");
+    return m ? m.pop() : "";
+  }
+  function calMonths() { return _MONTHS[uiLang()] || UZ_MONTHS; }
+  function calWd() { return _WD[uiLang()] || UZ_WD; }
 
   // Summani "1 234 567" ko'rinishida formatlash
   function fmt(n) {
@@ -21,8 +33,8 @@
     // ---- Custom sana maydoni (o'zbekcha kalendar, hidden inputga yozadi) ----
     Alpine.data("dateField", (initialIso = "") => ({
       open: false,
-      months: UZ_MONTHS,
-      wd: UZ_WD,
+      months: calMonths(),
+      wd: calWd(),
       value: initialIso ? new Date(initialIso + "T00:00:00") : new Date(),
       view: initialIso ? new Date(initialIso + "T00:00:00") : new Date(),
       get iso() {
@@ -104,7 +116,7 @@
       open: false, mode,
       view: new Date(),
       start: null, end: null,
-      months: UZ_MONTHS, wd: UZ_WD,
+      months: calMonths(), wd: calWd(),
       get title() { return `${this.months[this.view.getMonth()]} ${this.view.getFullYear()}`; },
       get days() {
         const y = this.view.getFullYear(), m = this.view.getMonth();
