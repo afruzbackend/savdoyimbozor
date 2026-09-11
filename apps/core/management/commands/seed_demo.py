@@ -15,12 +15,23 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
-from apps.analytics.models import Alert, DailyScore, MarketPrice
+from apps.analytics.models import Alert, Appeal, DailyScore, Inspection, MarketPrice
 from apps.analytics.scoring.services import recompute_for_date
+from apps.cameras.models import Camera, CameraEvent
 from apps.cash.models import CashRecord
 from apps.catalog.models import Product, ProductCategory, ShopCategory, Unit
 from apps.geo.models import Market, Region, Row
-from apps.sales.models import DailyClose, DailyCloseLine, Sale, SaleItem
+from apps.sales.models import (
+    Correction,
+    DailyClose,
+    DailyCloseLine,
+    Debt,
+    Sale,
+    SaleItem,
+    SaleReturn,
+    StockIn,
+    WriteOff,
+)
 from apps.shops.models import Shop
 
 User = get_user_model()
@@ -61,18 +72,27 @@ class Command(BaseCommand):
         random.seed(2026)
         if opts["reset"]:
             for M in (
+                CameraEvent,
+                Camera,
+                Inspection,
+                Appeal,
+                Alert,
+                DailyScore,
+                MarketPrice,
                 DailyCloseLine,
                 DailyClose,
                 SaleItem,
                 Sale,
+                SaleReturn,
+                WriteOff,
+                StockIn,
+                Correction,
+                Debt,
                 CashRecord,
-                Alert,
-                DailyScore,
-                MarketPrice,
                 Product,
+                ProductCategory,
                 Shop,
                 Row,
-                ProductCategory,
                 ShopCategory,
                 Market,
                 Region,
@@ -195,11 +215,18 @@ class Command(BaseCommand):
                 timezone.datetime.combine(day, timezone.datetime.min.time())
                 + timedelta(hours=random.randint(8, 18), minutes=random.randint(0, 59))
             )
+            # Ba'zi cheklarga chegirma (savdolashish) — tannarxdan past emas
+            disc = 0
+            if random.random() < 0.3:
+                cap = max(0, line - int(qty * p.buy_price))  # tannarx cheklovi
+                disc = int(min(round(line * random.uniform(0.02, 0.08), -3), cap))
             sale = Sale.objects.create(
                 shop=shop,
-                total=line,
+                total=line - disc,
                 subtotal=line,
+                discount=disc,
                 payment_type=random.choice(["cash", "cash", "card"]),
+                is_wholesale=random.random() < 0.1,
             )
             # auto_now_add created_at ni bekor qiladi — kerakli sanaga majburan o'zgartiramiz
             Sale.objects.filter(pk=sale.pk).update(created_at=dt)
