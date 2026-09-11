@@ -1,0 +1,66 @@
+{% extends 'inspector/base.html' %}
+{% load static %}
+{% block title %}Bozor xaritasi{% endblock %}
+{% block heading %}Bozor xaritasi{% endblock %}
+{% block topbar_actions %}
+  <div class="row gap-3">
+    <span class="row gap-1" style="font-size:var(--t--1)"><span class="dot dot-ok"></span> Rost</span>
+    <span class="row gap-1" style="font-size:var(--t--1)"><span class="dot dot-warn"></span> E'tibor</span>
+    <span class="row gap-1" style="font-size:var(--t--1)"><span class="dot dot-bad"></span> Xavf</span>
+  </div>
+{% endblock %}
+
+{% block content %}
+{% if markets.count > 1 %}
+<div class="segmented" style="margin-bottom:var(--sp-4)">
+  {% for m in markets %}
+  <a href="{% url 'inspector:map_market' m.pk %}"><button :aria-selected="{{ m.pk|yesno:'true,false' }}"
+     {% if market and m.pk == market.pk %}aria-selected="true"{% endif %}>{{ m.name }}</button></a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if market %}
+<div class="card">
+  <div class="card-header"><span class="card-title">{{ market.name }}</span>
+    <small class="muted">{{ market.region.name }}</small></div>
+
+  <div class="stack gap-4">
+    {% for r in rows %}
+    <div>
+      <div class="muted" style="font-size:var(--t--1);font-weight:600;margin-bottom:8px">
+        {% if r.row %}{{ r.row.label }}{% else %}Boshqa{% endif %}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        {% for c in r.cells %}
+        <a href="{% url 'inspector:shop_detail' c.shop.pk %}"
+           class="map-cell lvl-{{ c.level }}"
+           data-tip="№{{ c.shop.number }} {{ c.shop.owner_name }}{% if c.truth is not None %} · {{ c.truth }}%{% endif %}">
+          <span class="mc-num">{{ c.shop.number }}</span>
+          {% if c.truth is not None %}<span class="mc-t num">{{ c.truth }}</span>{% endif %}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="empty"><img class="emoji-xl" src="{% static 'emoji/box.svg' %}" alt="">
+  <h3>Bozor topilmadi</h3><p class="muted">Sizga bozor biriktirilmagan.</p></div>
+{% endif %}
+{% endblock %}
+
+{% block head %}
+<style>
+  .map-cell{width:66px;height:66px;border-radius:var(--r-sm);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:2px;border:1px solid var(--border-strong);
+    background:var(--surface-sunken);color:var(--ink);text-decoration:none;transition:transform var(--dur)}
+  .map-cell:hover{transform:translateY(-2px);text-decoration:none}
+  .map-cell .mc-num{font-size:var(--t--1);color:var(--ink-muted)}
+  .map-cell .mc-t{font-family:var(--font-serif);font-weight:700;font-size:var(--t-1)}
+  .map-cell.lvl-green{background:var(--ok-bg);border-color:var(--ok);color:var(--ok-ink)}
+  .map-cell.lvl-yellow{background:var(--warn-bg);border-color:var(--warn);color:var(--warn-ink)}
+  .map-cell.lvl-red{background:var(--bad-bg);border-color:var(--bad);color:var(--bad-ink)}
+  .map-cell.lvl-green .mc-num,.map-cell.lvl-yellow .mc-num,.map-cell.lvl-red .mc-num{color:inherit;opacity:.7}
+</style>
+{% endblock %}

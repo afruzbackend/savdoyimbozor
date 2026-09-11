@@ -72,10 +72,143 @@ def level_for(truth: int, green: int, yellow: int) -> str:
     return "red"
 
 
-def recompute_for_date(day) -> int:
-    """Berilgan kun uchun barcha do'kon ballarini qayta hisoblaydi (P3'da to'ldiriladi).
+def _median(values):
+    vals = sorted(v for v in values if v)
+    if not vals:
+        return 0
+    n = len(vals)
+    mid = n // 2
+    return vals[mid] if n % 2 else (vals[mid - 1] + vals[mid]) // 2
 
-    Hozircha skelet — 0 qaytaradi. P3'da: har do'kon uchun kassa/kamera/qoldiq/narx
-    qismlarini yig'ib, `weighted_truth` bilan DailyScore yaratadi va signal chiqaradi.
+
+def compute_market_prices(market, day):
+    """Bozor narxi: har mahsulot toifasi uchun median sotish narxi (so'm)."""
+    from apps.analytics.models import MarketPrice
+    from apps.catalog.models import Product
+
+    by_cat = {}
+    for p in Product.objects.filter(shop__market=market, is_active=True,
+                                    category__isnull=False, sell_price__gt=0):
+        by_cat.setdefault(p.category_id, []).append(p.sell_price)
+
+    result = {}
+    for cat_id, prices in by_cat.items():
+        prices.sort()
+        med = _median(prices)
+        n = len(prices)
+        p25 = prices[max(0, n // 4)]
+        p75 = prices[min(n - 1, 3 * n // 4)]
+        MarketPrice.objects.update_or_create(
+            market=market, product_category_id=cat_id, date=day,
+            defaults={"median": med, "p25": p25, "p75": p75})
+        result[cat_id] = med
+    return result
+
+
+def _shop_price_score(shop, medians):
+    """Do'kon narx balli: mahsulotlari narxini bozor medianasi bilan solishtiradi."""
+    from apps.catalog.models import Product
+    scores = []
+    for p in Product.objects.filter(shop=shop, is_active=True,
+                                    category__isnull=False, sell_price__gt=0):
+        med = medians.get(p.category_id)
+        s = price_score(p.sell_price, med)
+        if s is not None:
+            scores.append(s)
+    if not scores:
+        return None
+    return sum(scores) / len(scores)
+
+
+def _entered_sales(shop, day):
+    from apps.sales.models import Sale
+    return sum(s.total for s in Sale.objects.filter(shop=shop, created_at__date=day))
+
+
+def _cash_declared(shop, day):
+    from apps.cash.models import CashRecord
+    return sum(c.amount for c in CashRecord.objects.filter(shop=shop, date=day))
+
+
+def _camera_estimate(shop, day, buyer_ratio):
+    """Kamera bahosi: tashriflar × buyer_ratio × o'rtacha chek. Kamera bo'lmasa None."""
+    from apps.cameras.models import CameraEvent
+    visits = CameraEvent.objects.filter(shop=shop, type="visit", ts__date=day).count()
+    if not visits:
+        return None
+    from apps.sales.models import Sale
+    sales = list(Sale.objects.filter(shop=shop, created_at__date=day))
+    if not sales:
+        return None
+    avg_check = sum(s.total for s in sales) / len(sales)
+    return int(visits * float(buyer_ratio) * avg_check)
+
+
+def recompute_for_date(day) -> int:
+    """Berilgan kun uchun barcha faol do'kon rostlik ballarini qayta hisoblaydi.
+
+    Har do'kon: kassa/kamera/narx (va qoldiq — mavjud bo'lsa) qismlari → weighted_truth →
+    DailyScore. Yashil bo'lmasa va yopiq kun bo'lmasa → signal.
     """
-    return 0
+    from apps.analytics.models import Alert, DailyScore
+    from apps.core.models import SystemSettings
+    from apps.geo.models import Market
+    from apps.shops.models import Shop
+
+    cfg = SystemSettings.get_solo()
+    weights = {"cash": cfg.weight_cash, "camera": cfg.weight_camera,
+               "stock": cfg.weight_stock, "price": cfg.weight_price}
+
+    # Bozor narxlarini oldindan hisoblaymiz (do'kon narx balli uchun)
+    medians_by_market = {m.id: compute_market_prices(m, day) for m in Market.objects.all()}
+
+    count = 0
+    for shop in Shop.objects.filter(is_active=True).select_related("market"):
+        entered = _entered_sales(shop, day)
+        cash = _cash_declared(shop, day)
+        cam = _camera_estimate(shop, day, cfg.buyer_ratio)
+        price_val = _shop_price_score(shop, medians_by_market.get(shop.market_id, {}))
+
+        parts = {
+            "cash": match(cash, entered),
+            "camera": match(cam, entered) if cam is not None else None,
+            "stock": None,  # DailyClose asosida keyin
+            "price": price_val,
+        }
+        result = weighted_truth(parts, weights,
+                                weakest_cap_bonus=cfg.weakest_part_cap,
+                                yellow_threshold=cfg.yellow_threshold)
+
+        DailyScore.objects.update_or_create(
+            shop=shop, date=day,
+            defaults={"truth_pct": result["truth"], "parts": result["parts"],
+                      "weakest": result["weakest"], "entered_sales": entered,
+                      "cash_amount": cash})
+        count += 1
+
+        # Signal (yopiq kun bo'lmasa, ma'lumot bo'lsa)
+        if day.weekday() in shop.closed_weekday_list():
+            continue
+        if not any(v is not None for v in parts.values()):
+            continue
+        lvl = level_for(result["truth"], cfg.green_threshold, cfg.yellow_threshold)
+        if lvl == "green":
+            continue
+        if Alert.objects.filter(shop=shop, date=day).exists():
+            continue
+        reason = _alert_reason(result, parts, entered, cash)
+        Alert.objects.create(shop=shop, date=day, level=lvl, reason=reason,
+                             assigned_to=shop.market.inspectors.first())
+    return count
+
+
+def _alert_reason(result, parts, entered, cash):
+    weakest = result.get("weakest")
+    if weakest == "cash" and entered:
+        pct = round((1 - (cash / entered)) * 100) if entered else 0
+        return f"Deklaratsiya kiritilgandan {pct}% past (kassa {int(cash):,} / savdo {int(entered):,} so'm)"
+    if weakest == "price":
+        return "Narx bozor medianasidan sezilarli past"
+    if weakest == "camera":
+        return "Kamera bahosi kiritilgan savdodan farq qilmoqda"
+    return f"Rostlik darajasi past ({result['truth']}%)"

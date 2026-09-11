@@ -1,0 +1,30 @@
+{% extends 'inspector/base.html' %}
+{% load static %}
+{% block title %}Kameralar{% endblock %}
+{% block heading %}Kameralar{% endblock %}
+{% block content %}
+<div class="grid grid-2" style="margin-bottom:var(--sp-4)">
+  <div class="card"><small class="muted">Online</small><div class="truth-big" style="font-size:var(--t-4);color:var(--ok)">{{ online }}</div></div>
+  <div class="card"><small class="muted">Jami</small><div class="truth-big" style="font-size:var(--t-4)">{{ total }}</div></div>
+</div>
+<div class="card">
+  {% if cameras %}
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>Kamera</th><th>Bozor</th><th>Turi</th><th>Holat</th><th>Oxirgi signal</th></tr></thead>
+    <tbody>
+    {% for c in cameras %}
+    <tr><td>{{ c.name }}</td><td>{{ c.market.name }}</td><td>{{ c.get_kind_display }}</td>
+      <td>{% if c.is_online %}<span class="dot dot-ok"></span> Online{% else %}<span class="dot dot-bad"></span> Offline{% endif %}</td>
+      <td class="muted num">{{ c.last_seen|default:"—" }}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% else %}
+  <div class="empty">
+    <img class="emoji-xl" src="{% static 'emoji/box.svg' %}" alt="">
+    <h3>Hali kamera ulanmagan</h3>
+    <p class="muted">Kamera qo'shilganda AI worker <span class="num">/api/events/</span> orqali
+       xaridor tashriflari va kamera holatini yuboradi. Backend tayyor turibdi.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

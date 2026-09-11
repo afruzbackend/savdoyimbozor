@@ -1,0 +1,34 @@
+{% extends 'inspector/base.html' %}
+{% load static %}
+{% block title %}Tekshiruv{% endblock %}
+{% block heading %}Tekshiruv natijasi{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px">
+  {% if alert %}<div class="msg info">Signal: <b>№{{ alert.shop.number }} {{ alert.shop.owner_name }}</b> — {{ alert.reason }}</div>{% endif %}
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% if alert %}<input type="hidden" name="alert" value="{{ alert.pk }}">{% endif %}
+    <div class="field"><label class="label">Do'kon</label>
+      <select class="select-native" name="shop" required>
+        {% for s in shops %}<option value="{{ s.pk }}" {% if preselect and s.pk == preselect.pk %}selected{% endif %}>№{{ s.number }} — {{ s.owner_name }} ({{ s.market.name }})</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field"><label class="label">Natija</label>
+      <select class="select-native" name="result">
+        {% for val, lbl in results %}<option value="{{ val }}">{{ lbl }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="grid grid-2">
+      <div class="field"><label class="label">Dalolatnoma raqami</label>
+        <input class="input" name="act_number" placeholder="A-2026-0142"></div>
+      <div class="field"><label class="label">Jarima (so'm)</label>
+        <input class="input num" name="fine_amount" type="number" step="1000" placeholder="0"></div>
+    </div>
+    <div class="field"><label class="label">Izoh</label>
+      <textarea class="textarea" name="notes" rows="3"></textarea></div>
+    <div class="field"><label class="label">Foto (dalolat)</label>
+      <input class="input" type="file" name="photo" accept="image/*" capture="environment"></div>
+    <button class="btn btn-lg" type="submit">Saqlash</button>
+  </form>
+</div>
+{% endblock %}

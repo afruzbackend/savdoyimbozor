@@ -1,0 +1,22 @@
+{% load static %}
+<tr id="alert-{{ a.pk }}" class="{% if a.status == 'dismissed' %}{% elif a.level == 'red' %}row-bad{% elif a.level == 'yellow' %}row-warn{% endif %}"
+    {% if a.status == 'dismissed' %}style="opacity:.5"{% endif %}>
+  <td class="num">{{ a.date }}</td>
+  <td><a href="{% url 'inspector:shop_detail' a.shop.pk %}">№{{ a.shop.number }} {{ a.shop.owner_name }}</a>
+      <div class="muted" style="font-size:var(--t--1)">{{ a.shop.market.name }}</div></td>
+  <td>{{ a.reason }}</td>
+  <td><span class="badge badge-{% if a.level == 'red' %}bad{% elif a.level == 'yellow' %}warn{% else %}ok{% endif %}">{{ a.get_level_display }}</span></td>
+  <td><span class="badge badge-neutral">{{ a.get_status_display }}</span></td>
+  <td style="white-space:nowrap">
+    {% if a.status != 'dismissed' %}
+      <a class="btn btn-ghost" style="padding:6px 10px" href="{% url 'inspector:inspection_create' %}?alert={{ a.pk }}">Tekshirish</a>
+      <button class="btn btn-ghost" style="padding:6px 10px" hx-post="{% url 'inspector:alert_action' a.pk %}"
+              hx-vals='{"action":"assign_me"}' hx-target="#alert-{{ a.pk }}" hx-swap="outerHTML">Menga</button>
+      <button class="btn btn-ghost" style="padding:6px 10px" hx-post="{% url 'inspector:alert_action' a.pk %}"
+              hx-vals='{"action":"dismiss"}' hx-target="#alert-{{ a.pk }}" hx-swap="outerHTML">E'tiborsiz</button>
+    {% else %}
+      <button class="btn btn-ghost" style="padding:6px 10px" hx-post="{% url 'inspector:alert_action' a.pk %}"
+              hx-vals='{"action":"reopen"}' hx-target="#alert-{{ a.pk }}" hx-swap="outerHTML">Qayta ochish</button>
+    {% endif %}
+  </td>
+</tr>

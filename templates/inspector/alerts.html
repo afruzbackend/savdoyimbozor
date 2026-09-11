@@ -1,0 +1,26 @@
+{% extends 'inspector/base.html' %}
+{% load static %}
+{% block title %}Signallar{% endblock %}
+{% block heading %}Signallar{% endblock %}
+{% block content %}
+<div class="row gap-2 wrap-flex" style="margin-bottom:var(--sp-4)">
+  <a class="chip" href="{% url 'inspector:alerts' %}" {% if not level and not status %}aria-pressed="true"{% endif %}>Barchasi</a>
+  <a class="chip" href="?level=red" {% if level == 'red' %}aria-pressed="true"{% endif %}>Qizil</a>
+  <a class="chip" href="?level=yellow" {% if level == 'yellow' %}aria-pressed="true"{% endif %}>Sariq</a>
+  <a class="chip" href="?status=new" {% if status == 'new' %}aria-pressed="true"{% endif %}>Yangi</a>
+  <a class="chip" href="?status=resolved" {% if status == 'resolved' %}aria-pressed="true"{% endif %}>Yakunlangan</a>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Sana</th><th>Do'kon</th><th>Sabab</th><th>Daraja</th><th>Holat</th><th></th></tr></thead>
+      <tbody>
+      {% for a in alerts %}{% include 'inspector/_alert_row.html' %}
+      {% empty %}<tr><td colspan="6" class="empty">
+        <img class="emoji-xl" src="{% static 'emoji/check.svg' %}" alt="" style="width:44px;height:44px"><br>
+        Signal yo'q.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends 'inspector/base.html' %}
+{% load static humanize %}
+{% block title %}№{{ shop.number }} — {{ shop.owner_name }}{% endblock %}
+{% block heading %}№{{ shop.number }} · {{ shop.owner_name }}{% endblock %}
+{% block topbar_actions %}
+  <a class="btn" href="{% url 'inspector:inspection_create' %}?shop={{ shop.pk }}">
+    <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Tekshiruv</a>
+{% endblock %}
+
+{% block content %}
+<div class="grid" style="grid-template-columns:320px 1fr;gap:var(--sp-4);align-items:start">
+
+  {# Chap: rostlik + do'kon ma'lumoti #}
+  <div class="stack gap-4">
+    <div class="card center">
+      {% if latest %}
+      <div class="truth-ring lvl-{{ level }}" style="--v:{{ latest.truth_pct }};margin:0 auto var(--sp-3)">
+        <span class="val num">{{ latest.truth_pct }}</span>
+      </div>
+      <div class="card-title">Rostlik darajasi</div>
+      <small class="muted">Bugungi baho · {{ latest.date }}</small>
+      {% else %}<p class="muted">Bugun uchun ball yo'q.</p>{% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-3)">Rostlik tarkibi</div>
+      {% for p in parts %}
+      <div style="margin-bottom:var(--sp-3)">
+        <div class="row" style="justify-content:space-between;font-size:var(--t--1)">
+          <span>{{ p.label }}</span>
+          <span class="num" style="font-weight:600">{% if p.value is not None %}{{ p.value }}%{% else %}<span class="muted">ma'lumot yo'q</span>{% endif %}</span>
+        </div>
+        {% if p.value is not None %}
+        <div style="height:8px;border-radius:99px;background:var(--surface-sunken);margin-top:5px;overflow:hidden">
+          <div style="height:100%;width:{{ p.value }}%;border-radius:99px;background:var(--{% if p.level == 'red' %}bad{% elif p.level == 'yellow' %}warn{% else %}ok{% endif %})"></div>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      <small class="faint">Eng zaif qism umumiy ballни cheklaydi — bitta kuchli signal yo'qolmaydi.</small>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-2)">Do'kon</div>
+      <table class="data" style="font-size:var(--t--1)">
+        <tr><td class="muted">STIR</td><td class="num">{{ shop.stir }}</td></tr>
+        <tr><td class="muted">Toifa</td><td>{{ shop.category.name|default:"—" }}</td></tr>
+        <tr><td class="muted">Qator</td><td>{{ shop.row.label|default:"—" }}</td></tr>
+        <tr><td class="muted">Telefon</td><td>{{ shop.owner_phone|default:"—" }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  {# O'ng: grafik + solishtirish + signal + tekshiruv #}
+  <div class="stack gap-4">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Kiritilgan savdo vs Deklaratsiya (14 kun)</span>
+        {% if peer_count %}<small class="muted">O'xshashlar o'rtacha rostligi: <b class="num">{{ peer_avg }}%</b> ({{ peer_count }} do'kon)</small>{% endif %}
+      </div>
+      <canvas id="shopChart" height="90"></canvas>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:var(--sp-3)">Signallar tarixi</div>
+        {% for a in alerts %}
+        <div class="row" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div><small class="num muted">{{ a.date }}</small><div style="font-size:var(--t--1)">{{ a.reason }}</div></div>
+          <span class="badge badge-{% if a.level == 'red' %}bad{% elif a.level == 'yellow' %}warn{% else %}ok{% endif %}">{{ a.get_level_display }}</span>
+        </div>
+        {% empty %}<p class="muted">Signal yo'q.</p>{% endfor %}
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:var(--sp-3)">Tekshiruvlar</div>
+        {% for i in inspections %}
+        <div class="row" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div><small class="num muted">{{ i.created_at|date:"d.m.Y" }}</small>
+            <div style="font-size:var(--t--1)">{{ i.inspector.get_full_name|default:"—" }}</div></div>
+          <span class="badge badge-{% if i.result == 'confirmed' %}bad{% elif i.result == 'false' %}neutral{% else %}warn{% endif %}">{{ i.get_result_display }}</span>
+        </div>
+        {% empty %}<p class="muted">Tekshiruv yo'q.</p>{% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-2)">Video dalil</div>
+      <div class="empty" style="padding:var(--sp-5)">
+        <svg class="icon-lg muted"><use href="{% static 'icons/sprite.svg' %}#i-camera"></use></svg>
+        <p class="muted" style="margin-top:8px">Kamera ulanganda shubhali hodisalarning 10 soniyalik kliplari shu yerda ko'rinadi.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/chart.umd.min.js' %}"></script>
+{{ chart|json_script:"chart-data" }}
+<script>
+  (function(){
+    const d = JSON.parse(document.getElementById('chart-data').textContent);
+    const ctx = document.getElementById('shopChart'); if(!ctx||!window.Chart) return;
+    const css = getComputedStyle(document.documentElement);
+    const c = n => css.getPropertyValue(n).trim();
+    new Chart(ctx, { data:{ labels:d.labels, datasets:[
+      { type:'bar', label:'Kiritilgan', data:d.entered, backgroundColor:c('--brand-300') },
+      { type:'bar', label:'Deklaratsiya', data:d.cash, backgroundColor:c('--clay-400') },
+      { type:'line', label:'Rostlik %', data:d.truth, borderColor:c('--ok'), yAxisID:'y1', tension:.3, borderWidth:2, pointRadius:2 }
+    ]}, options:{ responsive:true, interaction:{mode:'index',intersect:false},
+      scales:{ y:{ position:'left', ticks:{callback:v=>(v/1000000)+'M'} },
+        y1:{ position:'right', min:0, max:100, grid:{drawOnChartArea:false} } },
+      plugins:{ legend:{ labels:{ boxWidth:12, font:{size:11} } } } }});
+  })();
+</script>
+{% endblock %}

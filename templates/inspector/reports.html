@@ -1,0 +1,43 @@
+{% extends 'inspector/base.html' %}
+{% load static humanize %}
+{% block title %}Hisobot{% endblock %}
+{% block heading %}Hisobot{% endblock %}
+{% block topbar_actions %}
+  <a class="btn" href="{% url 'inspector:export' %}?start={{ start|date:'Y-m-d' }}&end={{ end|date:'Y-m-d' }}">
+    <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Excel</a>
+{% endblock %}
+{% block content %}
+<form method="get" class="card" style="display:flex;gap:var(--sp-3);align-items:end;margin-bottom:var(--sp-4);flex-wrap:wrap">
+  <div class="field" style="margin:0"><label class="label">Boshlanish</label>
+    <input class="input" type="date" name="start" value="{{ start|date:'Y-m-d' }}"></div>
+  <div class="field" style="margin:0"><label class="label">Tugash</label>
+    <input class="input" type="date" name="end" value="{{ end|date:'Y-m-d' }}"></div>
+  <button class="btn">Ko'rsatish</button>
+</form>
+
+<div class="grid grid-4" style="margin-bottom:var(--sp-4)">
+  <div class="card"><small class="muted">Kiritilgan savdo</small><div class="truth-big" style="font-size:var(--t-3)">{{ entered|intcomma }}</div><small class="muted">so'm</small></div>
+  <div class="card"><small class="muted">Deklaratsiya</small><div class="truth-big" style="font-size:var(--t-3)">{{ cash|intcomma }}</div><small class="muted">so'm</small></div>
+  <div class="card"><small class="muted">O'rtacha rostlik</small><div class="truth-big" style="font-size:var(--t-3);color:var(--ok)">{{ avg_truth }}%</div></div>
+  <div class="card"><small class="muted">Jarima</small><div class="truth-big" style="font-size:var(--t-3)">{{ fines|intcomma }}</div><small class="muted">so'm</small></div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Signal va tekshiruv</div>
+    <table class="data">
+      <tr><td>Jami signal</td><td class="num">{{ alert_count }}</td></tr>
+      <tr><td>Tekshiruvlar</td><td class="num">{{ inspection_count }}</td></tr>
+      <tr><td>Tasdiqlangan</td><td class="num">{{ confirmed }}</td></tr>
+      <tr><td>Noto'g'ri signal</td><td class="num">{{ false_signal }}</td></tr>
+    </table>
+  </div>
+  <div class="card center" style="display:grid;place-items:center">
+    <div class="card-title">AI aniqligi</div>
+    {% if accuracy is not None %}
+      <div class="truth-big" style="color:var(--ok)">{{ accuracy }}%</div>
+      <p class="muted">Tasdiqlangan signallar ulushi — yuqoriga taqdim etiladigan asosiy dalil.</p>
+    {% else %}<p class="muted">Yetarli tekshiruv yo'q.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

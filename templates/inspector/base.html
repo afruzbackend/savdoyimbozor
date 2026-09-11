@@ -1,0 +1,16 @@
+{% extends 'shell.html' %}
+{% load static %}
+{% block nav %}
+<a class="navlink {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'inspector:dashboard' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-layout-dashboard"></use></svg> Boshqaruv paneli</a>
+<a class="navlink {% if 'map' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'inspector:map' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg> Bozor xaritasi</a>
+<a class="navlink {% if request.resolver_match.url_name == 'alerts' %}active{% endif %}" href="{% url 'inspector:alerts' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg> Signallar</a>
+<a class="navlink {% if request.resolver_match.url_name == 'inspection_create' %}active{% endif %}" href="{% url 'inspector:inspection_create' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Tekshiruv</a>
+<a class="navlink {% if request.resolver_match.url_name == 'cameras' %}active{% endif %}" href="{% url 'inspector:cameras' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-camera"></use></svg> Kameralar</a>
+<a class="navlink {% if request.resolver_match.url_name == 'reports' %}active{% endif %}" href="{% url 'inspector:reports' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg> Hisobotlar</a>
+{% endblock %}
+{% block bottom_nav %}
+<a href="{% url 'inspector:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-layout-dashboard"></use></svg>Panel</a>
+<a href="{% url 'inspector:map' %}" class="{% if 'map' in request.resolver_match.url_name %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg>Xarita</a>
+<a href="{% url 'inspector:alerts' %}" class="{% if request.resolver_match.url_name == 'alerts' %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg>Signal</a>
+<a href="{% url 'profile' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg>Profil</a>
+{% endblock %}

@@ -1,29 +1,68 @@
-{% extends 'shell.html' %}
-{% load static %}
-{% block title %}Nazorat — Bosh sahifa{% endblock %}
-{% block heading %}Bosh sahifa{% endblock %}
-
-{% block nav %}
-<a class="navlink active" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-layout-dashboard"></use></svg> Boshqaruv paneli</a>
-<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg> Bozor xaritasi</a>
-<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg> Signallar</a>
-<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-store"></use></svg> Do'konlar</a>
-<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-camera"></use></svg> Kameralar</a>
-<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg> Hisobotlar</a>
-{% endblock %}
+{% extends 'inspector/base.html' %}
+{% load static humanize %}
+{% block title %}Nazorat — Boshqaruv paneli{% endblock %}
+{% block heading %}Boshqaruv paneli{% endblock %}
+{% block topbar_actions %}<span class="muted num">{{ today }}</span>{% endblock %}
 
 {% block content %}
-<div class="msg info">P3 bosqichida bu yerga real dashboard quriladi: xavf reytingi, signal lentasi, aniqlik foizi, bozor xaritasi.</div>
-<div class="grid grid-4" style="margin-top:var(--sp-4)">
-  <div class="card"><small class="muted">Nazoratdagi do'kon</small><div class="truth-big" style="font-size:var(--t-4)">—</div></div>
-  <div class="card"><small class="muted">Qizil signal</small><div class="truth-big" style="font-size:var(--t-4);color:var(--bad)">—</div></div>
-  <div class="card"><small class="muted">O'rtacha rostlik</small><div class="truth-big" style="font-size:var(--t-4);color:var(--ok)">—</div></div>
-  <div class="card"><small class="muted">AI aniqligi</small><div class="truth-big" style="font-size:var(--t-4)">—</div></div>
+<div class="grid grid-4" style="margin-bottom:var(--sp-4)">
+  <div class="card">
+    <small class="muted">Nazoratdagi do'kon</small>
+    <div class="truth-big" style="font-size:var(--t-4)">{{ shop_count }}</div>
+  </div>
+  <div class="card">
+    <small class="muted">Qizil signal</small>
+    <div class="truth-big" style="font-size:var(--t-4);color:var(--bad)">{{ red_count }}</div>
+    <small class="muted">{{ yellow_count }} sariq</small>
+  </div>
+  <div class="card">
+    <small class="muted">O'rtacha rostlik</small>
+    <div class="truth-big" style="font-size:var(--t-4);color:var(--ok)">{% if avg_truth is not None %}{{ avg_truth }}%{% else %}—{% endif %}</div>
+  </div>
+  <div class="card">
+    <small class="muted">AI aniqligi</small>
+    <div class="truth-big" style="font-size:var(--t-4)">{% if accuracy is not None %}{{ accuracy }}%{% else %}—{% endif %}</div>
+    <small class="muted">tekshiruv natijasi</small>
+  </div>
 </div>
-{% endblock %}
-{% block bottom_nav %}
-<a href="#" class="active"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-layout-dashboard"></use></svg>Panel</a>
-<a href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg>Xarita</a>
-<a href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg>Signal</a>
-<a href="{% url 'profile' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg>Profil</a>
+
+<div class="grid" style="grid-template-columns:1.3fr 1fr;gap:var(--sp-4)">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Eng xavfli do'konlar</span>
+      <a href="{% url 'inspector:map' %}" class="btn-quiet">Xarita →</a></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Do'kon</th><th>Toifa</th><th class="num">Kiritilgan</th><th class="num">Deklaratsiya</th><th class="num">Rostlik</th></tr></thead>
+        <tbody>
+        {% for s, lvl in risky %}
+          <tr class="{% if lvl == 'red' %}row-bad{% elif lvl == 'yellow' %}row-warn{% endif %}">
+            <td><a href="{% url 'inspector:shop_detail' s.shop.pk %}">№{{ s.shop.number }} {{ s.shop.owner_name }}</a></td>
+            <td class="muted">{{ s.shop.category.name|default:"—" }}</td>
+            <td class="num">{{ s.entered_sales|intcomma }}</td>
+            <td class="num">{{ s.cash_amount|intcomma }}</td>
+            <td class="num"><span class="badge badge-{% if lvl == 'red' %}bad{% elif lvl == 'yellow' %}warn{% else %}ok{% endif %}">{{ s.truth_pct }}%</span></td>
+          </tr>
+        {% empty %}<tr><td colspan="5" class="muted">Ma'lumot yo'q.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">So'nggi signallar</span>
+      <a href="{% url 'inspector:alerts' %}" class="btn-quiet">Barchasi →</a></div>
+    {% for a in alerts %}
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div class="row" style="justify-content:space-between;gap:8px">
+          <a href="{% url 'inspector:shop_detail' a.shop.pk %}" style="font-weight:600">№{{ a.shop.number }} {{ a.shop.owner_name }}</a>
+          <span class="badge badge-{% if a.level == 'red' %}bad{% else %}warn{% endif %}">{{ a.get_level_display }}</span>
+        </div>
+        <small class="muted">{{ a.reason }}</small>
+      </div>
+    {% empty %}
+      <div class="empty"><img class="emoji-xl" src="{% static 'emoji/check.svg' %}" alt="" style="width:48px;height:48px">
+        <p class="muted">Yangi signal yo'q.</p></div>
+    {% endfor %}
+  </div>
+</div>
 {% endblock %}
