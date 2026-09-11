@@ -36,9 +36,24 @@ def test_statistics_shows_seller_row(iclient, shop, seller):
 
 
 @pytest.mark.django_db
-def test_seller_cannot_open_inspector_dashboard(sclient):
-    """Sotuvchi nazorat hostiga kirsa — dashboard ко'rsatilmasligi kerak (login yoki 403)."""
-    r = sclient.get("/statistika/", HTTP_HOST=INSPECTOR_HOST)
-    # visible_shops() sotuvchida bo'sh — sahifa ma'lumotsiz yoki redirect bo'ladi,
-    # lekin boshqa do'kon ma'lumoti sizib chiqmasligi kerak.
-    assert r.status_code in (200, 302, 403)
+def test_seller_redirected_off_inspector_host(sclient):
+    """Sotuvchi nazorat hostiga kirsa — o'z (sotuvchi) hostiga yo'naltiriladi."""
+    r = sclient.get("/", HTTP_HOST=INSPECTOR_HOST)
+    assert r.status_code == 302
+    assert "sotuvchi." in r.url  # o'z interfeysiga qaytariladi
+    assert "nazorat." not in r.url
+
+
+@pytest.mark.django_db
+def test_seller_dashboard_not_leaked_on_inspector_host(sclient):
+    """Nazorat dashboard mazmuni sotuvchiga sizib chiqmasligi kerak."""
+    r = sclient.get("/", HTTP_HOST=INSPECTOR_HOST)
+    # Redirect bo'ladi — nazorat mazmuni umuman render qilinmaydi
+    assert r.status_code == 302
+
+
+@pytest.mark.django_db
+def test_inspector_stays_on_inspector_host(iclient):
+    """Tekshiruvchi o'z hostида qoladi (yo'naltirilmaydi)."""
+    r = iclient.get("/", HTTP_HOST=INSPECTOR_HOST)
+    assert r.status_code == 200
