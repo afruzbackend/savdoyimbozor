@@ -1,0 +1,22 @@
+{% extends 'inspector/base.html' %}
+{% block title %}Do'kon qidirish{% endblock %}
+{% block heading %}Do'kon qidirish{% endblock %}
+{% block content %}
+<form method="get" class="card" style="display:flex;gap:var(--sp-2);margin-bottom:var(--sp-4)">
+  <input class="input" name="q" value="{{ q }}" autofocus
+         placeholder="Do'kon raqami yoki STIR..." style="max-width:360px">
+  <button class="btn">Qidirish</button>
+</form>
+{% if q %}
+<div class="card">
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>Do'kon</th><th>Bozor</th><th>STIR</th><th>Egasi</th></tr></thead>
+    <tbody>
+    {% for s in results %}
+    <tr><td><a href="{% url 'inspector:shop_detail' s.pk %}">№{{ s.number }}</a></td>
+      <td class="muted">{{ s.market.name }}</td><td class="num">{{ s.stir }}</td><td>{{ s.owner_name }}</td></tr>
+    {% empty %}<tr><td colspan="4" class="muted">Hech nima topilmadi.</td></tr>{% endfor %}
+    </tbody></table></div>
+</div>
+{% endif %}
+{% endblock %}

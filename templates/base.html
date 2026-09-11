@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>{% block title %}Bozor Nazorat{% endblock %}</title>
   <meta name="theme-color" content="#3a4e8c">
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+  <link rel="apple-touch-icon" href="{% static 'icon-192.png' %}">
   <link rel="preload" as="font" type="font/woff2" crossorigin
         href="{% static 'fonts/inter-v20-cyrillic_latin-regular.woff2' %}">
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
@@ -33,6 +35,11 @@
   <script defer src="{% static 'js/alpine.min.js' %}"></script>
   <script defer src="{% static 'js/htmx.min.js' %}"></script>
   <style>[x-cloak]{display:none!important}</style>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("{% static 'sw.js' %}").catch(() => {});
+    }
+  </script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

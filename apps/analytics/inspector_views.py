@@ -250,6 +250,22 @@ def inspection_create(request):
 
 
 @login_required
+def shop_search(request):
+    """Do'kon qidirish: raqam yoki STIR bo'yicha. Bitta topilsa — to'g'ridan sahifaga."""
+    q = request.GET.get("q", "").strip()
+    results = []
+    if q:
+        from django.db.models import Q
+
+        results = list(
+            _visible_shops(request).filter(Q(number__icontains=q) | Q(stir__icontains=q))[:50]
+        )
+        if len(results) == 1:
+            return redirect("inspector:shop_detail", pk=results[0].pk)
+    return render(request, "inspector/shop_search.html", {"q": q, "results": results})
+
+
+@login_required
 @require_POST
 def appeal_respond(request, pk):
     """Inspektor e'tirozga javob beradi (qabul/rad + matn)."""
