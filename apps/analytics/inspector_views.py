@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 from apps.cameras.models import Camera
 from apps.geo.models import Market
 
-from .models import Alert, DailyScore, Inspection
+from .models import Alert, Appeal, DailyScore, Inspection
 
 
 def _visible_shops(request):
@@ -247,6 +247,23 @@ def inspection_create(request):
             "results": Inspection.Result.choices,
         },
     )
+
+
+@login_required
+@require_POST
+def appeal_respond(request, pk):
+    """Inspektor e'tirozga javob beradi (qabul/rad + matn)."""
+    shops = _visible_shops(request)
+    appeal = get_object_or_404(Appeal, pk=pk, shop__in=shops)
+    action = request.POST.get("action")
+    if action in ("accepted", "rejected"):
+        appeal.status = action
+        appeal.response = request.POST.get("response", "")[:2000]
+        appeal.save(update_fields=["status", "response"])
+        from django.contrib import messages
+
+        messages.success(request, "E'tirozga javob berildi.")
+    return redirect("inspector:shop_detail", pk=appeal.shop_id)
 
 
 @login_required

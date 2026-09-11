@@ -82,6 +82,32 @@
       </div>
     </div>
 
+    {% if appeals %}
+    <div class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-3)">Sotuvchi e'tirozlari</div>
+      {% for a in appeals %}
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div class="row" style="justify-content:space-between">
+          <small class="muted num">{{ a.created_at|date:"d.m.Y" }}</small>
+          <span class="badge badge-{% if a.status == 'accepted' %}ok{% elif a.status == 'rejected' %}bad{% else %}neutral{% endif %}">{{ a.get_status_display }}</span>
+        </div>
+        <div style="margin:4px 0">{{ a.message }}</div>
+        {% if a.response %}<div class="msg info"><b>Javob:</b> {{ a.response }}</div>
+        {% elif a.status == 'new' %}
+        <form method="post" action="{% url 'inspector:appeal_respond' a.pk %}" class="stack gap-2" style="margin-top:6px">
+          {% csrf_token %}
+          <input class="input" name="response" placeholder="Javob matni">
+          <div class="row gap-2">
+            <button class="btn btn-ghost" name="action" value="accepted" style="padding:6px 12px">Qabul qilish</button>
+            <button class="btn btn-ghost" name="action" value="rejected" style="padding:6px 12px">Rad etish</button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="card">
       <div class="card-title" style="margin-bottom:var(--sp-2)">Video dalil</div>
       <div class="empty" style="padding:var(--sp-5)">

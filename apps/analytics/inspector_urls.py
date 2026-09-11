@@ -12,6 +12,7 @@ urlpatterns = [
     path("signallar/", v.alerts_list, name="alerts"),
     path("signallar/<int:pk>/amal/", v.alert_action, name="alert_action"),
     path("tekshiruv/yangi/", v.inspection_create, name="inspection_create"),
+    path("e-tiroz/<int:pk>/javob/", v.appeal_respond, name="appeal_respond"),
     path("kameralar/", v.cameras_status, name="cameras"),
     path("hisobot/", v.reports, name="reports"),
     path("hisobot/eksport/", v.export_excel, name="export"),

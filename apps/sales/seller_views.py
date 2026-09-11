@@ -315,6 +315,27 @@ def report(request):
     )
 
 
+@login_required
+def appeals(request):
+    """Sotuvchi e'tirozi: signalga rozi bo'lmasa yozadi; inspektor javobini ko'radi."""
+    shop = _shop(request)
+    if shop is None:
+        return redirect("seller:home")
+    from apps.analytics.models import Appeal
+
+    if request.method == "POST":
+        msg = request.POST.get("message", "").strip()
+        if msg:
+            Appeal.objects.create(shop=shop, author=request.user, message=msg[:2000])
+            messages.success(request, "E'tiroz yuborildi. Inspektor ko'rib chiqadi.")
+        return redirect("seller:appeals")
+    return render(
+        request,
+        "seller/appeals.html",
+        {"shop": shop, "appeals": shop.appeals.select_related("author")[:30]},
+    )
+
+
 def _advice(latest):
     if not latest:
         return "Savdolarni muntazam kiriting — rostlik darajasi shundan hisoblanadi."
