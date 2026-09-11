@@ -57,6 +57,14 @@ yaxlitlash faqat pastga, statistikaga kirmaydi. Server tekshiradi, frontend shu 
 - Model: RT-DETR/YOLOX/D-FINE + ByteTrack (Apache-2.0). **Ultralytics YOLO YO'Q (AGPL).**
   **Yuzni tanish YO'Q** (biometrik). Sotuvchi zonasi (staff_zone) sanalmaydi.
 
+## i18n (til)
+- **O'zbek lotin↔kirill** — avtomatik transliteratsiya (`static/js/i18n.js`): lotin manba,
+  kirill deterministik hosil bo'ladi (ikki katalog saqlanmaydi). Cookie `uilang="cyrl"`.
+  Sidebar footer'da Lotin/Кирилл tugmasi. `[data-noloc]`, input, code, raqam tegilmaydi.
+- **Rus tili** — gettext talab qiladi. Bu Windows mashinada `msgfmt/xgettext` YO'Q, shuning uchun
+  `makemessages/compilemessages` ishlamaydi. GNU gettext o'rnatilgach: strings'ni `{% trans %}`/
+  `gettext` bilan o'rash, `ru` katalogini tarjima qilish. Model verbose_name'lar allaqachon `gettext_lazy`.
+
 ## Konventsiyalar
 - Shablonlar: har interfeys `templates/<iface>/base.html` (shell + nav) dan meros oladi.
   Umumiy: `base.html`, `shell.html`, `components/`.
