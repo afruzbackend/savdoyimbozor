@@ -4,11 +4,20 @@
 {% block heading %}Kirim (mahsulot kelishi){% endblock %}
 {% block content %}
 <div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
-  <div class="card">
+  <div class="card" x-data="{scanMsg:''}">
     <form method="post">{% csrf_token %}
+      <div class="field"><label class="label">Barkod (skaner)</label>
+        <input class="input" placeholder="Barkodni skanerlang va Enter"
+               @keydown.enter.prevent="
+                 const sel=$refs.prod;
+                 const opt=[...sel.options].find(o=>o.dataset.barcode && o.dataset.barcode===$event.target.value.trim());
+                 if(opt){sel.value=opt.value; scanMsg='✓ '+opt.textContent; $event.target.value='';}
+                 else{scanMsg='Topilmadi — ro\'yxatdan tanlang';}">
+        <div class="hint" x-text="scanMsg" x-show="scanMsg" x-cloak></div>
+      </div>
       <div class="field"><label class="label">Mahsulot</label>
-        <select class="select-native" name="product" required>
-          {% for p in products %}<option value="{{ p.pk }}">{{ p.name }} ({{ p.stock }} {{ p.unit }})</option>{% endfor %}</select></div>
+        <select class="select-native" name="product" x-ref="prod" required>
+          {% for p in products %}<option value="{{ p.pk }}" data-barcode="{{ p.barcode }}">{{ p.name }} ({{ p.stock }} {{ p.unit }})</option>{% endfor %}</select></div>
       <div class="field"><label class="label">Miqdor</label><input class="input num" type="number" step="0.1" name="quantity" required></div>
       <label class="switch" style="margin-bottom:var(--sp-3)"><input type="checkbox" name="in_packs"><span class="track"></span><span class="thumb"></span>
         <span>Qopda/qutida (koeffitsient bo'yicha)</span></label>

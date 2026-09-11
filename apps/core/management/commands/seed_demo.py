@@ -124,7 +124,7 @@ class Command(BaseCommand):
                     },
                 )
                 # Mahsulotlar
-                for pname, unit, price in CATALOG[scat]:
+                for pi, (pname, unit, price) in enumerate(CATALOG[scat]):
                     Product.objects.get_or_create(
                         shop=shop,
                         name=pname,
@@ -134,6 +134,7 @@ class Command(BaseCommand):
                             "sell_price": price,
                             "buy_price": int(price * 0.72),
                             "stock": random.randint(50, 300),
+                            "barcode": f"20{num:04d}{pi}",
                         },
                     )
                 shops.append((shop, scat))
