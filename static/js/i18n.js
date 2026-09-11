@@ -54,17 +54,27 @@
 
   const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "CODE", "PRE", "TEXTAREA", "INPUT"]);
 
-  function walk(node) {
+  // Rus tili lug'ati (uz-lotin → rus). Faqat interfeys matnlari; ma'lumot (nom/raqam) qolaveradi.
+  const RU = window.RU_DICT || {};
+  function ruText(text) {
+    const key = text.trim();
+    if (!key) return text;
+    const t = RU[key];
+    if (t === undefined) return text;
+    return text.replace(key, t); // atrofdagi bo'sh joyni saqlaydi
+  }
+
+  function walk(node, transform) {
     if (node.nodeType === Node.TEXT_NODE) {
       if (node.nodeValue && node.nodeValue.trim()) {
-        node.nodeValue = translit(node.nodeValue);
+        node.nodeValue = transform(node.nodeValue);
       }
       return;
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return;
     if (SKIP_TAGS.has(node.tagName)) return;
     if (node.hasAttribute && node.hasAttribute("data-noloc")) return;
-    for (const child of node.childNodes) walk(child);
+    for (const child of node.childNodes) walk(child, transform);
   }
 
   function getCookie(n) {
@@ -78,11 +88,19 @@
   };
 
   function run() {
-    if (getCookie("uilang") !== "cyrl") return;
-    document.documentElement.setAttribute("lang", "uz-Cyrl");
-    walk(document.body);
+    const lang = getCookie("uilang");
+    let transform = null;
+    if (lang === "cyrl") {
+      transform = translit;
+      document.documentElement.setAttribute("lang", "uz-Cyrl");
+    } else if (lang === "ru") {
+      transform = ruText;
+      document.documentElement.setAttribute("lang", "ru");
+    }
+    if (!transform) return;
+    walk(document.body, transform);
     // HTMX bilan kelgan yangi bo'laklarni ham
-    document.body.addEventListener("htmx:afterSwap", (e) => walk(e.target));
+    document.body.addEventListener("htmx:afterSwap", (e) => walk(e.target, transform));
   }
 
   if (document.readyState === "loading") {

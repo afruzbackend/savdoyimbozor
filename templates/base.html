@@ -10,8 +10,8 @@
   <link rel="apple-touch-icon" href="{% static 'icon-192.png' %}">
   <link rel="preload" as="font" type="font/woff2" crossorigin
         href="{% static 'fonts/inter-v20-cyrillic_latin-regular.woff2' %}">
-  <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
-  <link rel="stylesheet" href="{% static 'css/components.css' %}">
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v={{ asset_v }}">
+  <link rel="stylesheet" href="{% static 'css/components.css' %}?v={{ asset_v }}">
   {% block head %}{% endblock %}
 </head>
 <body hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
@@ -30,8 +30,9 @@
     </template>
   </div>
 
-  <script src="{% static 'js/components.js' %}"></script>
-  <script src="{% static 'js/i18n.js' %}"></script>
+  <script src="{% static 'js/components.js' %}?v={{ asset_v }}"></script>
+  <script src="{% static 'js/ru.js' %}?v={{ asset_v }}"></script>
+  <script src="{% static 'js/i18n.js' %}?v={{ asset_v }}"></script>
   <script defer src="{% static 'js/alpine.min.js' %}"></script>
   <script defer src="{% static 'js/htmx.min.js' %}"></script>
   <style>[x-cloak]{display:none!important}</style>

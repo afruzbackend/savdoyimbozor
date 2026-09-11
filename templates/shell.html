@@ -17,8 +17,9 @@
     </nav>
     <div class="side-foot stack gap-3">
       <div class="theme-toggle" role="group" aria-label="Til" data-noloc>
-        <button type="button" class="{% if not uilang %}active{% endif %}" onclick="setUiLang('')">Lotin</button>
-        <button type="button" class="{% if uilang == 'cyrl' %}active{% endif %}" onclick="setUiLang('cyrl')">Кирилл</button>
+        <button type="button" class="{% if not uilang %}active{% endif %}" onclick="setUiLang('')">Lot</button>
+        <button type="button" class="{% if uilang == 'cyrl' %}active{% endif %}" onclick="setUiLang('cyrl')">Кир</button>
+        <button type="button" class="{% if uilang == 'ru' %}active{% endif %}" onclick="setUiLang('ru')">Рус</button>
       </div>
       <div class="theme-toggle" role="group" aria-label="Mavzu">
         <button type="button" :class="theme===''&&'active'" @click="set('')" data-tip="Tizim">
