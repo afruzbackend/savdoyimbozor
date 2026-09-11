@@ -168,6 +168,13 @@ class Command(BaseCommand):
                 shops.append((shop, scat))
                 num += 1
 
+        # Chegirma pog'onalarini yangilaymiz (mavjud sozlama yozuvi eski bo'lishi mumkin)
+        from apps.core.models import SystemSettings
+
+        st = SystemSettings.get_solo()
+        st.discount_tiers = SystemSettings.DEFAULT_DISCOUNT_TIERS
+        st.save()
+
         # Yashiruvchilar: kassa / narx / qoldiq
         cash_hiders = {shops[0][0].id, shops[9][0].id, shops[15][0].id}
         price_hider = shops[3][0].id

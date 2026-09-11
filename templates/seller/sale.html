@@ -31,8 +31,14 @@
     <template x-for="b in discountButtons" :key="b">
       <button class="chip" @click="addDiscount(b)" :aria-pressed="false">−<span x-text="fmtK(b)"></span></button>
     </template>
+    <button class="chip" @click="customOpen=!customOpen">Boshqa summa</button>
     <button class="chip" @click="discount=0;rounding=0" x-show="discount>0||rounding>0">Bekor</button>
     <button class="chip" @click="roundDown()" data-tip="1000 gacha pastga">Yaxlitlash</button>
+  </div>
+  <div class="row gap-2" x-show="customOpen" x-cloak style="margin-bottom:var(--sp-3)">
+    <input class="input num" style="max-width:160px" inputmode="numeric" placeholder="Chegirma so'm"
+           x-model="customVal" @keydown.enter="setCustom()">
+    <button class="btn btn-ghost" @click="setCustom()">Qo'llash</button>
   </div>
 
   {# Klaviatura #}
@@ -74,7 +80,7 @@
     Alpine.data('saleScreen', () => ({
       cfg: window.__PRICING__,
       amount: 0, discount: 0, rounding: 0, pay: 'cash', wholesale: false,
-      saving: false, pending: 0,
+      saving: false, pending: 0, customOpen: false, customVal: '',
       init() { this.syncQueue(); window.addEventListener('online', () => this.syncQueue()); },
       get subtotal() { return this.amount; },
       get total() { return Math.max(0, this.subtotal - this.discount - this.rounding); },
@@ -92,6 +98,11 @@
         // Cheklov: tannarx noma'lum → subtotal ning %; server baribir tekshiradi
         const cap = Math.floor(this.subtotal * this.cfg.max_discount_no_cost_pct / 100);
         this.discount = Math.min(this.discount + b, cap);
+      },
+      setCustom() {
+        const cap = Math.floor(this.subtotal * this.cfg.max_discount_no_cost_pct / 100);
+        this.discount = Math.min(window.BN.unfmt(this.customVal), cap);
+        this.customOpen = false; this.customVal = '';
       },
       roundDown() {
         const after = this.subtotal - this.discount;

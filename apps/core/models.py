@@ -76,17 +76,16 @@ class SystemSettings(models.Model):
         cls._cache = obj
         return obj
 
+    # Standart chegirma pog'onalari (bozorda savdolashish uchun tayyor tugmalar)
+    DEFAULT_DISCOUNT_TIERS = [
+        [100_000, [5_000, 10_000, 20_000]],
+        [300_000, [10_000, 20_000, 30_000]],
+        [None, [50_000, 100_000, 200_000]],
+    ]
+
     @staticmethod
     def _defaults():
-        return {
-            "discount_tiers": [
-                [50_000, [2_000, 5_000, 10_000]],
-                [200_000, [5_000, 10_000, 20_000]],
-                [1_000_000, [10_000, 20_000, 50_000]],
-                [3_000_000, [50_000, 100_000, 200_000]],
-                [None, [100_000, 200_000, 300_000]],
-            ],
-        }
+        return {"discount_tiers": SystemSettings.DEFAULT_DISCOUNT_TIERS}
 
 
 class AuditLog(TimeStampedModel):
