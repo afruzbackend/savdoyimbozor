@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "bozor",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["manage.py", "runserver", "127.0.0.1:8000", "--noreload"],
+      "port": 8000,
+      "url": "http://sotuvchi.localhost:8000"
+    }
+  ]
+}
