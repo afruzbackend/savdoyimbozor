@@ -5,6 +5,7 @@ from .models import (
     DailyClose,
     DailyCloseLine,
     Debt,
+    RegisterClose,
     Sale,
     SaleItem,
     SaleReturn,
@@ -57,3 +58,4 @@ admin.site.register(SaleReturn)
 admin.site.register(WriteOff)
 admin.site.register(Correction)
 admin.site.register(Debt)
+admin.site.register(RegisterClose)

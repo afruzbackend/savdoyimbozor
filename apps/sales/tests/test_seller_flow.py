@@ -3,7 +3,7 @@
 import pytest
 
 from apps.catalog.models import Product
-from apps.sales.models import Correction, Sale, StockIn
+from apps.sales.models import Correction, RegisterClose, Sale, StockIn
 from apps.sales.services import sales as sale_svc
 from conftest import SELLER_HOST
 
@@ -74,7 +74,42 @@ def test_correction_requires_reason(sclient, shop, seller):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("path", ["/", "/hisobot/", "/reyting/", "/tuzatish/", "/mahsulotlar/"])
+def test_register_totals_split_by_payment(sclient, shop, seller):
+    Sale.objects.create(shop=shop, seller=seller, total=30000, payment_type="cash")
+    Sale.objects.create(shop=shop, seller=seller, total=20000, payment_type="card")
+    r = sclient.get("/kassa/", HTTP_HOST=SELLER_HOST)
+    assert r.status_code == 200
+    html = r.content.decode()
+    assert "30\xa0000" in html or "30 000" in html  # naqd
+
+
+@pytest.mark.django_db
+def test_register_close_records_z_report(sclient, shop, seller):
+    Sale.objects.create(shop=shop, seller=seller, total=30000, payment_type="cash")
+    r = sclient.post(
+        "/kassa/", {"counted_cash": "25000", "note": "kamomad"}, HTTP_HOST=SELLER_HOST
+    )
+    assert r.status_code == 302
+    z = RegisterClose.objects.get(shop=shop)
+    assert z.expected_cash == 30000
+    assert z.counted_cash == 25000
+    assert z.difference == -5000  # kamomad
+
+
+@pytest.mark.django_db
+def test_register_close_does_not_create_cashrecord(sclient, shop, seller):
+    """Z-hisobot mustaqil deklaratsiyani (CashRecord) o'zgartirmasligi kerak."""
+    from apps.cash.models import CashRecord
+
+    Sale.objects.create(shop=shop, seller=seller, total=30000, payment_type="cash")
+    sclient.post("/kassa/", {"counted_cash": "30000"}, HTTP_HOST=SELLER_HOST)
+    assert not CashRecord.objects.filter(shop=shop).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "path", ["/", "/hisobot/", "/reyting/", "/tuzatish/", "/mahsulotlar/", "/kassa/"]
+)
 def test_seller_pages_render(sclient, shop, product, path):
     r = sclient.get(path, HTTP_HOST=SELLER_HOST)
     assert r.status_code == 200

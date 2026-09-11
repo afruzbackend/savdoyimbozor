@@ -10,6 +10,7 @@ urlpatterns = [
     path("skaner/", v.scan_screen, name="scan"),
     path("mahsulotlar/", v.products, name="products"),
     path("kirim/", v.stock_in, name="stock_in"),
+    path("kassa/", v.register, name="register"),
     path("kun-yakuni/", v.daily_close, name="daily_close"),
     path("qaytarish/", v.returns, name="returns"),
     path("hisobdan-chiqarish/", v.writeoff, name="writeoff"),

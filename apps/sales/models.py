@@ -175,6 +175,42 @@ class Correction(TimeStampedModel):
         verbose_name_plural = _("Tuzatishlar")
 
 
+class RegisterClose(TimeStampedModel):
+    """Kassa yopish (Z-hisobot) — kun oxirida sotuvchi naqdni sanaydi.
+
+    MUHIM: bu CashRecord (mustaqil deklaratsiya) EMAS. Rostlik uchun kassa
+    manbasi tashqi (Excel/Soliq) bo'lib qoladi. Bu yozuv sotuvchining o'z
+    kassasini boshqarishi uchun; sanagan naqd bilan kutilgan naqd farqi
+    (kamomad/ortiqcha) inspektor uchun ham signal bo'lishi mumkin.
+    """
+
+    shop = models.ForeignKey(
+        "shops.Shop", on_delete=models.PROTECT, related_name="register_closes"
+    )
+    seller = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
+    date = models.DateField(_("Sana"), db_index=True)
+    expected_cash = models.BigIntegerField(_("Kutilgan naqd (so'm)"), default=0)
+    counted_cash = models.BigIntegerField(_("Sanalgan naqd (so'm)"), default=0)
+    card_total = models.BigIntegerField(_("Karta (so'm)"), default=0)
+    transfer_total = models.BigIntegerField(_("O'tkazma (so'm)"), default=0)
+    checks_count = models.PositiveIntegerField(_("Cheklar soni"), default=0)
+    note = models.CharField(_("Izoh"), max_length=200, blank=True)
+
+    class Meta:
+        verbose_name = _("Kassa yopish")
+        verbose_name_plural = _("Kassa yopishlar")
+        unique_together = ("shop", "date")
+        indexes = [models.Index(fields=["shop", "-date"])]
+
+    @property
+    def difference(self):
+        """Sanalgan − kutilgan (manfiy = kamomad)."""
+        return self.counted_cash - self.expected_cash
+
+    def __str__(self):
+        return f"{self.shop} Z-{self.date}: {self.counted_cash}"
+
+
 class Debt(TimeStampedModel):
     """Nasiya daftari."""
 

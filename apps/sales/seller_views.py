@@ -18,6 +18,7 @@ from .models import (
     DailyClose,
     DailyCloseLine,
     Debt,
+    RegisterClose,
     Sale,
     SaleItem,
     SaleReturn,
@@ -449,6 +450,79 @@ def _product_ranks(shop, since):
         )
     ranks.sort(key=lambda r: r["pos"])
     return ranks[:10]
+
+
+def _register_totals(shop, day):
+    """Kunlik kassa: to'lov turi bo'yicha jamlanma (Sale.payment_type asosida)."""
+    from django.db.models import Count
+
+    agg = {
+        r["payment_type"]: r
+        for r in Sale.objects.filter(shop=shop, created_at__date=day)
+        .values("payment_type")
+        .annotate(s=Sum("total"), n=Count("id"))
+    }
+    cash = agg.get("cash", {}).get("s") or 0
+    card = agg.get("card", {}).get("s") or 0
+    transfer = agg.get("transfer", {}).get("s") or 0
+    count = sum((agg.get(k, {}).get("n") or 0) for k in ("cash", "card", "transfer"))
+    total = cash + card + transfer
+    return {
+        "cash": cash,
+        "card": card,
+        "transfer": transfer,
+        "total": total,
+        "count": count,
+        "avg": int(total / count) if count else 0,
+    }
+
+
+@login_required
+def register(request):
+    """Kassa (POS): bugungi tushum to'lov turi bo'yicha + kunni yopish (Z-hisobot)."""
+    shop = _shop(request)
+    if shop is None:
+        return redirect("seller:home")
+    today = timezone.localdate()
+    t = _register_totals(shop, today)
+
+    if request.method == "POST":
+        counted = int(request.POST.get("counted_cash") or 0)
+        RegisterClose.objects.update_or_create(
+            shop=shop,
+            date=today,
+            defaults={
+                "seller": request.user,
+                "expected_cash": t["cash"],
+                "counted_cash": counted,
+                "card_total": t["card"],
+                "transfer_total": t["transfer"],
+                "checks_count": t["count"],
+                "note": request.POST.get("note", "")[:200],
+            },
+        )
+        diff = counted - t["cash"]
+        if diff == 0:
+            messages.success(request, "Kassa yopildi. Naqd to'liq mos keldi.")
+        elif diff < 0:
+            messages.warning(request, f"Kassa yopildi. Kamomad: {-diff:,} so'm.")
+        else:
+            messages.warning(request, f"Kassa yopildi. Ortiqcha: {diff:,} so'm.")
+        return redirect("seller:register")
+
+    return render(
+        request,
+        "seller/register.html",
+        {
+            "shop": shop,
+            "t": t,
+            "today_close": RegisterClose.objects.filter(shop=shop, date=today).first(),
+            "recent": Sale.objects.filter(shop=shop, created_at__date=today).order_by(
+                "-created_at"
+            )[:12],
+            "history": RegisterClose.objects.filter(shop=shop).order_by("-date")[:14],
+        },
+    )
 
 
 @login_required
