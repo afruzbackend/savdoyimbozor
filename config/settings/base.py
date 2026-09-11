@@ -164,6 +164,11 @@ CELERY_TIMEZONE = TIME_ZONE
 LOGIN_MAX_ATTEMPTS = 5
 LOGIN_LOCK_MINUTES = 15
 
+# --- Kamera / AI worker parametrlari ---
+# Peshtaxta oldida shu soniyadan ko'p to'xtagan odam "xaridor" deb sanaladi.
+# Worker shu chegarani config orqali oladi (bozor rastasida eshik yo'q — chiziq kesish emas).
+VISITOR_MIN_DWELL_SECONDS = env.int("VISITOR_MIN_DWELL_SECONDS", default=5)
+
 # --- Interfeys hostlari (host routing) ---
 HOST_URLCONF = {
     "seller": "config.urls_seller",
