@@ -279,6 +279,26 @@ def report(request):
     cost = sum(int(i.quantity * (i.product.buy_price if i.product else 0)) for i in items)
     profit = revenue - cost
 
+    # Davrlar bo'yicha ko'rsatkichlar
+    from django.db.models import Sum
+
+    sales_all = Sale.objects.filter(shop=shop)
+
+    def _sum(qs):
+        return qs.aggregate(s=Sum("total"))["s"] or 0
+
+    metrics = {
+        "today": _sum(sales_all.filter(created_at__date=today)),
+        "week": _sum(sales_all.filter(created_at__date__gte=today - timedelta(days=6))),
+        "month": _sum(sales_all.filter(created_at__date__gte=today - timedelta(days=29))),
+        "total": _sum(sales_all),
+        "discount": sales_all.aggregate(s=Sum("discount"))["s"] or 0,
+        "count": sales_all.count(),
+        "sold_qty": SaleItem.objects.filter(sale__shop=shop).aggregate(q=Sum("quantity"))["q"] or 0,
+        "remaining": Product.objects.filter(shop=shop, is_active=True).aggregate(q=Sum("stock"))["q"]
+        or 0,
+    }
+
     chart = {
         "labels": [s.date.strftime("%d.%m") for s in scores],
         "truth": [s.truth_pct for s in scores],
@@ -311,6 +331,60 @@ def report(request):
             "revenue": revenue,
             "profit": profit,
             "advice": advice,
+            "metrics": metrics,
+        },
+    )
+
+
+@login_required
+def rating(request):
+    """Sotuvchi o'z do'koni bozorda nechanchi o'rinda ekanini ko'radi (boshqalar maxfiy)."""
+    from django.db.models import Sum
+
+    from apps.shops.models import Shop
+
+    shop = _shop(request)
+    if shop is None:
+        return redirect("seller:home")
+    today = timezone.localdate()
+    since = today - timedelta(days=29)
+
+    def rank_within(shop_qs):
+        rows = (
+            Sale.objects.filter(shop__in=shop_qs, created_at__date__gte=since)
+            .values("shop")
+            .annotate(t=Sum("total"))
+            .order_by("-t")
+        )
+        ordered = [r["shop"] for r in rows]
+        total = shop_qs.count()
+        pos = ordered.index(shop.id) + 1 if shop.id in ordered else total
+        return pos, total
+
+    market_shops = Shop.objects.filter(market=shop.market, is_active=True)
+    overall_pos, overall_total = rank_within(market_shops)
+    cat_shops = market_shops.filter(category=shop.category) if shop.category_id else market_shops
+    cat_pos, cat_total = rank_within(cat_shops)
+
+    my_sales = (
+        Sale.objects.filter(shop=shop, created_at__date__gte=since).aggregate(s=Sum("total"))["s"]
+        or 0
+    )
+    # Foizli pog'ona (top %)
+    top_pct = round(overall_pos / overall_total * 100) if overall_total else 100
+
+    return render(
+        request,
+        "seller/rating.html",
+        {
+            "shop": shop,
+            "overall_pos": overall_pos,
+            "overall_total": overall_total,
+            "cat_pos": cat_pos,
+            "cat_total": cat_total,
+            "cat_name": shop.category.name if shop.category_id else "",
+            "my_sales": my_sales,
+            "top_pct": top_pct,
         },
     )
 

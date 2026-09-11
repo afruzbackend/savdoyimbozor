@@ -1,0 +1,46 @@
+{% extends 'seller/base.html' %}
+{% load static humanize %}
+{% block title %}Reyting{% endblock %}
+{% block heading %}Mening reytingim{% endblock %}
+{% block content %}
+<div class="card center" style="max-width:560px;margin:0 auto var(--sp-4);position:relative;overflow:hidden">
+  <div style="position:absolute;inset:0;color:var(--brand-600);opacity:.05">{% include 'components/_koshin.html' %}</div>
+  <div style="position:relative">
+    <img class="emoji-xl" src="{% static 'emoji/star.svg' %}" alt="" style="width:56px;height:56px">
+    <div class="truth-big" style="color:var(--brand-600);margin-top:var(--sp-2)">TOP {{ overall_pos }}</div>
+    <p class="muted">Bozordagi {{ overall_total }} do'kon ichida (30 kunlik savdo bo'yicha)</p>
+  </div>
+</div>
+
+<div class="grid grid-2" style="max-width:560px;margin:0 auto">
+  {% if cat_name %}
+  <div class="card center">
+    <small class="muted">{{ cat_name }} toifasida</small>
+    <div class="num" style="font-size:var(--t-3);font-weight:700;color:var(--pist-600)">TOP {{ cat_pos }}</div>
+    <small class="muted">{{ cat_total }} do'kon ichida</small>
+  </div>
+  {% endif %}
+  <div class="card center">
+    <small class="muted">30 kunlik savdongiz</small>
+    <div class="num" style="font-size:var(--t-2);font-weight:700">{{ my_sales|intcomma }}</div>
+    <small class="muted">so'm</small>
+  </div>
+</div>
+
+<div class="card" style="max-width:560px;margin:var(--sp-4) auto 0;border-left:3px solid var(--pist-500)">
+  <div class="row gap-2" style="align-items:flex-start">
+    <img class="emoji" src="{% static 'emoji/clap.svg' %}" alt="" style="width:24px;height:24px">
+    <div>
+      {% if overall_pos <= 3 %}
+      <b>Ajoyib natija!</b><p class="muted" style="margin:4px 0 0">Siz bozordagi eng faol sotuvchilardansiz. Shu tarzda davom eting!</p>
+      {% elif top_pct <= 50 %}
+      <b>Yaxshi ketyapsiz.</b><p class="muted" style="margin:4px 0 0">Yuqori pog'onaga chiqish uchun savdoni oshiring va har chekni kiriting.</p>
+      {% else %}
+      <b>Oldinga intiling!</b><p class="muted" style="margin:4px 0 0">Ko'proq savdo kiriting va mahsulot xilma-xilligini oshiring — reyting ko'tariladi.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<p class="muted center" style="max-width:560px;margin:var(--sp-3) auto 0;font-size:var(--t--1)">
+  Boshqa do'konlar ma'lumoti maxfiy — faqat o'z o'rningizni ko'rasiz.</p>
+{% endblock %}
