@@ -423,6 +423,103 @@ def reports(request):
 
 
 @login_required
+def statistics(request):
+    """Sotuv dinamikasi (grafik) + sotuvchilar statistikasi (jadval, trend bilan)."""
+    from collections import defaultdict
+
+    from django.db.models import Count, Sum
+
+    from apps.core.models import SystemSettings
+
+    cfg = SystemSettings.get_solo()
+    shops = _visible_shops(request)
+    start, end = _report_range(request)
+
+    scores = list(
+        DailyScore.objects.filter(shop__in=shops, date__range=(start, end)).select_related("shop")
+    )
+
+    # 1) Sotuv dinamikasi — kunlik agregat (barcha ko'rinadigan do'konlar bo'yicha)
+    by_date = defaultdict(lambda: {"entered": 0, "cash": 0, "truth": [], "count": 0})
+    for s in scores:
+        d = by_date[s.date]
+        d["entered"] += s.entered_sales
+        d["cash"] += s.cash_amount
+        d["truth"].append(s.truth_pct)
+        d["count"] += 1
+    days = sorted(by_date)
+    dynamics = {
+        "labels": [d.strftime("%d.%m") for d in days],
+        "entered": [by_date[d]["entered"] for d in days],
+        "cash": [by_date[d]["cash"] for d in days],
+        "truth": [round(sum(by_date[d]["truth"]) / len(by_date[d]["truth"])) for d in days],
+    }
+
+    # 2) Sotuvchilar statistikasi — har do'kon: savdo, o'rtacha rostlik, signal, trend
+    per_shop = defaultdict(lambda: {"entered": 0, "cash": 0, "truth": []})
+    mid = start + (end - start) / 2  # trend: davr ikkiga bo'linadi
+    half = defaultdict(lambda: {"a": [], "b": []})  # a=birinchi yarim, b=ikkinchi yarim
+    for s in scores:
+        p = per_shop[s.shop_id]
+        p["entered"] += s.entered_sales
+        p["cash"] += s.cash_amount
+        p["truth"].append(s.truth_pct)
+        half[s.shop_id]["b" if s.date >= mid else "a"].append(s.truth_pct)
+
+    alert_counts = dict(
+        Alert.objects.filter(shop__in=shops, date__range=(start, end))
+        .values_list("shop")
+        .annotate(n=Count("id"))
+    )
+    shop_by_id = {s.id: s for s in shops}
+
+    rows = []
+    for sid, p in per_shop.items():
+        shop = shop_by_id.get(sid)
+        if shop is None:
+            continue
+        avg_truth = round(sum(p["truth"]) / len(p["truth"])) if p["truth"] else 0
+        a, b = half[sid]["a"], half[sid]["b"]
+        trend = None
+        if a and b:
+            trend = round(sum(b) / len(b) - sum(a) / len(a))
+        rows.append(
+            {
+                "shop": shop,
+                "entered": p["entered"],
+                "cash": p["cash"],
+                "avg_truth": avg_truth,
+                "level": _level(avg_truth, cfg),
+                "alerts": alert_counts.get(sid, 0),
+                "trend": trend,
+            }
+        )
+    sort = request.GET.get("sort", "truth")
+    keymap = {
+        "truth": lambda r: r["avg_truth"],
+        "entered": lambda r: -r["entered"],
+        "alerts": lambda r: -r["alerts"],
+    }
+    rows.sort(key=keymap.get(sort, keymap["truth"]))
+
+    totals = DailyScore.objects.filter(shop__in=shops, date__range=(start, end)).aggregate(
+        e=Sum("entered_sales"), c=Sum("cash_amount"), t=Avg("truth_pct")
+    )
+    ctx = {
+        "start": start,
+        "end": end,
+        "sort": sort,
+        "dynamics": dynamics,
+        "rows": rows,
+        "total_entered": int(totals["e"] or 0),
+        "total_cash": int(totals["c"] or 0),
+        "avg_truth": round(totals["t"] or 0),
+        "seller_count": len(rows),
+    }
+    return render(request, "inspector/statistics.html", ctx)
+
+
+@login_required
 def export_excel(request):
     import openpyxl
 

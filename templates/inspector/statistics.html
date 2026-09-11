@@ -1,0 +1,95 @@
+{% extends 'inspector/base.html' %}
+{% load static humanize %}
+{% block title %}Statistika{% endblock %}
+{% block heading %}Sotuv statistikasi{% endblock %}
+{% block topbar_actions %}
+  <a class="btn" href="{% url 'inspector:export' %}?start={{ start|date:'Y-m-d' }}&end={{ end|date:'Y-m-d' }}">
+    <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Excel</a>
+{% endblock %}
+{% block content %}
+<form method="get" class="card" style="display:flex;gap:var(--sp-3);align-items:end;margin-bottom:var(--sp-4);flex-wrap:wrap">
+  {% include 'components/_datefield.html' with name='start' iso=start|date:'Y-m-d' label='Boshlanish' %}
+  {% include 'components/_datefield.html' with name='end' iso=end|date:'Y-m-d' label='Tugash' %}
+  <input type="hidden" name="sort" value="{{ sort }}">
+  <button class="btn">Ko'rsatish</button>
+</form>
+
+<div class="grid grid-4" style="margin-bottom:var(--sp-4)">
+  <div class="card"><small class="muted">Kiritilgan savdo</small><div class="truth-big" style="font-size:var(--t-3)">{{ total_entered|intcomma }}</div><small class="muted">so'm</small></div>
+  <div class="card"><small class="muted">Deklaratsiya</small><div class="truth-big" style="font-size:var(--t-3)">{{ total_cash|intcomma }}</div><small class="muted">so'm</small></div>
+  <div class="card"><small class="muted">O'rtacha rostlik</small><div class="truth-big" style="font-size:var(--t-3);color:var(--ok)">{{ avg_truth }}%</div></div>
+  <div class="card"><small class="muted">Sotuvchilar</small><div class="truth-big" style="font-size:var(--t-3)">{{ seller_count }}</div><small class="muted">do'kon</small></div>
+</div>
+
+<div class="card" style="margin-bottom:var(--sp-4)">
+  <div class="card-header"><span class="card-title">Sotuv dinamikasi</span>
+    <small class="muted">Kiritilgan savdo, deklaratsiya va o'rtacha rostlik</small></div>
+  {% if dynamics.labels %}
+    <canvas id="dynChart" height="80"></canvas>
+  {% else %}
+    <div class="empty" style="padding:var(--sp-5)"><p class="muted">Bu davr uchun ma'lumot yo'q.</p></div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">Sotuvchilar statistikasi</span>
+    <div class="row gap-2" style="font-size:var(--t--1)">
+      <span class="muted">Saralash:</span>
+      <a class="btn-quiet {% if sort == 'truth' %}active{% endif %}" href="?start={{ start|date:'Y-m-d' }}&end={{ end|date:'Y-m-d' }}&sort=truth">Rostlik</a>
+      <a class="btn-quiet {% if sort == 'entered' %}active{% endif %}" href="?start={{ start|date:'Y-m-d' }}&end={{ end|date:'Y-m-d' }}&sort=entered">Savdo</a>
+      <a class="btn-quiet {% if sort == 'alerts' %}active{% endif %}" href="?start={{ start|date:'Y-m-d' }}&end={{ end|date:'Y-m-d' }}&sort=alerts">Signal</a>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr>
+        <th>Do'kon</th><th>Toifa</th>
+        <th class="num">Kiritilgan</th><th class="num">Deklaratsiya</th>
+        <th class="num">O'rtacha rostlik</th><th class="num">Trend</th><th class="num">Signal</th>
+      </tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr class="{% if r.level == 'red' %}row-bad{% elif r.level == 'yellow' %}row-warn{% endif %}">
+          <td><a href="{% url 'inspector:shop_detail' r.shop.pk %}">№{{ r.shop.number }} {{ r.shop.owner_name }}</a></td>
+          <td class="muted">{{ r.shop.category.name|default:"—" }}</td>
+          <td class="num">{{ r.entered|intcomma }}</td>
+          <td class="num">{{ r.cash|intcomma }}</td>
+          <td class="num"><span class="badge badge-{% if r.level == 'red' %}bad{% elif r.level == 'yellow' %}warn{% else %}ok{% endif %}">{{ r.avg_truth }}%</span></td>
+          <td class="num">
+            {% if r.trend is None %}<span class="muted">—</span>
+            {% elif r.trend > 0 %}<span style="color:var(--ok)">▲ {{ r.trend }}</span>
+            {% elif r.trend < 0 %}<span style="color:var(--bad)">▼ {{ r.trend }}</span>
+            {% else %}<span class="muted">= 0</span>{% endif %}
+          </td>
+          <td class="num">{% if r.alerts %}<span class="badge badge-warn">{{ r.alerts }}</span>{% else %}<span class="muted">0</span>{% endif %}</td>
+        </tr>
+      {% empty %}<tr><td colspan="7" class="muted">Ma'lumot yo'q.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <small class="faint">Trend — davrning ikkinchi yarmi o'rtacha rostligi birinchi yarmiga nisbatan (foiz punkti).</small>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if dynamics.labels %}
+<script src="{% static 'js/chart.umd.min.js' %}"></script>
+{{ dynamics|json_script:"dyn-data" }}
+<script>
+  (function(){
+    const d = JSON.parse(document.getElementById('dyn-data').textContent);
+    const ctx = document.getElementById('dynChart'); if(!ctx||!window.Chart) return;
+    const css = getComputedStyle(document.documentElement);
+    const c = n => css.getPropertyValue(n).trim();
+    new Chart(ctx, { data:{ labels:d.labels, datasets:[
+      { type:'bar', label:'Kiritilgan', data:d.entered, backgroundColor:c('--brand-300') },
+      { type:'bar', label:'Deklaratsiya', data:d.cash, backgroundColor:c('--clay-400') },
+      { type:'line', label:'Rostlik %', data:d.truth, borderColor:c('--ok'), yAxisID:'y1', tension:.3, borderWidth:2, pointRadius:2 }
+    ]}, options:{ responsive:true, interaction:{mode:'index',intersect:false},
+      scales:{ y:{ position:'left', ticks:{callback:v=>(v/1000000)+'M'} },
+        y1:{ position:'right', min:0, max:100, grid:{drawOnChartArea:false} } },
+      plugins:{ legend:{ labels:{ boxWidth:12, font:{size:11} } } } }});
+  })();
+</script>
+{% endif %}
+{% endblock %}
