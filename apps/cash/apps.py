@@ -1,0 +1,8 @@
+from django.apps import AppConfig
+
+
+class CashConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.cash"
+    label = "cash"
+    verbose_name = "Kassa/Deklaratsiya"

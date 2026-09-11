@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Kirish{% endblock %}
+{% block content %}
+<div class="card" style="max-width:380px;margin:60px auto">
+  <h2>Bozor Nazorat</h2>
+  <p>{{ interface }} interfeysi</p>
+  <form method="post" action="{% url 'login' %}">
+    {% csrf_token %}
+    <p><label>Login (STIR-raqam)</label><br>
+       <input name="username" value="{{ username|default:'' }}" autofocus required style="width:100%"></p>
+    <p><label>Parol</label><br>
+       <input name="password" type="password" required style="width:100%"></p>
+    <button type="submit" style="width:100%">Kirish</button>
+  </form>
+</div>
+{% endblock %}

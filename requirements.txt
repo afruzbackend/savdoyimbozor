@@ -1,11 +1,21 @@
+# --- Asosiy ---
 Django>=5.1,<5.2
 djangorestframework==3.15.2
 django-htmx==1.27.0
+django-environ==0.11.2
+psycopg[binary]>=3.2
 Pillow
-python-dotenv
 openpyxl
-# Ishlab chiqarish (production) uchun keyin qo'shiladi:
-# psycopg[binary]      # PostgreSQL
-# celery               # kamera hodisalarini fon rejimida qayta ishlash
-# redis                # Celery broker + kesh
-# gunicorn             # WSGI server
+
+# --- Fon vazifalari ---
+celery>=5.4
+redis>=5.0
+
+# --- Production ---
+gunicorn
+
+# --- Dev / sifat ---
+ruff
+black
+pytest
+pytest-django

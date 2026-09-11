@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Sotuvchi{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Sotuvchi interfeysi</h2>
+  <p>{% if shop %}{{ shop }}{% else %}Do'kon biriktirilmagan{% endif %}</p>
+  <p class="msg">P2'da: tez sotuv, kirim, kun yakuni, hisobot.</p>
+  <p><a href="{% url 'profile' %}">Profil</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Panel{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Super admin panel</h2>
+  <p class="msg">P4'da: hisob ochish, Excel import, sozlamalar, audit.</p>
+  <p><a href="/django-admin/">Texnik admin</a> · <a href="{% url 'profile' %}">Profil</a></p>
+</div>
+{% endblock %}

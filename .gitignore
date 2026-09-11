@@ -1,21 +1,21 @@
 # Python
 __pycache__/
 *.py[cod]
-*.egg-info/
 .venv/
 venv/
 
 # Django
-db.sqlite3
-db.sqlite3-journal
+*.log
 /media/
 /staticfiles/
 .env
 
-# IDE
+# IDE / OS
 .idea/
 .vscode/
-
-# OS
 .DS_Store
 Thumbs.db
+
+# Test / cache
+.pytest_cache/
+.ruff_cache/

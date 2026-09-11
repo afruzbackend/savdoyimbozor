@@ -1,0 +1,20 @@
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = "migrations"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ"]
+ignore = ["E501"]  # black uzunlikni boshqaradi
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+python_files = ["test_*.py", "tests.py"]
