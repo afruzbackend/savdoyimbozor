@@ -81,10 +81,11 @@
     const ctx = document.getElementById('dynChart'); if(!ctx||!window.Chart) return;
     const css = getComputedStyle(document.documentElement);
     const c = n => css.getPropertyValue(n).trim();
+    const L = window.locText || (s=>s);
     new Chart(ctx, { data:{ labels:d.labels, datasets:[
-      { type:'bar', label:'Kiritilgan', data:d.entered, backgroundColor:c('--brand-300') },
-      { type:'bar', label:'Deklaratsiya', data:d.cash, backgroundColor:c('--clay-400') },
-      { type:'line', label:'Rostlik %', data:d.truth, borderColor:c('--ok'), yAxisID:'y1', tension:.3, borderWidth:2, pointRadius:2 }
+      { type:'bar', label:L('Kiritilgan'), data:d.entered, backgroundColor:c('--brand-300') },
+      { type:'bar', label:L('Deklaratsiya'), data:d.cash, backgroundColor:c('--clay-400') },
+      { type:'line', label:L('Rostlik %'), data:d.truth, borderColor:c('--ok'), yAxisID:'y1', tension:.3, borderWidth:2, pointRadius:2 }
     ]}, options:{ responsive:true, interaction:{mode:'index',intersect:false},
       scales:{ y:{ position:'left', ticks:{callback:v=>(v/1000000)+'M'} },
         y1:{ position:'right', min:0, max:100, grid:{drawOnChartArea:false} } },

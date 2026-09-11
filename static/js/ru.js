@@ -392,6 +392,7 @@ window.RU_DICT = {
   "Kiritilgan savdo, deklaratsiya va o'rtacha rostlik":
     "Внесённая выручка, декларация и средняя достоверность",
   "O'rtacha rostlik": "Средняя достоверность",
+  "Rostlik %": "Достоверность %",
   "Trend": "Тренд",
   "Signal": "Сигнал",
   "Saralash:": "Сортировка:",

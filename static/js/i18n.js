@@ -80,6 +80,15 @@
     }
   }
 
+  // Grafik (canvas) matnlari DOM tugunlari emas — ular shu funksiya bilan
+  // joriy tilga o'giriladi. Chart.js skriptlari label'ni shu orqali beradi.
+  window.locText = function (s) {
+    const lang = getCookie("uilang");
+    if (lang === "cyrl") return translit(s);
+    if (lang === "ru") return ruText(s);
+    return s;
+  };
+
   function walk(node, transform) {
     if (node.nodeType === Node.TEXT_NODE) {
       if (node.nodeValue && node.nodeValue.trim()) {
