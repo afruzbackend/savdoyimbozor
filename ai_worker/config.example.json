@@ -1,0 +1,15 @@
+{
+  "backend_url": "http://nazorat.example.uz",
+  "batch_seconds": 5.0,
+  "heartbeat_seconds": 30.0,
+  "cameras": [
+    {
+      "token": "KAMERA_1_TOKENI_admindan",
+      "rtsp_sub": "rtsp://user:pass@192.168.1.50:554/substream"
+    },
+    {
+      "token": "KAMERA_2_TOKENI_admindan",
+      "rtsp_sub": "rtsp://user:pass@192.168.1.51:554/substream"
+    }
+  ]
+}
