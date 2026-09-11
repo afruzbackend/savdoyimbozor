@@ -1,12 +1,14 @@
 /* Rus tili lug'ati (uz-lotin → rus) — interfeys matnlari. i18n.js dan OLDIN yuklanadi.
-   Ma'lumot (do'kon nomi, raqam, STIR) tarjima qilinmaydi. */
+   Ma'lumot (do'kon nomi, raqam, STIR) tarjima qilinmaydi.
+   RU_DICT — aniq moslik; RU_FRAGMENTS — dinamik matnlar (signal sabablari) uchun bo'lak almashtirish. */
 window.RU_DICT = {
-  // Umumiy / auth
+  // ---- Umumiy / auth ----
   "Tizimga kirish": "Вход в систему",
   "Kirish": "Войти",
   "Chiqish": "Выход",
   "Login": "Логин",
   "Parol": "Пароль",
+  "Parolni almashtirish": "Смена пароля",
   "Profil": "Профиль",
   "Saqlash": "Сохранить",
   "Yuborish": "Отправить",
@@ -18,6 +20,7 @@ window.RU_DICT = {
   "Yopish": "Закрыть",
   "Barchasi": "Все",
   "Ro'yxat": "Список",
+  "Orqaga": "Назад",
   "O'zbekiston Respublikasi": "Республика Узбекистан",
   "Davlat soliq qo'mitasi · Bozor nazorati": "Государственный налоговый комитет · Контроль рынка",
   "Davlat soliq qo'mitasi — Bozor nazorati": "Государственный налоговый комитет — Контроль рынка",
@@ -26,18 +29,22 @@ window.RU_DICT = {
   "Soliq qo'mitasi": "Налоговый комитет",
   "Bozor savdosini shaffof nazorat qilish tizimi":
     "Система прозрачного контроля рыночной торговли",
+  "inspector interfeysi": "интерфейс инспектора",
+  "seller interfeysi": "интерфейс продавца",
+  "panel interfeysi": "интерфейс администратора",
 
-  // Nav — nazorat
+  // ---- Nav — nazorat ----
   "Boshqaruv paneli": "Панель управления",
   "Bozor xaritasi": "Карта рынка",
   "Do'kon qidirish": "Поиск магазина",
   "Signallar": "Сигналы",
+  "Signal": "Сигнал",
   "Tekshiruv": "Проверка",
   "Tekshiruvlar": "Проверки",
   "Joriy ombor": "Текущий склад",
   "Kameralar": "Камеры",
   "Hisobotlar": "Отчёты",
-  // Nav — sotuvchi
+  // ---- Nav — sotuvchi ----
   "Bosh sahifa": "Главная",
   "Tez sotuv": "Быстрая продажа",
   "Skaner sotuv": "Продажа сканером",
@@ -47,30 +54,32 @@ window.RU_DICT = {
   "Qaytarish": "Возврат",
   "Hisobdan chiqarish": "Списание",
   "Nasiya": "Долги",
+  "Nasiya daftari": "Тетрадь долгов",
   "Hisobot": "Отчёт",
   "E'tiroz": "Возражение",
   "E'tirozlar": "Возражения",
-  // Nav — panel
+  // ---- Nav — panel ----
   "Boshqaruv": "Управление",
   "Foydalanuvchilar": "Пользователи",
   "Hisob ochish": "Создать аккаунт",
   "Do'kon import": "Импорт магазинов",
   "Kassa import": "Импорт кассы",
   "Sozlamalar": "Настройки",
+  "Tizim sozlamalari": "Системные настройки",
   "Audit jurnali": "Журнал аудита",
   "Texnik admin": "Тех. администратор",
+  "Super admin": "Супер администратор",
 
-  // Bottom nav
+  // ---- Bottom nav ----
   "Asosiy": "Главная",
   "Sotuv": "Продажа",
-  "Signal": "Сигнал",
-  "Panel": "Панель",
   "Xarita": "Карта",
   "Ombor": "Склад",
   "Hisob": "Аккаунт",
   "Sozlama": "Настройки",
+  "Panel": "Панель",
 
-  // Dashboard / KPI
+  // ---- Dashboard / KPI ----
   "Nazoratdagi do'kon": "Магазинов под контролем",
   "Qizil signal": "Красный сигнал",
   "O'rtacha rostlik": "Средняя достоверность",
@@ -79,25 +88,77 @@ window.RU_DICT = {
   "Eng xavfli do'konlar": "Самые рискованные магазины",
   "So'nggi signallar": "Последние сигналы",
   "Yangi signal yo'q.": "Новых сигналов нет.",
-  "sariq": "жёлтый",
 
-  // Ustunlar / yorliqlar
-  "Do'kon": "Магазин",
-  "Egasi": "Владелец",
-  "Toifa": "Категория",
-  "Bozor": "Рынок",
+  // ---- Signallar sahifasi ----
   "Sana": "Дата",
-  "Vaqt": "Время",
   "Sabab": "Причина",
   "Daraja": "Уровень",
   "Holat": "Статус",
+  "Signal yo'q.": "Сигналов нет.",
+  "Signal yo'q": "Сигналов нет",
+  "Signallar tarixi": "История сигналов",
+  "Tekshirish": "Проверить",
+  "Menga": "Мне",
+  "E'tiborsiz": "Отклонить",
+  "Qayta ochish": "Открыть заново",
+  "Tekshiruv qo'shish": "Добавить проверку",
+  "Tekshiruv natijasi": "Результат проверки",
+  "Tekshiruv yo'q.": "Проверок нет.",
+  // Darajalar / statuslar
+  "Qizil": "Красный",
+  "Sariq": "Жёлтый",
+  "Yashil": "Зелёный",
+  "Yangi": "Новый",
+  "Biriktirilgan": "Назначен",
+  "Yakunlangan": "Завершён",
+  "Tasdiqlandi": "Подтверждено",
+  "Tasdiqlandi (savdo yashirilgan)": "Подтверждено (выручка скрыта)",
+  "Noto'g'ri signal": "Ложный сигнал",
+  "Jarayonda": "В процессе",
+  "Qabul qilish": "Принять",
+  "Rad etish": "Отклонить",
+  "Qabul qilindi": "Принято",
+  "Rad etildi": "Отклонено",
+  // Signal sabablari (statik)
+  "Narx bozor medianasidan sezilarli past": "Цена заметно ниже рыночной медианы",
+  "Kamera bahosi kiritilgan savdodan farq qilmoqda":
+    "Оценка камеры отличается от внесённой выручки",
+
+  // ---- Do'kon sahifasi ----
+  "Do'kon": "Магазин",
+  "Do'kon ma'lumoti": "Данные магазина",
+  "Egasi": "Владелец",
+  "Toifa": "Категория",
+  "Bozor": "Рынок",
+  "Qator": "Ряд",
+  "STIR": "СТИР",
+  "Telefon": "Телефон",
+  "Rostlik darajasi": "Уровень достоверности",
+  "Rostlik tarkibi": "Состав достоверности",
+  "Bugungi baho": "Сегодняшняя оценка",
+  "Kassa / deklaratsiya": "Касса / декларация",
+  "Kamera": "Камера",
+  "Qoldiq": "Остаток",
+  "Narx": "Цена",
+  "ma'lumot yo'q": "нет данных",
+  "Ma'lumot yo'q": "Нет данных",
+  "Nazorat quroli (14 kun)": "Инструмент контроля (14 дней)",
+  "O'rtacha chegirma": "Средняя скидка",
+  "Bozor o'rtachasi": "Среднее по рынку",
+  "Tannarxga yaqin sotuvlar": "Продажи близко к себестоимости",
+  "Video dalil": "Видео-доказательство",
+  "Sotuvchi e'tirozlari": "Возражения продавца",
+  "Javob matni": "Текст ответа",
+
+  // ---- Jadval ustunlari / umumiy yorliqlar ----
+  "Vaqt": "Время",
+  "Mahsulot": "Товар",
+  "Miqdor": "Количество",
+  "Birlik": "Единица",
+  "Barkod": "Штрихкод",
+  "Qiymat": "Стоимость",
   "Summa": "Сумма",
   "Summa (so'm)": "Сумма (сум)",
-  "Miqdor": "Количество",
-  "Narx": "Цена",
-  "Barkod": "Штрихкод",
-  "Qoldiq": "Остаток",
-  "Qiymat": "Стоимость",
   "Kiritilgan": "Внесено",
   "Deklaratsiya": "Декларация",
   "Kiritilgan savdo": "Внесённая выручка",
@@ -108,37 +169,44 @@ window.RU_DICT = {
   "O'tkazma": "Перевод",
   "Ulgurji": "Оптом",
   "Chegirma": "Скидка",
+  "Yaxlitlash": "Округление",
   "Jami": "Итого",
   "Sotildi": "Продано",
-  "Rostlik darajasi": "Уровень достоверности",
-  "Rostlik tarkibi": "Состав достоверности",
-  "Kassa / deklaratsiya": "Касса / декларация",
-  "Kamera": "Камера",
-  "Nazorat quroli (14 kun)": "Инструмент контроля (14 дней)",
-  "O'rtacha chegirma": "Средняя скидка",
-  "Tannarxga yaqin sotuvlar": "Продажи близко к себестоимости",
-  "Signallar tarixi": "История сигналов",
-  "Sotuvchi e'tirozlari": "Возражения продавца",
-  "Video dalil": "Видео-доказательство",
   "Natija": "Результат",
   "Izoh": "Комментарий",
   "Foto": "Фото",
+  "Foto (majburiy)": "Фото (обязательно)",
+  "Dalolatnoma raqami": "Номер акта",
+  "Jarima (so'm)": "Штраф (сум)",
   "Online": "Онлайн",
+  "Offline": "Офлайн",
+  "Oxirgi signal": "Последний сигнал",
+  "Turi": "Тип",
 
-  // Statuslar / darajalar
-  "Yangi": "Новый",
-  "Biriktirilgan": "Назначен",
-  "Yakunlangan": "Завершён",
-  "E'tiborsiz": "Отклонён",
-  "Qabul qilish": "Принять",
-  "Rad etish": "Отклонить",
-  "Qabul qilindi": "Принято",
-  "Rad etildi": "Отклонено",
-  "Menga": "Мне",
-  "Tekshirish": "Проверить",
-  "Qayta ochish": "Открыть заново",
+  // ---- Hisobot ----
+  "Boshlanish": "Начало",
+  "Tugash": "Конец",
+  "Signal va tekshiruv": "Сигналы и проверки",
+  "Jami signal": "Всего сигналов",
+  "Tasdiqlangan": "Подтверждено",
+  "Jarima": "Штраф",
+  "Yetarli tekshiruv yo'q.": "Недостаточно проверок.",
+  "Tasdiqlangan signallar ulushi — yuqoriga taqdim etiladigan asosiy dalil.":
+    "Доля подтверждённых сигналов — ключевой аргумент для вышестоящих.",
 
-  // Panel
+  // ---- Kameralar ----
+  "Jami": "Всего",
+  "Hali kamera ulanmagan": "Камеры ещё не подключены",
+
+  // ---- Joriy ombor ----
+  "Bozordagi umumiy ombor qiymati": "Общая стоимость склада рынка",
+  "Mahsulot turlari (qoldiqda)": "Виды товаров (в остатке)",
+  "Turlari": "Виды",
+  "Ombor qiymati (so'm)": "Стоимость склада (сум)",
+  "Joriy ombor umumiy qiymati": "Общая стоимость текущего склада",
+  "Do'kon sahifasi": "Страница магазина",
+
+  // ---- Panel ----
   "Yangi hisob ochish": "Создать новый аккаунт",
   "Parol tiklash": "Сбросить пароль",
   "Bloklash": "Заблокировать",
@@ -149,26 +217,62 @@ window.RU_DICT = {
   "Sotuvchi": "Продавец",
   "Tekshiruvchi": "Инспектор",
   "F.I.O.": "Ф.И.О.",
-  "Telefon": "Телефон",
   "Login varaqalari": "Листы с логинами",
+  "Viloyatlar": "Области",
+  "Bozorlar": "Рынки",
+  "Do'konlar": "Магазины",
+  "Tezkor amallar": "Быстрые действия",
+  "So'nggi audit": "Последний аудит",
+  "Excel'dan do'konlar": "Магазины из Excel",
+  "Kassa ma'lumotini yuklash": "Загрузить данные кассы",
+  "Amal": "Действие",
+  "Interfeys": "Интерфейс",
+  "Yo'l": "Путь",
 
-  // Sotuvchi
+  // ---- Sotuvchi ----
   "Bugungi savdo": "Выручка за сегодня",
   "Yangi sotuv": "Новая продажа",
   "Chek summasi": "Сумма чека",
   "Savat": "Корзина",
   "So'nggi sotuvlar": "Последние продажи",
+  "So'nggi kirimlar": "Последние приходы",
   "Kam qolgan mahsulotlar": "Заканчивающиеся товары",
   "Qanday oshiraman?": "Как повысить?",
   "Mening hisobotim": "Мой отчёт",
+  "Mening e'tirozlarim": "Мои возражения",
   "Taxminiy foyda": "Примерная прибыль",
+  "14 kunlik savdo": "Выручка за 14 дней",
+  "Yangi mahsulot": "Новый товар",
+  "Yangi e'tiroz": "Новое возражение",
+  "Tannarx": "Себестоимость",
+  "Sotish narxi": "Цена продажи",
+  "Kam qoldiq chegarasi": "Порог низкого остатка",
+  "Qo'shish": "Добавить",
+  "Ertalab": "Утро",
+  "Kechqurun": "Вечер",
+  "Kunni yakunlash": "Завершить день",
+  "Xaridor": "Покупатель",
+  "To'landi": "Оплачено",
+  "Ulgurji savdo": "Оптовая продажа",
 
-  // Map / zonalar
+  // ---- Map / zonalar ----
   "Rost": "Достоверно",
   "E'tibor": "Внимание",
   "Xavf": "Риск",
-
-  // Reports
-  "Boshlanish": "Начало",
-  "Tugash": "Конец",
 };
+
+/* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
+   Tartib muhim — aniqroq/uzunroq bo'laklar oldin. Faqat RU rejimida qo'llanadi. */
+window.RU_FRAGMENTS = [
+  ["Deklaratsiya kiritilgandan", "Декларация ниже внесённого на"],
+  ["% past (kassa", "% (касса"],
+  [" / savdo ", " / выручка "],
+  ["Rostlik darajasi past", "Достоверность низкая"],
+  ["O'xshashlar o'rtacha rostligi", "Средняя достоверность похожих"],
+  [" do'kon)", " магазинов)"],
+  ["Kiritilgan savdo vs Deklaratsiya", "Внесённая выручка и декларация"],
+  [" kun)", " дней)"],
+  [" so'm", " сум"],
+  ["qator (narx tannarxga yaqin)", "строк (цена близко к себестоимости)"],
+  [" / ", " / "],
+];

@@ -56,12 +56,18 @@
 
   // Rus tili lug'ati (uz-lotin → rus). Faqat interfeys matnlari; ma'lumot (nom/raqam) qolaveradi.
   const RU = window.RU_DICT || {};
+  const RU_FRAG = window.RU_FRAGMENTS || [];
   function ruText(text) {
     const key = text.trim();
     if (!key) return text;
     const t = RU[key];
-    if (t === undefined) return text;
-    return text.replace(key, t); // atrofdagi bo'sh joyni saqlaydi
+    if (t !== undefined) return text.replace(key, t); // aniq moslik (bo'sh joy saqlanadi)
+    // Aniq moslik yo'q — dinamik bo'laklarni almashtiramiz (signal sabablari)
+    let out = text;
+    for (const [a, b] of RU_FRAG) {
+      if (out.includes(a)) out = out.split(a).join(b);
+    }
+    return out;
   }
 
   function walk(node, transform) {
