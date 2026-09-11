@@ -115,6 +115,43 @@ def market_map(request, pk=None):
     )
 
 
+def _investigation(shop, peers, start, today):
+    """Nazorat quroli: chegirma vs bozor, tannarxga yaqin sotuvlar."""
+    from django.db.models import Sum
+
+    from apps.sales.models import Sale, SaleItem
+
+    rng = (start, today)
+
+    def discount_pct(shops):
+        agg = Sale.objects.filter(shop__in=shops, created_at__date__range=rng).aggregate(
+            d=Sum("discount"), s=Sum("subtotal")
+        )
+        sub = agg["s"] or 0
+        return round((agg["d"] or 0) / sub * 100, 1) if sub else 0.0
+
+    # Tannarxga yaqin sotuvlar (narx tannarxdan ≤10% yuqori) — dumping/yashirish belgisi
+    items = SaleItem.objects.filter(
+        sale__shop=shop,
+        sale__created_at__date__range=rng,
+        product__isnull=False,
+        product__buy_price__gt=0,
+    ).select_related("product")
+    near = total = 0
+    for it in items:
+        total += 1
+        if it.unit_price <= it.product.buy_price * 1.1:
+            near += 1
+
+    return {
+        "shop_discount": discount_pct([shop]),
+        "market_discount": discount_pct(list(peers) + [shop]),
+        "near_cost": near,
+        "near_cost_total": total,
+        "near_cost_pct": round(near / total * 100) if total else 0,
+    }
+
+
 @login_required
 def shop_detail(request, pk):
     from apps.core.models import SystemSettings
@@ -167,6 +204,7 @@ def shop_detail(request, pk):
         "chart": chart,  # json_script o'zi serializatsiya qiladi
         "peer_avg": peer_avg,
         "peer_count": peers.count(),
+        "invest": _investigation(shop, peers, start, today),
         "alerts": shop.alerts.order_by("-created_at")[:8],
         "inspections": shop.inspections.select_related("inspector")[:6],
         "appeals": shop.appeals.all()[:5],

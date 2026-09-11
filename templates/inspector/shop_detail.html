@@ -49,6 +49,24 @@
         <tr><td class="muted">Telefon</td><td>{{ shop.owner_phone|default:"—" }}</td></tr>
       </table>
     </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-3)">Nazorat quroli (14 kun)</div>
+      <div style="margin-bottom:var(--sp-3)">
+        <div class="row" style="justify-content:space-between;font-size:var(--t--1)">
+          <span>O'rtacha chegirma</span>
+          <span class="num" style="font-weight:600{% if invest.shop_discount > invest.market_discount|add:5 %};color:var(--bad){% endif %}">{{ invest.shop_discount }}%</span>
+        </div>
+        <small class="faint">Bozor o'rtachasi: <span class="num">{{ invest.market_discount }}%</span></small>
+      </div>
+      <div>
+        <div class="row" style="justify-content:space-between;font-size:var(--t--1)">
+          <span>Tannarxga yaqin sotuvlar</span>
+          <span class="num" style="font-weight:600{% if invest.near_cost_pct >= 30 %};color:var(--bad){% endif %}">{{ invest.near_cost_pct }}%</span>
+        </div>
+        <small class="faint">{{ invest.near_cost }} / {{ invest.near_cost_total }} qator (narx tannarxga yaqin)</small>
+      </div>
+    </div>
   </div>
 
   {# O'ng: grafik + solishtirish + signal + tekshiruv #}
