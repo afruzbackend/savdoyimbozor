@@ -29,6 +29,89 @@
     return m ? m.pop() : "";
   }
 
+  // ---- Native <select.select-native> ni chiroyli custom dropdownga aylantirish ----
+  // Shablon o'zgarmaydi; native select yashirin qoladi (forma POST ishlaydi).
+  function enhanceSelect(sel) {
+    if (sel.dataset.nsDone) return;
+    sel.dataset.nsDone = "1";
+    const wrap = document.createElement("div");
+    wrap.className = "dropdown nice-select";
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(sel);
+    sel.classList.add("ns-native");
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "dropdown-trigger";
+    const lbl = document.createElement("span");
+    trigger.appendChild(lbl);
+    const chev = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    chev.setAttribute("class", "icon-sm");
+    chev.innerHTML = '<use href="/static/icons/sprite.svg#i-chevron-down"></use>';
+    trigger.appendChild(chev);
+    wrap.appendChild(trigger);
+
+    const panel = document.createElement("div");
+    panel.className = "dropdown-panel";
+    panel.hidden = true;
+    const searchable = sel.options.length > 7;
+    const search = document.createElement("input");
+    search.className = "dropdown-search";
+    search.placeholder = "Qidirish...";
+    if (searchable) panel.appendChild(search);
+    const list = document.createElement("div");
+    panel.appendChild(list);
+    wrap.appendChild(panel);
+
+    function syncLabel() {
+      const o = sel.options[sel.selectedIndex];
+      lbl.textContent = o ? o.textContent.trim() : "Tanlang";
+    }
+    function render(q) {
+      list.innerHTML = "";
+      [...sel.options].forEach((o) => {
+        if (q && !o.textContent.toLowerCase().includes(q.toLowerCase())) return;
+        const item = document.createElement("div");
+        item.className = "option";
+        item.textContent = o.textContent.trim();
+        if (o.selected) item.setAttribute("aria-selected", "true");
+        item.addEventListener("click", () => {
+          sel.value = o.value;
+          sel.dispatchEvent(new Event("change", { bubbles: true }));
+          syncLabel();
+          close();
+        });
+        list.appendChild(item);
+      });
+    }
+    function open() {
+      panel.hidden = false;
+      if (searchable) {
+        search.value = "";
+        render("");
+        setTimeout(() => search.focus(), 30);
+      }
+    }
+    function close() {
+      panel.hidden = true;
+    }
+    trigger.addEventListener("click", () => (panel.hidden ? open() : close()));
+    search.addEventListener("input", () => render(search.value));
+    document.addEventListener("click", (e) => {
+      if (!wrap.contains(e.target)) close();
+    });
+    sel.addEventListener("change", syncLabel); // barkod kabi tashqi o'zgarish uchun
+    syncLabel();
+    render("");
+  }
+  function enhanceSelects(root) {
+    (root || document).querySelectorAll("select.select-native").forEach(enhanceSelect);
+  }
+  document.addEventListener("DOMContentLoaded", () => enhanceSelects());
+  document.body &&
+    document.body.addEventListener &&
+    document.body.addEventListener("htmx:afterSwap", (e) => enhanceSelects(e.target));
+
   document.addEventListener("alpine:init", () => {
     // ---- Custom sana maydoni (o'zbekcha kalendar, hidden inputga yozadi) ----
     Alpine.data("dateField", (initialIso = "") => ({

@@ -274,3 +274,7 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .gov-banner .gb-text{position:relative;z-index:1}
 .gov-banner h2{color:#fff;margin:0;font-size:var(--t-2)}
 .gov-banner p{color:rgba(255,255,255,.8);margin:2px 0 0;font-size:var(--t--1)}
+
+/* Custom select (native yashirin, JS enhancer) */
+.nice-select{position:relative}
+.ns-native{display:none}
