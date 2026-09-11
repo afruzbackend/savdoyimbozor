@@ -8,10 +8,8 @@
 {% endblock %}
 {% block content %}
 <form method="get" class="card" style="display:flex;gap:var(--sp-3);align-items:end;margin-bottom:var(--sp-4);flex-wrap:wrap">
-  <div class="field" style="margin:0"><label class="label">Boshlanish</label>
-    <input class="input" type="date" name="start" value="{{ start|date:'Y-m-d' }}"></div>
-  <div class="field" style="margin:0"><label class="label">Tugash</label>
-    <input class="input" type="date" name="end" value="{{ end|date:'Y-m-d' }}"></div>
+  {% include 'components/_datefield.html' with name='start' iso=start|date:'Y-m-d' label='Boshlanish' %}
+  {% include 'components/_datefield.html' with name='end' iso=end|date:'Y-m-d' label='Tugash' %}
   <button class="btn">Ko'rsatish</button>
 </form>
 

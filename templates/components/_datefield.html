@@ -1,0 +1,28 @@
+{% load static %}
+{# Custom sana maydoni. Parametrlar: name, iso (YYYY-MM-DD), label #}
+<div class="field" style="margin:0" x-data="dateField('{{ iso }}')" @click.outside="open=false">
+  {% if label %}<label class="label">{{ label }}</label>{% endif %}
+  <input type="hidden" name="{{ name }}" :value="iso">
+  <div class="dropdown">
+    <button type="button" class="dropdown-trigger" style="min-width:180px" @click="open=!open" :aria-expanded="open">
+      <span class="num" x-text="display"></span>
+      <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-calendar"></use></svg>
+    </button>
+    <div class="dropdown-panel cal" x-show="open" x-transition x-cloak>
+      <div class="cal-head">
+        <button type="button" class="btn-quiet btn-icon" @click="prev()"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-chevron-left"></use></svg></button>
+        <span class="m" x-text="title"></span>
+        <button type="button" class="btn-quiet btn-icon" @click="next()"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-chevron-right"></use></svg></button>
+      </div>
+      <div class="cal-grid">
+        <template x-for="w in wd" :key="w"><div class="wd" x-text="w"></div></template>
+        <template x-for="day in days" :key="day.d.toISOString()">
+          <button type="button" class="cal-day num"
+                  :class="{out:day.out, today:isToday(day.d), sel:isSel(day.d)}"
+                  @click="pick(day.d)" x-text="day.d.getDate()"></button>
+        </template>
+      </div>
+      <button type="button" class="btn-quiet" style="width:100%;margin-top:6px" @click="today()">Bugun</button>
+    </div>
+  </div>
+</div>

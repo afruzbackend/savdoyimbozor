@@ -1,6 +1,6 @@
 /* Service worker — PWA o'rnatilishi va statik keshlash. Offline sotuv navbati
    sale.html/scan.html ichida localStorage bilan boshqariladi (bu SW faqat statik). */
-const CACHE = "bozor-nazorat-v1";
+const CACHE = "bozor-nazorat-v2";
 const ASSETS = [
   "/static/css/tokens.css",
   "/static/css/components.css",
@@ -28,17 +28,16 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   const req = e.request;
-  // Faqat GET statik fayllar keshdan; POST/API to'g'ridan-to'g'ri tarmoqqa
+  // Faqat GET statik fayllar. Avval-tarmoq (yangilanish darrov ko'rinadi),
+  // tarmoq bo'lmasa keshdan (offline). POST/API to'g'ridan-to'g'ri tarmoqqa.
   if (req.method !== "GET" || !req.url.includes("/static/")) return;
   e.respondWith(
-    caches.match(req).then(
-      (hit) =>
-        hit ||
-        fetch(req).then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy));
-          return res;
-        }).catch(() => hit)
-    )
+    fetch(req)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy));
+        return res;
+      })
+      .catch(() => caches.match(req))
   );
 });

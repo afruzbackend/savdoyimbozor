@@ -18,6 +18,56 @@
   }
 
   document.addEventListener("alpine:init", () => {
+    // ---- Custom sana maydoni (o'zbekcha kalendar, hidden inputga yozadi) ----
+    Alpine.data("dateField", (initialIso = "") => ({
+      open: false,
+      months: UZ_MONTHS,
+      wd: UZ_WD,
+      value: initialIso ? new Date(initialIso + "T00:00:00") : new Date(),
+      view: initialIso ? new Date(initialIso + "T00:00:00") : new Date(),
+      get iso() {
+        const d = this.value;
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+          d.getDate()
+        ).padStart(2, "0")}`;
+      },
+      get display() {
+        const d = this.value;
+        return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}.${d.getFullYear()}`;
+      },
+      get title() {
+        return `${this.months[this.view.getMonth()]} ${this.view.getFullYear()}`;
+      },
+      get days() {
+        const y = this.view.getFullYear();
+        const m = this.view.getMonth();
+        const lead = (new Date(y, m, 1).getDay() + 6) % 7;
+        const out = [];
+        for (let i = 0; i < lead; i++) out.push({ d: new Date(y, m, -(lead - 1 - i)), out: true });
+        const dim = new Date(y, m + 1, 0).getDate();
+        for (let i = 1; i <= dim; i++) out.push({ d: new Date(y, m, i), out: false });
+        while (out.length % 7) {
+          const last = out[out.length - 1].d;
+          out.push({ d: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1), out: true });
+        }
+        return out;
+      },
+      prev() { this.view = new Date(this.view.getFullYear(), this.view.getMonth() - 1, 1); },
+      next() { this.view = new Date(this.view.getFullYear(), this.view.getMonth() + 1, 1); },
+      isoOf(d) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+          d.getDate()
+        ).padStart(2, "0")}`;
+      },
+      isSel(d) { return this.isoOf(d) === this.iso; },
+      isToday(d) { return this.isoOf(d) === this.isoOf(new Date()); },
+      pick(d) { this.value = d; this.open = false; },
+      today() { this.value = new Date(); this.view = new Date(); this.open = false; },
+    }));
+
     // ---- Tema boshqaruvi (light/dark/tizim) ----
     Alpine.data("themeCtl", () => ({
       theme: document.documentElement.getAttribute("data-theme") || "",
