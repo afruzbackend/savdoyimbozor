@@ -172,6 +172,10 @@ LOGIN_LOCK_MINUTES = 15
 # Worker shu chegarani config orqali oladi (bozor rastasida eshik yo'q — chiziq kesish emas).
 VISITOR_MIN_DWELL_SECONDS = env.int("VISITOR_MIN_DWELL_SECONDS", default=5)
 
+# --- Telegram ogohlantirish (ixtiyoriy) ---
+# Qizil signal chiqqanda biriktirilgan inspektorga xabar. Bo'sh bo'lsa — jim o'tadi.
+TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
+
 # --- Interfeys hostlari (host routing) ---
 HOST_URLCONF = {
     "seller": "config.urls_seller",

@@ -251,13 +251,21 @@ def recompute_for_date(day) -> int:
         if Alert.objects.filter(shop=shop, date=day).exists():
             continue
         reason = _alert_reason(result, parts, entered, cash)
-        Alert.objects.create(
+        alert = Alert.objects.create(
             shop=shop,
             date=day,
             level=lvl,
             reason=reason,
             assigned_to=shop.market.inspectors.first(),
         )
+        # Qizil signal → inspektorga darrov Telegram (token bo'lsa; aks holda jim o'tadi)
+        if lvl == "red":
+            try:
+                from apps.analytics.notifications import notify_alert
+
+                notify_alert(alert)
+            except Exception:  # noqa: BLE001 — xabar asosiy oqimni buzmasin
+                pass
     return count
 
 
