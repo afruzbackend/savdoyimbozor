@@ -205,6 +205,7 @@ def shop_detail(request, pk):
         "alerts": shop.alerts.order_by("-created_at")[:8],
         "inspections": shop.inspections.select_related("inspector")[:6],
         "appeals": shop.appeals.all()[:5],
+        "corrections": shop.corrections.select_related("user")[:8],
     }
     return render(request, "inspector/shop_detail.html", ctx)
 

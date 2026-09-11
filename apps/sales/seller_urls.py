@@ -16,5 +16,6 @@ urlpatterns = [
     path("nasiya/", v.debts, name="debts"),
     path("hisobot/", v.report, name="report"),
     path("reyting/", v.rating, name="rating"),
+    path("tuzatish/", v.corrections, name="corrections"),
     path("e-tiroz/", v.appeals, name="appeals"),
 ]

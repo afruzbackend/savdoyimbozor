@@ -13,7 +13,17 @@ from django.utils import timezone
 from apps.catalog.models import Product, ProductCategory, Unit
 from apps.core.models import SystemSettings
 
-from .models import DailyClose, DailyCloseLine, Debt, Sale, SaleItem, SaleReturn, StockIn, WriteOff
+from .models import (
+    Correction,
+    DailyClose,
+    DailyCloseLine,
+    Debt,
+    Sale,
+    SaleItem,
+    SaleReturn,
+    StockIn,
+    WriteOff,
+)
 from .services import pricing
 
 
@@ -439,6 +449,54 @@ def _product_ranks(shop, since):
         )
     ranks.sort(key=lambda r: r["pos"])
     return ranks[:10]
+
+
+@login_required
+def corrections(request):
+    """Tuzatish: xato sotuv summasini o'chirmasdan tuzatish (eski qiymat saqlanadi).
+
+    Yozuv hech qachon o'chmaydi — har tuzatish sabab bilan qayd etiladi va
+    inspektor ko'radi. Bu soliqni yashirishning oldini oladi (izsiz o'zgarmaydi).
+    """
+    shop = _shop(request)
+    if shop is None:
+        return redirect("seller:home")
+    today = timezone.localdate()
+
+    if request.method == "POST":
+        sale = get_object_or_404(Sale, pk=request.POST.get("sale"), shop=shop)
+        new_total = int(request.POST.get("new_total") or 0)
+        reason = request.POST.get("reason", "").strip()[:200]
+        if new_total <= 0 or not reason:
+            messages.error(request, "Yangi summa (0 dan katta) va sabab kiritilishi shart.")
+        elif new_total == sale.total:
+            messages.error(request, "Yangi summa eskisidan farq qilmaydi.")
+        else:
+            Correction.objects.create(
+                shop=shop,
+                user=request.user,
+                target_model="Sale",
+                target_id=sale.id,
+                field="total",
+                old_value=str(sale.total),
+                new_value=str(new_total),
+                reason=reason,
+            )
+            sale.total = new_total
+            sale.note = (sale.note + " · Tuzatilgan").strip(" ·")[:200]
+            sale.save(update_fields=["total", "note"])
+            messages.success(request, "Tuzatish qayd etildi. Inspektor uni ko'radi.")
+        return redirect("seller:corrections")
+
+    return render(
+        request,
+        "seller/corrections.html",
+        {
+            "shop": shop,
+            "sales": Sale.objects.filter(shop=shop, created_at__date=today).order_by("-created_at"),
+            "history": Correction.objects.filter(shop=shop).select_related("user")[:30],
+        },
+    )
 
 
 @login_required

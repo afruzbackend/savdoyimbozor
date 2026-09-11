@@ -1,0 +1,55 @@
+{% extends 'seller/base.html' %}
+{% load humanize %}
+{% block title %}Tuzatish{% endblock %}
+{% block heading %}Tuzatish{% endblock %}
+{% block content %}
+<div class="msg info" style="max-width:900px;margin:0 0 var(--sp-4)">
+  Xato kiritilgan sotuv summasini shu yerda tuzatasiz. Yozuv <b>o'chmaydi</b> — eski qiymat
+  saqlanadi va har tuzatish inspektorga ko'rinadi. Sabab yozish majburiy.
+</div>
+<div class="grid" style="grid-template-columns:1fr 1fr;gap:var(--sp-4);align-items:start">
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Bugungi sotuvlar</div>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Vaqt</th><th class="num">Summa</th><th></th></tr></thead>
+      <tbody>
+      {% for s in sales %}
+        <tr>
+          <td class="num">{{ s.created_at|date:"H:i" }}{% if 'Tuzatilgan' in s.note %} <span class="badge badge-neutral">tuzatilgan</span>{% endif %}</td>
+          <td class="num">{{ s.total|intcomma }}</td>
+          <td class="num">
+            <details>
+              <summary class="btn-quiet" style="cursor:pointer">Tuzatish</summary>
+              <form method="post" class="stack gap-2" style="margin-top:8px;text-align:left">
+                {% csrf_token %}
+                <input type="hidden" name="sale" value="{{ s.pk }}">
+                <div class="field"><label class="label">Yangi summa (so'm)</label>
+                  <input class="input num" type="number" name="new_total" value="{{ s.total }}" min="1" required></div>
+                <div class="field"><label class="label">Sabab</label>
+                  <input class="input" name="reason" placeholder="masalan: summa xato kiritilgan" required></div>
+                <button class="btn" type="submit">Saqlash</button>
+              </form>
+            </details>
+          </td>
+        </tr>
+      {% empty %}<tr><td colspan="3" class="muted">Bugun sotuv yo'q.</td></tr>{% endfor %}
+      </tbody></table></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Tuzatishlar tarixi</div>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Sana</th><th class="num">Eski</th><th class="num">Yangi</th><th>Sabab</th></tr></thead>
+      <tbody>
+      {% for c in history %}
+        <tr>
+          <td class="num">{{ c.created_at|date:"d.m H:i" }}</td>
+          <td class="num muted">{{ c.old_value|intcomma }}</td>
+          <td class="num">{{ c.new_value|intcomma }}</td>
+          <td>{{ c.reason|default:"—" }}</td>
+        </tr>
+      {% empty %}<tr><td colspan="4" class="muted">Hali tuzatish yo'q.</td></tr>{% endfor %}
+      </tbody></table></div>
+  </div>
+</div>
+{% endblock %}
