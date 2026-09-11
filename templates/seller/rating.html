@@ -41,6 +41,24 @@
     </div>
   </div>
 </div>
+{% if product_ranks %}
+<div class="card" style="max-width:560px;margin:var(--sp-4) auto 0">
+  <div class="card-title" style="margin-bottom:var(--sp-2)">Mahsulotlaringiz reytingi</div>
+  <p class="muted" style="margin:0 0 var(--sp-3);font-size:var(--t--1)">Har mahsulotingiz bozordagi shu toifadagi mahsulotlar orasida sotilish bo'yicha (30 kun).</p>
+  {% for p in product_ranks %}
+  <div class="row" style="justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+    <div>
+      <div style="font-weight:600">{{ p.name }}</div>
+      <small class="muted">{{ p.category }}</small>
+    </div>
+    <div class="row gap-2" style="align-items:center">
+      <small class="muted num">{{ p.qty|floatformat:"-2" }} dona</small>
+      <span class="badge badge-{% if p.pos <= 3 %}ok{% elif p.pos <= 10 %}warn{% else %}neutral{% endif %}">TOP {{ p.pos }} <span class="faint">/ {{ p.total }}</span></span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 <p class="muted center" style="max-width:560px;margin:var(--sp-3) auto 0;font-size:var(--t--1)">
   Boshqa do'konlar ma'lumoti maxfiy — faqat o'z o'rningizni ko'rasiz.</p>
 {% endblock %}

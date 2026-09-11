@@ -373,6 +373,10 @@ def rating(request):
     # Foizli pog'ona (top %)
     top_pct = round(overall_pos / overall_total * 100) if overall_total else 100
 
+    # Mahsulot reytingi: har bir o'z mahsulotining bozordagi bir toifadagilar
+    # orasida sotilish (miqdor) bo'yicha o'rni. FAQAT o'z mahsulotlari ko'rinadi.
+    product_ranks = _product_ranks(shop, since)
+
     return render(
         request,
         "seller/rating.html",
@@ -385,8 +389,56 @@ def rating(request):
             "cat_name": shop.category.name if shop.category_id else "",
             "my_sales": my_sales,
             "top_pct": top_pct,
+            "product_ranks": product_ranks,
         },
     )
+
+
+def _product_ranks(shop, since):
+    """Har o'z mahsulotining bozordagi bir toifadagilar orasida sotilish o'rni."""
+    from collections import defaultdict
+
+    from django.db.models import Sum
+
+    # Bozor bo'yicha mahsulotlar sotuvi (miqdor) — {product_id: qty}
+    sold = {
+        row["product"]: row["q"]
+        for row in SaleItem.objects.filter(
+            sale__shop__market=shop.market,
+            sale__created_at__date__gte=since,
+            product__isnull=False,
+        )
+        .values("product")
+        .annotate(q=Sum("quantity"))
+    }
+    # Bozordagi mahsulotlar toifa bo'yicha guruhlanadi
+    cat_products = defaultdict(list)  # category_id -> [(product_id, qty)]
+    for mp in Product.objects.filter(
+        shop__market=shop.market, category__isnull=False, is_active=True
+    ).values("id", "category_id"):
+        cat_products[mp["category_id"]].append((mp["id"], sold.get(mp["id"], 0)))
+
+    ranks = []
+    my_prods = Product.objects.filter(
+        shop=shop, is_active=True, category__isnull=False
+    ).select_related("category")
+    for p in my_prods:
+        qty = sold.get(p.id, 0)
+        if not qty:
+            continue  # sotilmagan mahsulot reytingda ko'rsatilmaydi
+        ordered = [pid for pid, _ in sorted(cat_products[p.category_id], key=lambda x: -x[1])]
+        pos = ordered.index(p.id) + 1 if p.id in ordered else len(ordered)
+        ranks.append(
+            {
+                "name": p.name,
+                "category": p.category.name,
+                "pos": pos,
+                "total": len(ordered),
+                "qty": qty,
+            }
+        )
+    ranks.sort(key=lambda r: r["pos"])
+    return ranks[:10]
 
 
 @login_required
