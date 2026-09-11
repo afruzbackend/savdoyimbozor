@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{# Interfeysga qarab navigatsiya. Har element: url, icon, label, key #}
+{% block body %}
+<div class="app" x-data="themeCtl">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="mark"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg></span>
+      <span>Bozor&nbsp;Nazorat</span>
+    </div>
+    <nav>
+      {% block nav %}{% endblock %}
+    </nav>
+    <div class="side-foot stack gap-3">
+      <div class="theme-toggle" role="group" aria-label="Mavzu">
+        <button type="button" :class="theme===''&&'active'" @click="set('')" data-tip="Tizim">
+          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-eye"></use></svg></button>
+        <button type="button" :class="theme==='light'&&'active'" @click="set('light')" data-tip="Yorug'">
+          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-sun"></use></svg></button>
+        <button type="button" :class="theme==='dark'&&'active'" @click="set('dark')" data-tip="Qorong'i">
+          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-moon"></use></svg></button>
+      </div>
+      <div class="row gap-2">
+        <div class="grow" style="min-width:0">
+          <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            {{ user.get_full_name|default:user.username }}</div>
+          <small class="muted">{{ user.get_role_display }}</small>
+        </div>
+        <a class="btn-quiet btn-icon" href="{% url 'logout' %}" data-tip="Chiqish">
+          <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-log-out"></use></svg></a>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1>{% block heading %}{% endblock %}</h1>
+      <div class="row gap-3">{% block topbar_actions %}{% endblock %}</div>
+    </header>
+    <main class="content">
+      {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  {# Mobil pastki navigatsiya #}
+  <nav class="bottom-nav">{% block bottom_nav %}{% endblock %}</nav>
+</div>
+{% endblock %}

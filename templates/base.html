@@ -1,28 +1,37 @@
 {% load static i18n %}
 <!doctype html>
-<html lang="{{ LANGUAGE_CODE|default:'uz' }}" {% if theme %}data-theme="{{ theme }}"{% endif %}>
+<html lang="{{ LANGUAGE_CODE|default:'uz' }}"{% if theme %} data-theme="{{ theme }}"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>{% block title %}Bozor Nazorat{% endblock %}</title>
-  {# P1: tokens.css + shriftlar shu yerga ulanadi #}
-  <style>
-    /* P0 vaqtinchalik minimal uslub — P1 dizayn tizimi bilan almashtiriladi */
-    body{font-family:system-ui,sans-serif;margin:0;background:#f4f2ee;color:#1a1a1a}
-    .wrap{max-width:960px;margin:0 auto;padding:24px}
-    a{color:#2a4a7a}
-    .card{background:#fff;border:1px solid #e2ddd4;border-radius:12px;padding:20px;margin-bottom:16px}
-    input,button{font:inherit;padding:10px 12px;border-radius:8px;border:1px solid #ccc}
-    button{background:#2a4a7a;color:#fff;border:none;cursor:pointer}
-    .msg{padding:10px 14px;border-radius:8px;margin-bottom:10px;background:#eef}
-    .msg.error{background:#fee;color:#900}.msg.success{background:#efe;color:#060}
-  </style>
+  <meta name="theme-color" content="#3a4e8c">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+        href="{% static 'fonts/inter-v20-cyrillic_latin-regular.woff2' %}">
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components.css' %}">
+  {% block head %}{% endblock %}
 </head>
-<body>
-  <div class="wrap">
-    {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
-    {% block content %}{% endblock %}
+<body hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'>
+  {% block body %}{% endblock %}
+
+  {# Toast konteyner (Alpine store) #}
+  <div class="toast-wrap" x-data x-cloak>
+    <template x-for="t in $store.toasts.items" :key="t.id">
+      <div class="toast" :class="t.kind" x-transition>
+        <svg class="icon" :class="{'':true}"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>
+        <span class="grow" x-text="t.msg"></span>
+        <button class="btn-quiet btn-icon" @click="$store.toasts.remove(t.id)" aria-label="Yopish">
+          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg>
+        </button>
+      </div>
+    </template>
   </div>
+
+  <script src="{% static 'js/components.js' %}"></script>
+  <script defer src="{% static 'js/alpine.min.js' %}"></script>
+  <script defer src="{% static 'js/htmx.min.js' %}"></script>
+  <style>[x-cloak]{display:none!important}</style>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

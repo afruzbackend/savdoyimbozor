@@ -1,16 +1,65 @@
 {% extends 'base.html' %}
-{% block title %}Kirish{% endblock %}
-{% block content %}
-<div class="card" style="max-width:380px;margin:60px auto">
-  <h2>Bozor Nazorat</h2>
-  <p>{{ interface }} interfeysi</p>
-  <form method="post" action="{% url 'login' %}">
-    {% csrf_token %}
-    <p><label>Login (STIR-raqam)</label><br>
-       <input name="username" value="{{ username|default:'' }}" autofocus required style="width:100%"></p>
-    <p><label>Parol</label><br>
-       <input name="password" type="password" required style="width:100%"></p>
-    <button type="submit" style="width:100%">Kirish</button>
-  </form>
+{% load static %}
+{% block title %}Kirish — Bozor Nazorat{% endblock %}
+{% block head %}
+<style>
+  .login{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr}
+  .login-brand{position:relative;overflow:hidden;background:var(--brand-700);color:#fff;
+    display:flex;flex-direction:column;justify-content:space-between;padding:var(--sp-7)}
+  .login-brand .koshin{color:#fff;opacity:.12}
+  .login-brand .b-mark{position:relative;display:flex;align-items:center;gap:12px;
+    font-family:var(--font-serif);font-weight:700;font-size:var(--t-2)}
+  .login-brand .b-mark .mark{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.15);
+    display:grid;place-items:center}
+  .login-brand .b-hero{position:relative;max-width:420px}
+  .login-brand .b-hero h2{font-size:var(--t-4);color:#fff;line-height:1.15}
+  .login-brand .b-hero p{color:rgba(255,255,255,.8)}
+  .login-form{display:grid;place-items:center;padding:var(--sp-5);background:var(--bg)}
+  .login-card{width:min(400px,100%)}
+  @media (max-width:820px){.login{grid-template-columns:1fr}.login-brand{display:none}}
+</style>
+{% endblock %}
+{% block body %}
+<div class="login">
+  <div class="login-brand">
+    {% include 'components/_koshin.html' %}
+    <div class="b-mark">
+      <span class="mark"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg></span>
+      Bozor Nazorat
+    </div>
+    <div class="b-hero">
+      <h2>Bozor savdosini shaffof nazorat qilish tizimi</h2>
+      <p>Sotuvchi, kassa va tahlil ma'lumotlari solishtiriladi. Har do'konga rostlik
+         darajasi beriladi — tekshiruvga signal, jarima uchun dalil emas.</p>
+    </div>
+    <div style="position:relative;color:rgba(255,255,255,.6);font-size:var(--t--1)">
+      © Davlat soliq qo'mitasi · Pilot loyiha
+    </div>
+  </div>
+
+  <div class="login-form">
+    <div class="login-card">
+      <h1 style="margin-bottom:4px">Tizimga kirish</h1>
+      <p class="muted" style="margin-bottom:var(--sp-5)">{{ interface }} interfeysi</p>
+      {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+      <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        <div class="field">
+          <label class="label" for="id_username">Login</label>
+          <input class="input" id="id_username" name="username" value="{{ username|default:'' }}"
+                 placeholder="STIR-raqam" autofocus required autocomplete="username">
+        </div>
+        <div class="field">
+          <label class="label" for="id_password">Parol</label>
+          <input class="input" id="id_password" name="password" type="password" required
+                 autocomplete="current-password">
+        </div>
+        <button class="btn btn-lg btn-block" type="submit">
+          <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-log-out"></use></svg>
+          Kirish
+        </button>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

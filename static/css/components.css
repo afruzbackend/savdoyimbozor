@@ -1,0 +1,238 @@
+/* =============================================================================
+   KOMPONENTLAR — bitta dizayn tili. Barchasi tokenlarga tayanadi (light/dark).
+   ============================================================================= */
+
+/* ---------- Tugmalar ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);
+  font:inherit;font-weight:600;font-size:var(--t-0);line-height:1;
+  padding:11px 18px;border-radius:var(--r-sm);border:1px solid transparent;
+  background:var(--primary);color:var(--primary-ink);cursor:pointer;
+  transition:background var(--dur) var(--ease),transform var(--dur) var(--ease);
+  text-decoration:none;white-space:nowrap;
+}
+.btn:hover{background:var(--primary-hover);text-decoration:none}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--border-strong)}
+.btn-ghost:hover{background:var(--surface-sunken)}
+.btn-quiet{background:transparent;color:var(--ink-muted);padding:8px 10px}
+.btn-quiet:hover{background:var(--surface-sunken);color:var(--ink)}
+.btn-danger{background:var(--bad);color:#fff}
+.btn-danger:hover{background:var(--bad-ink)}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-lg{padding:15px 24px;font-size:var(--t-1)}
+.btn-block{width:100%}
+.btn-icon{padding:9px;border-radius:var(--r-sm)}
+
+/* ---------- Kartalar ---------- */
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:var(--sp-5);box-shadow:var(--shadow-sm);
+}
+.card-flat{box-shadow:none}
+.card-header{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:var(--sp-4)}
+.card-header h3,.card-header h4{margin:0}
+.card-title{font-family:var(--font-serif);font-size:var(--t-1);font-weight:600}
+
+.grid{display:grid;gap:var(--sp-4)}
+.grid-2{grid-template-columns:repeat(2,1fr)}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+
+/* ---------- Formalar ---------- */
+.field{margin-bottom:var(--sp-4)}
+.label{display:block;font-size:var(--t--1);font-weight:600;color:var(--ink-muted);
+  margin-bottom:6px}
+.input,.textarea,.select-native{
+  width:100%;font:inherit;font-size:var(--t-0);color:var(--ink);
+  background:var(--surface);border:1px solid var(--border-strong);
+  border-radius:var(--r-sm);padding:11px 13px;transition:border-color var(--dur),box-shadow var(--dur);
+}
+.input:focus,.textarea:focus,.select-native:focus{
+  outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--ring)}
+.input::placeholder{color:var(--ink-faint)}
+.input-lg{font-size:var(--t-3);padding:16px 18px;font-variant-numeric:tabular-nums}
+.hint{font-size:var(--t--1);color:var(--ink-faint);margin-top:5px}
+.field-error .input{border-color:var(--bad)}
+.error-text{color:var(--bad);font-size:var(--t--1);margin-top:5px}
+
+/* ---------- Belgilar (badge) ---------- */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:var(--t--1);font-weight:600;
+  padding:3px 10px;border-radius:var(--r-full);line-height:1.4}
+.badge-ok{background:var(--ok-bg);color:var(--ok-ink)}
+.badge-warn{background:var(--warn-bg);color:var(--warn-ink)}
+.badge-bad{background:var(--bad-bg);color:var(--bad-ink)}
+.badge-neutral{background:var(--surface-sunken);color:var(--ink-muted)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot-ok{background:var(--ok)}.dot-warn{background:var(--warn)}.dot-bad{background:var(--bad)}
+
+/* ---------- Rostlik o'lchagichi (JASUR element) ---------- */
+.truth{display:flex;align-items:center;gap:var(--sp-4)}
+.truth-ring{--v:0;--c:var(--ok);width:104px;height:104px;flex:none;border-radius:50%;
+  display:grid;place-items:center;position:relative;
+  background:conic-gradient(var(--c) calc(var(--v)*1%),var(--surface-sunken) 0)}
+.truth-ring::before{content:"";position:absolute;inset:10px;border-radius:50%;background:var(--surface)}
+.truth-ring .val{position:relative;font-family:var(--font-serif);font-weight:700;
+  font-size:var(--t-3);font-variant-numeric:tabular-nums;color:var(--ink)}
+.truth-ring.lvl-green{--c:var(--ok)}.truth-ring.lvl-yellow{--c:var(--warn)}.truth-ring.lvl-red{--c:var(--bad)}
+.truth-big{font-family:var(--font-serif);font-weight:700;font-size:var(--t-6);
+  line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+/* ---------- Jadval ---------- */
+.table-wrap{overflow-x:auto}
+table.data{width:100%;border-collapse:collapse;font-size:var(--t-0)}
+table.data th{text-align:left;font-size:var(--t--1);font-weight:600;color:var(--ink-muted);
+  text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;border-bottom:1px solid var(--border)}
+table.data td{padding:12px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.data tbody tr:hover td{background:var(--surface-2)}
+table.data .num{text-align:right}
+tr.row-bad td{box-shadow:inset 3px 0 var(--bad)}
+tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
+
+/* ---------- Segment / Tab ---------- */
+.segmented{display:inline-flex;background:var(--surface-sunken);border-radius:var(--r-sm);
+  padding:3px;gap:2px}
+.segmented button{font:inherit;font-weight:500;font-size:var(--t--1);border:none;background:transparent;
+  color:var(--ink-muted);padding:7px 14px;border-radius:6px;cursor:pointer}
+.segmented button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm)}
+
+.tabs{display:flex;gap:var(--sp-4);border-bottom:1px solid var(--border);margin-bottom:var(--sp-4)}
+.tabs a,.tabs button{padding:10px 2px;color:var(--ink-muted);font-weight:500;border:none;
+  background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs .active{color:var(--ink);border-bottom-color:var(--primary)}
+
+/* ---------- Toggle (switch) ---------- */
+.switch{position:relative;display:inline-flex;align-items:center;gap:10px;cursor:pointer}
+.switch input{position:absolute;opacity:0;width:0;height:0}
+.switch .track{width:42px;height:24px;background:var(--border-strong);border-radius:var(--r-full);
+  transition:background var(--dur)}
+.switch .thumb{position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;
+  border-radius:50%;transition:transform var(--dur);box-shadow:var(--shadow-sm)}
+.switch input:checked+.track{background:var(--primary)}
+.switch input:checked+.track+.thumb{transform:translateX(18px)}
+.switch input:focus-visible+.track{box-shadow:0 0 0 3px var(--ring)}
+
+/* ---------- Checkbox / radio ---------- */
+.check{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.check input{width:20px;height:20px;accent-color:var(--primary)}
+
+/* ---------- Chips ---------- */
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-full);
+  border:1px solid var(--border-strong);background:var(--surface);font-size:var(--t--1);
+  font-weight:500;color:var(--ink-muted);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--brand-50);border-color:var(--primary);color:var(--primary)}
+:root[data-theme="dark"] .chip[aria-pressed="true"]{background:var(--brand-900)}
+
+/* ---------- Toast ---------- */
+.toast-wrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:80;
+  display:flex;flex-direction:column;gap:10px;width:min(420px,92vw)}
+.toast{display:flex;align-items:center;gap:12px;background:var(--surface);color:var(--ink);
+  border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:var(--r-sm);
+  padding:14px 16px;box-shadow:var(--shadow-lg)}
+.toast.ok{border-left-color:var(--ok)}.toast.bad{border-left-color:var(--bad)}.toast.warn{border-left-color:var(--warn)}
+
+/* ---------- Modal ---------- */
+.modal-backdrop{position:fixed;inset:0;background:rgba(20,18,14,.55);z-index:70;
+  display:grid;place-items:center;padding:var(--sp-4)}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:var(--sp-5);width:min(520px,94vw);box-shadow:var(--shadow-lg)}
+
+/* ---------- Tooltip ---------- */
+[data-tip]{position:relative}
+[data-tip]:hover::after,[data-tip]:focus-visible::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:var(--sand-800);color:#fff;font-size:var(--t--1);padding:6px 9px;border-radius:6px;
+  white-space:nowrap;z-index:60;box-shadow:var(--shadow-md)}
+
+/* ---------- Xabar (messages) ---------- */
+.msg{padding:12px 16px;border-radius:var(--r-sm);margin-bottom:var(--sp-3);font-size:var(--t-0);
+  border:1px solid transparent}
+.msg.success{background:var(--ok-bg);color:var(--ok-ink)}
+.msg.error{background:var(--bad-bg);color:var(--bad-ink)}
+.msg.warning{background:var(--warn-bg);color:var(--warn-ink)}
+.msg.info{background:var(--brand-50);color:var(--brand-700)}
+:root[data-theme="dark"] .msg.info{background:var(--brand-900);color:var(--brand-200)}
+
+/* ---------- Bo'sh holat ---------- */
+.empty{text-align:center;padding:var(--sp-7) var(--sp-4);color:var(--ink-muted)}
+.empty .emoji-xl{margin-bottom:var(--sp-3)}
+.empty h3{color:var(--ink)}
+
+/* =========================================================================
+   APP SHELL — uch interfeys uchun umumiy (sidebar/topbar + mobil bottom-nav)
+   ========================================================================= */
+.app{min-height:100vh;display:flex}
+.sidebar{width:240px;flex:none;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.sidebar .brand{display:flex;align-items:center;gap:10px;padding:var(--sp-5) var(--sp-5) var(--sp-4);
+  font-family:var(--font-serif);font-weight:700;font-size:var(--t-1)}
+.sidebar .brand .mark{width:32px;height:32px;border-radius:9px;background:var(--primary);
+  color:var(--primary-ink);display:grid;place-items:center}
+.sidebar nav{padding:var(--sp-2);display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
+.navlink{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:var(--r-sm);
+  color:var(--ink-muted);font-weight:500;font-size:var(--t-0)}
+.navlink:hover{background:var(--surface-sunken);color:var(--ink);text-decoration:none}
+.navlink.active{background:var(--brand-50);color:var(--primary)}
+:root[data-theme="dark"] .navlink.active{background:var(--brand-900);color:var(--brand-200)}
+.navlink .icon{color:currentColor}
+.sidebar .side-foot{padding:var(--sp-4);border-top:1px solid var(--border)}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);
+  padding:var(--sp-4) var(--sp-5);background:var(--surface);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:20}
+.topbar h1{font-size:var(--t-2);margin:0}
+.content{padding:var(--sp-5);max-width:1180px;width:100%;margin:0 auto}
+
+/* Tema tugmasi */
+.theme-toggle{display:inline-flex;border:1px solid var(--border-strong);border-radius:var(--r-full);
+  overflow:hidden}
+.theme-toggle button{border:none;background:transparent;padding:7px 10px;cursor:pointer;color:var(--ink-muted)}
+.theme-toggle button.active{background:var(--surface-sunken);color:var(--ink)}
+
+/* Mobil pastki navigatsiya (sotuvchi/inspektor telefonda) */
+.bottom-nav{display:none}
+@media (max-width:860px){
+  .sidebar{display:none}
+  .grid-4,.grid-3,.grid-2{grid-template-columns:1fr}
+  .content{padding:var(--sp-4);padding-bottom:84px}
+  .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:40;
+    background:var(--surface);border-top:1px solid var(--border);
+    padding-bottom:env(safe-area-inset-bottom)}
+  .bottom-nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:9px 4px;color:var(--ink-faint);font-size:var(--t--1);font-weight:500}
+  .bottom-nav a.active{color:var(--primary)}
+}
+
+/* ---------- Custom select / kalendar (Alpine) ---------- */
+.dropdown{position:relative}
+.dropdown-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;background:var(--surface);border:1px solid var(--border-strong);
+  border-radius:var(--r-sm);padding:11px 13px;font:inherit;color:var(--ink);cursor:pointer}
+.dropdown-trigger:focus-visible{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--ring)}
+.dropdown-panel{position:absolute;z-index:50;top:calc(100% + 4px);left:0;right:0;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);
+  box-shadow:var(--shadow-lg);padding:6px;max-height:280px;overflow-y:auto}
+.dropdown-search{width:100%;border:none;border-bottom:1px solid var(--border);padding:9px 8px;
+  background:transparent;color:var(--ink);font:inherit;margin-bottom:4px}
+.dropdown-search:focus{outline:none}
+.option{padding:9px 11px;border-radius:6px;cursor:pointer;display:flex;align-items:center;
+  justify-content:space-between;gap:8px}
+.option:hover,.option.active{background:var(--surface-sunken)}
+.option[aria-selected="true"]{color:var(--primary);font-weight:600}
+
+.cal{width:300px;padding:var(--sp-3)}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-3)}
+.cal-head .m{font-family:var(--font-serif);font-weight:600}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-grid .wd{font-size:var(--t--1);color:var(--ink-faint);text-align:center;padding:4px 0}
+.cal-day{aspect-ratio:1;border:none;background:transparent;border-radius:8px;cursor:pointer;
+  color:var(--ink);font:inherit;font-variant-numeric:tabular-nums}
+.cal-day:hover{background:var(--surface-sunken)}
+.cal-day.out{color:var(--ink-faint)}
+.cal-day.today{box-shadow:inset 0 0 0 1px var(--border-strong)}
+.cal-day.sel{background:var(--primary);color:var(--primary-ink)}
+.cal-day.in-range{background:var(--brand-50)}
+:root[data-theme="dark"] .cal-day.in-range{background:var(--brand-900)}

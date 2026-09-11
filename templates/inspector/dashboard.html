@@ -1,9 +1,29 @@
-{% extends 'base.html' %}
-{% block title %}Nazorat{% endblock %}
+{% extends 'shell.html' %}
+{% load static %}
+{% block title %}Nazorat — Bosh sahifa{% endblock %}
+{% block heading %}Bosh sahifa{% endblock %}
+
+{% block nav %}
+<a class="navlink active" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-layout-dashboard"></use></svg> Boshqaruv paneli</a>
+<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg> Bozor xaritasi</a>
+<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg> Signallar</a>
+<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-store"></use></svg> Do'konlar</a>
+<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-camera"></use></svg> Kameralar</a>
+<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg> Hisobotlar</a>
+{% endblock %}
+
 {% block content %}
-<div class="card">
-  <h2>Tekshiruvchi interfeysi</h2>
-  <p class="msg">P3'da: dashboard, bozor xaritasi, do'kon sahifasi, signallar.</p>
-  <p><a href="{% url 'profile' %}">Profil</a></p>
+<div class="msg info">P3 bosqichida bu yerga real dashboard quriladi: xavf reytingi, signal lentasi, aniqlik foizi, bozor xaritasi.</div>
+<div class="grid grid-4" style="margin-top:var(--sp-4)">
+  <div class="card"><small class="muted">Nazoratdagi do'kon</small><div class="truth-big" style="font-size:var(--t-4)">—</div></div>
+  <div class="card"><small class="muted">Qizil signal</small><div class="truth-big" style="font-size:var(--t-4);color:var(--bad)">—</div></div>
+  <div class="card"><small class="muted">O'rtacha rostlik</small><div class="truth-big" style="font-size:var(--t-4);color:var(--ok)">—</div></div>
+  <div class="card"><small class="muted">AI aniqligi</small><div class="truth-big" style="font-size:var(--t-4)">—</div></div>
 </div>
+{% endblock %}
+{% block bottom_nav %}
+<a href="#" class="active"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-layout-dashboard"></use></svg>Panel</a>
+<a href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg>Xarita</a>
+<a href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg>Signal</a>
+<a href="{% url 'profile' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg>Profil</a>
 {% endblock %}

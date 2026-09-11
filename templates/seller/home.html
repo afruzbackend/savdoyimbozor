@@ -1,10 +1,29 @@
-{% extends 'base.html' %}
-{% block title %}Sotuvchi{% endblock %}
+{% extends 'shell.html' %}
+{% load static %}
+{% block title %}Sotuvchi — Bosh sahifa{% endblock %}
+{% block heading %}Bosh sahifa{% endblock %}
+
+{% block nav %}
+<a class="navlink active" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg> Bosh sahifa</a>
+<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Sotuv</a>
+<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg> Kirim</a>
+<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Kun yakuni</a>
+<a class="navlink" href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg> Hisobot</a>
+{% endblock %}
+
 {% block content %}
-<div class="card">
-  <h2>Sotuvchi interfeysi</h2>
-  <p>{% if shop %}{{ shop }}{% else %}Do'kon biriktirilmagan{% endif %}</p>
-  <p class="msg">P2'da: tez sotuv, kirim, kun yakuni, hisobot.</p>
-  <p><a href="{% url 'profile' %}">Profil</a></p>
+<div class="msg info">P2 bosqichida bu yerga tez sotuv ekrani va kunlik ko'rsatkichlar quriladi.</div>
+<div class="card" style="margin-top:var(--sp-4)">
+  <small class="muted">{% if shop %}{{ shop }}{% else %}Do'kon biriktirilmagan{% endif %}</small>
+  <div class="truth" style="margin-top:var(--sp-3)">
+    <div class="truth-ring lvl-green" style="--v:0"><span class="val num">—</span></div>
+    <div><small class="muted">Bugungi savdo</small><div class="truth-big" style="font-size:var(--t-3)">—</div></div>
+  </div>
 </div>
+{% endblock %}
+{% block bottom_nav %}
+<a href="#" class="active"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg>Asosiy</a>
+<a href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg>Sotuv</a>
+<a href="#"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg>Kirim</a>
+<a href="{% url 'profile' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg>Profil</a>
 {% endblock %}

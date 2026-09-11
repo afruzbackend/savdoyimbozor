@@ -1,8 +1,167 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Dizayn tizimi{% endblock %}
-{% block content %}
-<div class="card">
-  <h2>Dizayn tizimi (styleguide)</h2>
-  <p class="msg">P1'da: palitra, tipografika, light/dark, custom komponentlar shu yerda ko'rsatiladi.</p>
+{% block body %}
+<div x-data="themeCtl" style="max-width:1100px;margin:0 auto;padding:var(--sp-5)">
+
+  <header class="row" style="justify-content:space-between;margin-bottom:var(--sp-5)">
+    <div>
+      <h1 style="margin-bottom:2px">Dizayn tizimi</h1>
+      <p class="muted" style="margin:0">Bozor Nazorat — komponentlar va tokenlar</p>
+    </div>
+    <div class="theme-toggle" role="group" aria-label="Mavzu">
+      <button type="button" :class="theme===''&&'active'" @click="set('')">Tizim</button>
+      <button type="button" :class="theme==='light'&&'active'" @click="set('light')">Yorug'</button>
+      <button type="button" :class="theme==='dark'&&'active'" @click="set('dark')">Qorong'i</button>
+    </div>
+  </header>
+
+  {# ---- Palitra ---- #}
+  <section class="card" style="margin-bottom:var(--sp-4)">
+    <div class="card-title" style="margin-bottom:var(--sp-4)">Palitra</div>
+    <p class="muted">Brend ranglari holat ranglaridan ajratilgan.</p>
+    <div class="grid grid-4">
+      <div><div style="height:56px;border-radius:10px;background:var(--brand-600)"></div><small>Brend / suzani indigo</small></div>
+      <div><div style="height:56px;border-radius:10px;background:var(--clay-500)"></div><small>Akцent / g'isht</small></div>
+      <div><div style="height:56px;border-radius:10px;background:var(--pist-500)"></div><small>Pista-yashil</small></div>
+      <div><div style="height:56px;border-radius:10px;background:var(--surface-sunken);border:1px solid var(--border)"></div><small>Yuza (qum)</small></div>
+    </div>
+    <div class="grid grid-3" style="margin-top:var(--sp-3)">
+      <div><span class="badge badge-ok"><span class="dot dot-ok"></span> Rostlik yuqori</span></div>
+      <div><span class="badge badge-warn"><span class="dot dot-warn"></span> E'tibor</span></div>
+      <div><span class="badge badge-bad"><span class="dot dot-bad"></span> Xavf</span></div>
+    </div>
+  </section>
+
+  {# ---- Tipografika ---- #}
+  <section class="card" style="margin-bottom:var(--sp-4)">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Tipografika</div>
+    <h1>Sarlavha — Spectral</h1>
+    <h3>Ikkinchi darajali sarlavha</h3>
+    <p>Asosiy matn Inter shrifti bilan yoziladi. Ranglar suzani va koshin naqshlaridan
+       olingan, lekin bosiq. Raqamlar: <span class="num">1 234 567</span> so'm.</p>
+    <p class="muted">Kirill: Бозор назорати тизими. Русский: Система контроля рынка.</p>
+  </section>
+
+  {# ---- Rostlik + tugmalar ---- #}
+  <div class="grid grid-2" style="margin-bottom:var(--sp-4)">
+    <section class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-4)">Rostlik o'lchagichi</div>
+      <div class="truth">
+        <div class="truth-ring lvl-green" style="--v:87"><span class="val num">87</span></div>
+        <div>
+          <div class="truth-big" style="color:var(--ok)">87<span style="font-size:var(--t-2)">%</span></div>
+          <p class="muted" style="margin:4px 0 0">Kassa, qoldiq va narx mos keladi.</p>
+        </div>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-4)">Tugmalar</div>
+      <div class="row gap-2 wrap-flex" style="margin-bottom:10px">
+        <button class="btn">Asosiy</button>
+        <button class="btn btn-ghost">Ikkilamchi</button>
+        <button class="btn btn-accent">Akцent</button>
+        <button class="btn btn-danger">Xavfli</button>
+      </div>
+      <div class="row gap-2 wrap-flex">
+        <button class="btn btn-quiet"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Yuklab olish</button>
+        <button class="btn" @click="window.toast('Saqlandi!','ok')">Toast ko'rsatish</button>
+      </div>
+    </section>
+  </div>
+
+  {# ---- Formalar + custom select + kalendar ---- #}
+  <div class="grid grid-2" style="margin-bottom:var(--sp-4)">
+    <section class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-4)">Forma elementlari</div>
+      <div class="field"><label class="label">Summa (so'm)</label>
+        <div x-data="amount(45000)">
+          <input class="input input-lg num" x-model="shown" inputmode="numeric" placeholder="0">
+        </div>
+      </div>
+      <div class="field"><label class="label">Mahsulot toifasi</label>
+        <div class="dropdown" x-data="selectBox([{value:1,label:'Pomidor'},{value:2,label:'Bodring'},{value:3,label:'Kartoshka'},{value:4,label:'Kurtka'}],1)" @click.outside="open=false">
+          <button type="button" class="dropdown-trigger" @click="toggle()" :aria-expanded="open">
+            <span x-text="label"></span>
+            <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-chevron-down"></use></svg>
+          </button>
+          <div class="dropdown-panel" x-show="open" x-transition x-cloak>
+            <input class="dropdown-search" x-ref="search" x-model="q" placeholder="Qidirish...">
+            <template x-for="o in filtered" :key="o.value">
+              <div class="option" :aria-selected="String(o.value)===String(value)" @click="pick(o.value)"
+                   x-text="o.label"></div>
+            </template>
+          </div>
+        </div>
+      </div>
+      <div class="row gap-4" style="margin-top:var(--sp-2)">
+        <label class="switch"><input type="checkbox" checked><span class="track"></span><span class="thumb"></span>
+          <span>Ulgurji</span></label>
+        <label class="check"><input type="checkbox" checked> Naqd</label>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-4)">Kalendar (o'zbekcha, diapazon)</div>
+      <div class="dropdown" x-data="datePicker('range')" @click.outside="open=false">
+        <button type="button" class="dropdown-trigger" @click="open=!open">
+          <span x-text="display"></span>
+          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-calendar"></use></svg>
+        </button>
+        <div class="dropdown-panel cal" x-show="open" x-transition x-cloak>
+          <div class="cal-head">
+            <button class="btn-quiet btn-icon" @click="prev()"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-chevron-left"></use></svg></button>
+            <span class="m" x-text="title"></span>
+            <button class="btn-quiet btn-icon" @click="next()"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-chevron-right"></use></svg></button>
+          </div>
+          <div class="cal-grid">
+            <template x-for="w in wd" :key="w"><div class="wd" x-text="w"></div></template>
+            <template x-for="day in days" :key="day.d.toISOString()">
+              <button class="cal-day" :class="{out:day.out,today:isToday(day.d),sel:isSel(day.d),'in-range':inRange(day.d)}"
+                      @click="choose(day)" x-text="day.d.getDate()"></button>
+            </template>
+          </div>
+        </div>
+      </div>
+      <div class="segmented" style="margin-top:var(--sp-4)" x-data="{s:'hafta'}">
+        <button :aria-selected="s==='kun'" @click="s='kun'">Kun</button>
+        <button :aria-selected="s==='hafta'" @click="s='hafta'">Hafta</button>
+        <button :aria-selected="s==='oy'" @click="s='oy'">Oy</button>
+      </div>
+    </section>
+  </div>
+
+  {# ---- Jadval ---- #}
+  <section class="card" style="margin-bottom:var(--sp-4)">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Do'konlar jadvali</div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Do'kon</th><th>Toifa</th><th class="num">Kiritilgan</th><th class="num">Kassa</th><th>Rostlik</th></tr></thead>
+        <tbody>
+          <tr><td>№12 Karimov</td><td>Meva-sabzavot</td><td class="num">3 850 000</td><td class="num">3 610 000</td><td><span class="badge badge-ok">91%</span></td></tr>
+          <tr class="row-warn"><td>№18 Tosheva</td><td>Kiyim</td><td class="num">1 200 000</td><td class="num">820 000</td><td><span class="badge badge-warn">64%</span></td></tr>
+          <tr class="row-bad"><td>№07 Rahimov</td><td>Meva-sabzavot</td><td class="num">640 000</td><td class="num">180 000</td><td><span class="badge badge-bad">28%</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# ---- Bo'sh holat + naqsh ---- #}
+  <div class="grid grid-2" style="margin-bottom:var(--sp-6)">
+    <section class="card" style="position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;color:var(--brand-600);opacity:.06">{% include 'components/_koshin.html' %}</div>
+      <div class="empty" style="position:relative">
+        <img class="emoji-xl" src="{% static 'emoji/box.svg' %}" alt="">
+        <h3>Hali signal yo'q</h3>
+        <p class="muted">Barcha do'konlar bugun rost ko'rsatmoqda.</p>
+      </div>
+    </section>
+    <section class="card center" style="display:grid;place-items:center">
+      <img class="emoji-xl" src="{% static 'emoji/clap.svg' %}" alt="" style="width:72px;height:72px">
+      <h3 style="margin-top:var(--sp-3)">Zo'r ish!</h3>
+      <p class="muted">Bugun 47 ta chek kiritildi.</p>
+    </section>
+  </div>
+
 </div>
 {% endblock %}

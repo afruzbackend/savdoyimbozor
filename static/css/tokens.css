@@ -1,0 +1,167 @@
+/* =============================================================================
+   DIZAYN TOKENLARI — Bozor Nazorat
+   Falsafa: brend ranglari (suzani/koshin) HOLAT ranglaridan ajratilgan.
+   Iliq qum/tosh neytrallari (toza krem emas). Light + Dark to'liq sozlangan.
+   Dark'da elevatsiya soya bilan emas — yoritilgan chegara (border) bilan.
+   ============================================================================= */
+
+/* ---- Shriftlar (lokal woff2, latin+kirill) ---- */
+@font-face{font-family:'Inter';font-weight:400;font-style:normal;font-display:swap;
+  src:url('/static/fonts/inter-v20-cyrillic_latin-regular.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-weight:500;font-style:normal;font-display:swap;
+  src:url('/static/fonts/inter-v20-cyrillic_latin-500.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-weight:600;font-style:normal;font-display:swap;
+  src:url('/static/fonts/inter-v20-cyrillic_latin-600.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-weight:700;font-style:normal;font-display:swap;
+  src:url('/static/fonts/inter-v20-cyrillic_latin-700.woff2') format('woff2')}
+@font-face{font-family:'Spectral';font-weight:500;font-style:normal;font-display:swap;
+  src:url('/static/fonts/spectral-v15-cyrillic_latin-500.woff2') format('woff2')}
+@font-face{font-family:'Spectral';font-weight:600;font-style:normal;font-display:swap;
+  src:url('/static/fonts/spectral-v15-cyrillic_latin-600.woff2') format('woff2')}
+@font-face{font-family:'Spectral';font-weight:700;font-style:normal;font-display:swap;
+  src:url('/static/fonts/spectral-v15-cyrillic_latin-700.woff2') format('woff2')}
+
+:root{
+  /* ---- Brend palitrasi: suzani indigo (asosiy) ---- */
+  --brand-50:#eef1fa;  --brand-100:#dde3f4; --brand-200:#bcc7e8;
+  --brand-300:#93a3d7; --brand-400:#6a7cc0; --brand-500:#4a5ca8;
+  --brand-600:#3a4e8c; --brand-700:#2e3d6e; --brand-800:#26305680;
+  --brand-900:#1e2748;
+
+  /* ---- Akцent: g'isht/terrakota (kam ishlatiladi) ---- */
+  --clay-400:#c8794f; --clay-500:#b5603a; --clay-600:#9c4a2e;
+
+  /* ---- Qo'llab-quvvatlash: pista-yashil ---- */
+  --pist-400:#9aa864; --pist-500:#7e8a4f; --pist-600:#65703d;
+
+  /* ---- Holat ranglari (FAQAT funksiya, brenddan farqli hue) ---- */
+  --ok:#1e8a5a;   --ok-bg:#dcf2e6;   --ok-ink:#0f5c3a;
+  --warn:#bf7d16; --warn-bg:#fbeecd; --warn-ink:#7d5209;
+  --bad:#c23b3b;  --bad-bg:#fbe0df;  --bad-ink:#8f2626;
+
+  /* ---- Iliq neytrallar (qum/tosh — krem emas) ---- */
+  --sand-50:#faf8f3; --sand-100:#f4f1ea; --sand-200:#e9e4d8;
+  --sand-300:#d9d1c0; --sand-400:#b8ad98; --sand-500:#8d8371;
+  --sand-600:#6e675c; --sand-700:#4d483f; --sand-800:#302c26; --sand-900:#1f1c17;
+
+  /* ---- Rollarga bog'langan (light) ---- */
+  --bg:var(--sand-100);
+  --surface:#ffffff;
+  --surface-2:var(--sand-50);
+  --surface-sunken:var(--sand-200);
+  --border:var(--sand-300);
+  --border-strong:var(--sand-400);
+  --ink:#23201b;
+  --ink-muted:var(--sand-600);
+  --ink-faint:var(--sand-500);
+  --primary:var(--brand-600);
+  --primary-hover:var(--brand-700);
+  --primary-ink:#ffffff;
+  --accent:var(--clay-500);
+  --ring:rgba(58,78,140,.35);
+  --shadow-sm:0 1px 2px rgba(31,28,23,.06),0 1px 3px rgba(31,28,23,.05);
+  --shadow-md:0 4px 12px rgba(31,28,23,.08),0 2px 4px rgba(31,28,23,.05);
+  --shadow-lg:0 12px 32px rgba(31,28,23,.12);
+
+  /* ---- Tipografik shkala (modular 1.2) ---- */
+  --font-sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-serif:'Spectral',Georgia,serif;
+  --t--1:.833rem; --t-0:1rem; --t-1:1.2rem; --t-2:1.44rem;
+  --t-3:1.728rem; --t-4:2.074rem; --t-5:2.488rem; --t-6:3.15rem;
+
+  /* ---- Bo'shliq (4px bazasi) ---- */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px;
+  --sp-6:32px; --sp-7:48px; --sp-8:64px;
+
+  /* ---- Radius / harakat ---- */
+  --r-sm:8px; --r:12px; --r-lg:16px; --r-full:999px;
+  --dur:.18s; --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:light;
+}
+
+/* ===== DARK ===== */
+:root[data-theme="dark"]{
+  --bg:#16140f;
+  --surface:#201d17;
+  --surface-2:#1a1813;
+  --surface-sunken:#12100c;
+  --border:#38332a;
+  --border-strong:#4a4438;
+  --ink:#ede8de;
+  --ink-muted:#a89f8e;
+  --ink-faint:#7d7565;
+  --primary:var(--brand-400);
+  --primary-hover:var(--brand-300);
+  --primary-ink:#12100c;
+  --accent:var(--clay-400);
+  --ring:rgba(147,163,215,.45);
+  /* Dark'da soya deyarli ko'rinmaydi — elevatsiya border bilan */
+  --shadow-sm:0 0 0 1px rgba(255,255,255,.02);
+  --shadow-md:0 8px 24px rgba(0,0,0,.4);
+  --shadow-lg:0 16px 40px rgba(0,0,0,.5);
+  /* Holat ranglari dark'da yorqinroq (AA kontrast) */
+  --ok:#3fbd83;   --ok-bg:#12362a;   --ok-ink:#8fe3bd;
+  --warn:#e0a63c; --warn-bg:#3a2e12;  --warn-ink:#f2cf86;
+  --bad:#e46464;  --bad-bg:#3a1e1e;   --bad-ink:#f2a6a6;
+  color-scheme:dark;
+}
+
+/* Tizim afzalligi (foydalanuvchi tanlamagan bo'lsa) */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#16140f; --surface:#201d17; --surface-2:#1a1813; --surface-sunken:#12100c;
+    --border:#38332a; --border-strong:#4a4438;
+    --ink:#ede8de; --ink-muted:#a89f8e; --ink-faint:#7d7565;
+    --primary:var(--brand-400); --primary-hover:var(--brand-300); --primary-ink:#12100c;
+    --accent:var(--clay-400); --ring:rgba(147,163,215,.45);
+    --shadow-sm:0 0 0 1px rgba(255,255,255,.02);
+    --shadow-md:0 8px 24px rgba(0,0,0,.4); --shadow-lg:0 16px 40px rgba(0,0,0,.5);
+    --ok:#3fbd83; --ok-bg:#12362a; --ok-ink:#8fe3bd;
+    --warn:#e0a63c; --warn-bg:#3a2e12; --warn-ink:#f2cf86;
+    --bad:#e46464; --bad-bg:#3a1e1e; --bad-ink:#f2a6a6;
+    color-scheme:dark;
+  }
+}
+
+/* ============================ BAZA ============================ */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--font-sans);font-size:var(--t-0);line-height:1.55;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+h1,h2,h3,h4{font-family:var(--font-serif);font-weight:600;line-height:1.2;margin:0 0 var(--sp-3)}
+h1{font-size:var(--t-4)} h2{font-size:var(--t-3)} h3{font-size:var(--t-2)} h4{font-size:var(--t-1)}
+p{margin:0 0 var(--sp-3)}
+a{color:var(--primary);text-decoration:none}
+a:hover{text-decoration:underline}
+small{font-size:var(--t--1)}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* Fokus — har doim ko'rinadigan */
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+
+/* Ikonka (sprite) */
+.icon{width:20px;height:20px;display:inline-block;vertical-align:-4px;flex:none}
+.icon-sm{width:16px;height:16px;vertical-align:-3px}
+.icon-lg{width:24px;height:24px;vertical-align:-5px}
+
+/* Emoji (twemoji svg) */
+.emoji{width:1.15em;height:1.15em;vertical-align:-.2em;display:inline-block}
+.emoji-xl{width:56px;height:56px;vertical-align:middle}
+
+/* Harakatni kamaytirish */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+
+/* Yordamchilar */
+.muted{color:var(--ink-muted)} .faint{color:var(--ink-faint)}
+.right{text-align:right} .center{text-align:center}
+.stack{display:flex;flex-direction:column}
+.row{display:flex;align-items:center}
+.gap-1{gap:var(--sp-1)}.gap-2{gap:var(--sp-2)}.gap-3{gap:var(--sp-3)}.gap-4{gap:var(--sp-4)}
+.wrap-flex{flex-wrap:wrap}
+.grow{flex:1}
+.hidden{display:none!important}
