@@ -194,10 +194,21 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 
 /* Mobil pastki navigatsiya (sotuvchi/inspektor telefonda) */
 .bottom-nav{display:none}
+.menu-btn{display:none;align-items:center;justify-content:center;border:1px solid var(--border-strong);
+  background:transparent;color:var(--ink);border-radius:var(--r-2);padding:7px;cursor:pointer;flex:none}
+.menu-backdrop{display:none}
 @media (max-width:860px){
   .sidebar{display:none}
   .grid-4,.grid-3,.grid-2{grid-template-columns:1fr}
   .content{padding:var(--sp-4);padding-bottom:84px}
+  .menu-btn{display:inline-flex}
+  .topbar h1{flex:1;min-width:0;font-size:var(--t-1);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Hamburger bosilganda chap menyu drawer bo'lib chiqadi */
+  body.nav-open .sidebar{display:flex;position:fixed;top:0;bottom:0;left:0;
+    width:min(84vw,300px);z-index:60;overflow-y:auto;box-shadow:var(--shadow-lg,0 10px 40px rgba(0,0,0,.35))}
+  body.nav-open .menu-backdrop{display:block;position:fixed;inset:0;z-index:55;
+    background:rgba(0,0,0,.45)}
   .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:40;
     background:var(--surface);border-top:1px solid var(--border);
     padding-bottom:env(safe-area-inset-bottom)}

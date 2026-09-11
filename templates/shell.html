@@ -41,8 +41,15 @@
     </div>
   </aside>
 
+  {# Mobil menyu foni (drawer ochilganда) #}
+  <div class="menu-backdrop" onclick="document.body.classList.remove('nav-open')" data-noloc></div>
+
   <div class="main">
     <header class="topbar">
+      <button class="menu-btn" type="button" aria-label="Menyu"
+              onclick="document.body.classList.toggle('nav-open')" data-noloc>
+        <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-menu"></use></svg>
+      </button>
       <h1>{% block heading %}{% endblock %}</h1>
       <div class="row gap-3">{% block topbar_actions %}{% endblock %}</div>
     </header>
