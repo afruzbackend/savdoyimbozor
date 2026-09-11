@@ -1,4 +1,5 @@
 """Savdo domeni. Pul = butun son (so'm). Yozuv o'chmaydi (faqat Correction)."""
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -18,8 +19,11 @@ class SaleMode(models.TextChoices):
 
 class StockIn(TimeStampedModel):
     """Kirim — do'konga mahsulot kelishi (qopda ham)."""
+
     shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="stock_ins")
-    product = models.ForeignKey("catalog.Product", on_delete=models.PROTECT, related_name="stock_ins")
+    product = models.ForeignKey(
+        "catalog.Product", on_delete=models.PROTECT, related_name="stock_ins"
+    )
     seller = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
     quantity = models.DecimalField(_("Miqdor"), max_digits=12, decimal_places=3)
     in_packs = models.BooleanField(_("Qopda"), default=False)
@@ -34,16 +38,23 @@ class StockIn(TimeStampedModel):
 
 class Sale(TimeStampedModel):
     """Sotuv (chek)."""
+
     shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="sales")
-    seller = models.ForeignKey("accounts.User", null=True, blank=True,
-                               on_delete=models.SET_NULL, related_name="sales")
-    mode = models.CharField(_("Rejim"), max_length=8, choices=SaleMode.choices, default=SaleMode.QUICK)
+    seller = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="sales"
+    )
+    mode = models.CharField(
+        _("Rejim"), max_length=8, choices=SaleMode.choices, default=SaleMode.QUICK
+    )
     subtotal = models.BigIntegerField(_("Oraliq summa"), default=0)
     discount = models.BigIntegerField(_("Chegirma"), default=0)
-    rounding = models.BigIntegerField(_("Yaxlitlash"), default=0)   # faqat pastga, statistikaga kirmaydi
+    rounding = models.BigIntegerField(
+        _("Yaxlitlash"), default=0
+    )  # faqat pastga, statistikaga kirmaydi
     total = models.BigIntegerField(_("Jami (so'm)"), default=0)
-    payment_type = models.CharField(_("To'lov"), max_length=12,
-                                    choices=PaymentType.choices, default=PaymentType.CASH)
+    payment_type = models.CharField(
+        _("To'lov"), max_length=12, choices=PaymentType.choices, default=PaymentType.CASH
+    )
     is_wholesale = models.BooleanField(_("Ulgurji"), default=False)
     # Vaqt serverdan; client vaqti va kechikish belgisi (offline navbat uchun)
     client_ts = models.DateTimeField(_("Qurilma vaqti"), null=True, blank=True)
@@ -54,7 +65,10 @@ class Sale(TimeStampedModel):
         verbose_name = _("Sotuv")
         verbose_name_plural = _("Sotuvlar")
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["shop", "-created_at"]), models.Index(fields=["-created_at"])]
+        indexes = [
+            models.Index(fields=["shop", "-created_at"]),
+            models.Index(fields=["-created_at"]),
+        ]
 
     def __str__(self):
         return f"{self.shop} — {self.total} so'm"
@@ -62,18 +76,29 @@ class Sale(TimeStampedModel):
 
 class SaleItem(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="items")
-    product = models.ForeignKey("catalog.Product", null=True, blank=True,
-                                on_delete=models.SET_NULL, related_name="sale_items")
+    product = models.ForeignKey(
+        "catalog.Product",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="sale_items",
+    )
     product_name = models.CharField(_("Mahsulot"), max_length=200)
     quantity = models.DecimalField(_("Miqdor"), max_digits=12, decimal_places=3, default=1)
     unit_price = models.BigIntegerField(_("Narx (so'm)"), default=0)
     line_total = models.BigIntegerField(_("Qator jami"), default=0)
 
+    def __str__(self):
+        return f"{self.product_name} × {self.quantity}"
+
 
 class SaleReturn(TimeStampedModel):
     """Qaytarish/almashtirish — savdoni sun'iy kamaytirmaslik uchun alohida."""
+
     shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="returns")
-    sale = models.ForeignKey(Sale, null=True, blank=True, on_delete=models.SET_NULL, related_name="returns")
+    sale = models.ForeignKey(
+        Sale, null=True, blank=True, on_delete=models.SET_NULL, related_name="returns"
+    )
     seller = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
     amount = models.BigIntegerField(_("Summa (so'm)"), default=0)
     reason = models.CharField(_("Sabab"), max_length=200, blank=True)
@@ -85,9 +110,15 @@ class SaleReturn(TimeStampedModel):
 
 class WriteOff(TimeStampedModel):
     """Hisobdan chiqarish (chirigan/buzilgan). Foto majburiy; me'yordan oshsa signal."""
+
     shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="writeoffs")
-    product = models.ForeignKey("catalog.Product", null=True, blank=True,
-                                on_delete=models.SET_NULL, related_name="writeoffs")
+    product = models.ForeignKey(
+        "catalog.Product",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="writeoffs",
+    )
     seller = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
     product_name = models.CharField(_("Mahsulot"), max_length=200)
     quantity = models.DecimalField(_("Miqdor"), max_digits=12, decimal_places=3, default=0)
@@ -101,6 +132,7 @@ class WriteOff(TimeStampedModel):
 
 class DailyClose(TimeStampedModel):
     """Kun yakuni: ertalabki qoldiq + kirim − chiqim − kechki qoldiq."""
+
     shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="daily_closes")
     seller = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
     date = models.DateField(_("Sana"), db_index=True)
@@ -122,9 +154,13 @@ class DailyCloseLine(models.Model):
     evening_qty = models.DecimalField(max_digits=12, decimal_places=3, default=0)
     unit_price = models.BigIntegerField(default=0)
 
+    def __str__(self):
+        return f"{self.product_name}: {self.morning_qty}→{self.evening_qty}"
+
 
 class Correction(TimeStampedModel):
     """Tuzatish tarixi — yozuv o'chmaydi, eski qiymat saqlanadi."""
+
     shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="corrections")
     user = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
     target_model = models.CharField(max_length=60)
@@ -141,6 +177,7 @@ class Correction(TimeStampedModel):
 
 class Debt(TimeStampedModel):
     """Nasiya daftari."""
+
     shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="debts")
     customer_name = models.CharField(_("Xaridor"), max_length=200)
     customer_phone = models.CharField(_("Telefon"), max_length=20, blank=True)

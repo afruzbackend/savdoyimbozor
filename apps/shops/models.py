@@ -1,4 +1,5 @@
 """Do'kon (rasta)."""
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -6,13 +7,25 @@ from apps.core.models import TimeStampedModel
 
 
 class Shop(TimeStampedModel):
-    market = models.ForeignKey("geo.Market", verbose_name=_("Bozor"),
-                               on_delete=models.PROTECT, related_name="shops")
-    row = models.ForeignKey("geo.Row", verbose_name=_("Qator"), null=True, blank=True,
-                            on_delete=models.SET_NULL, related_name="shops")
-    category = models.ForeignKey("catalog.ShopCategory", verbose_name=_("Toifa"),
-                                 null=True, blank=True, on_delete=models.SET_NULL,
-                                 related_name="shops")
+    market = models.ForeignKey(
+        "geo.Market", verbose_name=_("Bozor"), on_delete=models.PROTECT, related_name="shops"
+    )
+    row = models.ForeignKey(
+        "geo.Row",
+        verbose_name=_("Qator"),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="shops",
+    )
+    category = models.ForeignKey(
+        "catalog.ShopCategory",
+        verbose_name=_("Toifa"),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="shops",
+    )
     number = models.CharField(_("Do'kon raqami"), max_length=20)
     stir = models.CharField(_("STIR"), max_length=15, blank=True, db_index=True)
     owner_name = models.CharField(_("Egasi"), max_length=200, blank=True)

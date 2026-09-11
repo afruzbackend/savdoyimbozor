@@ -3,10 +3,10 @@
 Sotuvchi login = STIR-DO'KONRAQAMI. Vaqtinchalik parol generatsiya qilinadi,
 birinchi kirishda almashtirish majburiy (must_change_password=True).
 """
+
 from __future__ import annotations
 
 import secrets
-import string
 
 from django.db import transaction
 
@@ -32,14 +32,24 @@ def create_seller(shop, *, full_name="", phone="", is_owner=True) -> dict:
     password = generate_password()
     parts = full_name.split()
     user = User.objects.create(
-        username=username, role=Role.SELLER, shop=shop, is_shop_owner=is_owner,
+        username=username,
+        role=Role.SELLER,
+        shop=shop,
+        is_shop_owner=is_owner,
         first_name=parts[0] if parts else (shop.owner_name or "Sotuvchi"),
-        last_name=" ".join(parts[1:]), phone=phone or shop.owner_phone,
-        must_change_password=True)
+        last_name=" ".join(parts[1:]),
+        phone=phone or shop.owner_phone,
+        must_change_password=True,
+    )
     user.set_password(password)
     user.save()
-    return {"user": user, "login": username, "password": password,
-            "name": user.get_full_name() or shop.owner_name, "shop": str(shop)}
+    return {
+        "user": user,
+        "login": username,
+        "password": password,
+        "name": user.get_full_name() or shop.owner_name,
+        "shop": str(shop),
+    }
 
 
 @transaction.atomic
@@ -55,15 +65,24 @@ def create_inspector(full_name, markets, *, phone="", username=None) -> dict:
     password = generate_password()
     parts = full_name.split()
     user = User.objects.create(
-        username=username, role=Role.INSPECTOR,
+        username=username,
+        role=Role.INSPECTOR,
         first_name=parts[0] if parts else "Inspektor",
-        last_name=" ".join(parts[1:]), phone=phone, must_change_password=True)
+        last_name=" ".join(parts[1:]),
+        phone=phone,
+        must_change_password=True,
+    )
     user.set_password(password)
     user.save()
     if markets:
         user.assigned_markets.set(markets)
-    return {"user": user, "login": username, "password": password,
-            "name": user.get_full_name(), "shop": "—"}
+    return {
+        "user": user,
+        "login": username,
+        "password": password,
+        "name": user.get_full_name(),
+        "shop": "—",
+    }
 
 
 def reset_password(user) -> str:

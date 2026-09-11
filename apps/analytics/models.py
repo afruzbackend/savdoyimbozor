@@ -1,4 +1,5 @@
 """Tahlil: bozor narxi, kunlik rostlik balli (agregat), signal, tekshiruv, e'tiroz."""
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -7,9 +8,11 @@ from apps.core.models import TimeStampedModel
 
 class MarketPrice(TimeStampedModel):
     """Bozor narxi (kunlik): mahsulot toifasi bo'yicha median/p25/p75 (so'm)."""
+
     market = models.ForeignKey("geo.Market", on_delete=models.CASCADE, related_name="prices")
-    product_category = models.ForeignKey("catalog.ProductCategory", on_delete=models.CASCADE,
-                                         related_name="market_prices")
+    product_category = models.ForeignKey(
+        "catalog.ProductCategory", on_delete=models.CASCADE, related_name="market_prices"
+    )
     date = models.DateField(db_index=True)
     median = models.BigIntegerField(default=0)
     p25 = models.BigIntegerField(default=0)
@@ -23,6 +26,7 @@ class MarketPrice(TimeStampedModel):
 
 class DailyScore(TimeStampedModel):
     """Kunlik rostlik balli (oldindan hisoblangan agregat — dashboard tez ishlashi uchun)."""
+
     shop = models.ForeignKey("shops.Shop", on_delete=models.CASCADE, related_name="scores")
     date = models.DateField(db_index=True)
     truth_pct = models.PositiveSmallIntegerField(_("Rostlik %"), default=0)
@@ -36,7 +40,10 @@ class DailyScore(TimeStampedModel):
         verbose_name = _("Kunlik ball")
         verbose_name_plural = _("Kunlik ballar")
         unique_together = ("shop", "date")
-        indexes = [models.Index(fields=["shop", "date"]), models.Index(fields=["date", "truth_pct"])]
+        indexes = [
+            models.Index(fields=["shop", "date"]),
+            models.Index(fields=["date", "truth_pct"]),
+        ]
 
 
 class Alert(TimeStampedModel):
@@ -56,15 +63,19 @@ class Alert(TimeStampedModel):
     level = models.CharField(max_length=10, choices=Level.choices)
     reason = models.CharField(_("Sabab"), max_length=300)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.NEW)
-    assigned_to = models.ForeignKey("accounts.User", null=True, blank=True,
-                                    on_delete=models.SET_NULL, related_name="alerts")
+    assigned_to = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="alerts"
+    )
     telegram_sent = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = _("Signal")
         verbose_name_plural = _("Signallar")
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["status", "-created_at"]), models.Index(fields=["shop", "date"])]
+        indexes = [
+            models.Index(fields=["status", "-created_at"]),
+            models.Index(fields=["shop", "date"]),
+        ]
 
     def __str__(self):
         return f"[{self.level}] {self.shop}: {self.reason}"
@@ -72,16 +83,23 @@ class Alert(TimeStampedModel):
 
 class Inspection(TimeStampedModel):
     """Tekshiruvchi natijasi — signalни tasdiqlaydi yoki rad etadi (aniqlik o'lchovi)."""
+
     class Result(models.TextChoices):
         CONFIRMED = "confirmed", _("Tasdiqlandi")
         FALSE = "false", _("Noto'g'ri signal")
         PENDING = "pending", _("Jarayonda")
 
     shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="inspections")
-    alert = models.ForeignKey(Alert, null=True, blank=True, on_delete=models.SET_NULL,
-                              related_name="inspections")
-    inspector = models.ForeignKey("accounts.User", null=True, blank=True,
-                                  on_delete=models.SET_NULL, related_name="inspections")
+    alert = models.ForeignKey(
+        Alert, null=True, blank=True, on_delete=models.SET_NULL, related_name="inspections"
+    )
+    inspector = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="inspections",
+    )
     result = models.CharField(max_length=12, choices=Result.choices, default=Result.PENDING)
     act_number = models.CharField(_("Dalolatnoma"), max_length=60, blank=True)
     fine_amount = models.BigIntegerField(_("Jarima (so'm)"), null=True, blank=True)
@@ -96,14 +114,16 @@ class Inspection(TimeStampedModel):
 
 class Appeal(TimeStampedModel):
     """Sotuvchi e'tirozi (signalga)."""
+
     class Status(models.TextChoices):
         NEW = "new", _("Yangi")
         ACCEPTED = "accepted", _("Qabul qilindi")
         REJECTED = "rejected", _("Rad etildi")
 
     shop = models.ForeignKey("shops.Shop", on_delete=models.CASCADE, related_name="appeals")
-    alert = models.ForeignKey(Alert, null=True, blank=True, on_delete=models.SET_NULL,
-                              related_name="appeals")
+    alert = models.ForeignKey(
+        Alert, null=True, blank=True, on_delete=models.SET_NULL, related_name="appeals"
+    )
     author = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
     message = models.TextField(_("Matn"))
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.NEW)

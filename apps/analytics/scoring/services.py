@@ -4,12 +4,11 @@ Rostlik darajasi — sof funksiyalar (spec 5-bo'lim formulalari).
 Bu yerda faqat hisoblash mantig'i; ma'lumot yig'ish P3'da `recompute_for_date` ichida.
 Funksiyalar sof (I/O yo'q) — test qilish oson va sudda tushuntirish mumkin.
 """
+
 from __future__ import annotations
 
-from typing import Optional
 
-
-def match(a: float, b: float) -> Optional[float]:
+def match(a: float, b: float) -> float | None:
     """Ikki qiymat mosligi (%). Kam ham, ko'p ham yozsa tushadi.
 
     Biror qiymat 0 yoki noma'lum bo'lsa None (ma'lumot yetarli emas).
@@ -19,8 +18,9 @@ def match(a: float, b: float) -> Optional[float]:
     return min(a, b) / max(a, b) * 100.0
 
 
-def price_score(avg_price: float, market_median: float,
-                high: float = 0.8, low: float = 0.4) -> Optional[float]:
+def price_score(
+    avg_price: float, market_median: float, high: float = 0.8, low: float = 0.4
+) -> float | None:
     """Narx balli: o'rtacha narx / bozor medianasi. ≥high→100, ≤low→0, orada chiziqli."""
     if not avg_price or not market_median or market_median <= 0:
         return None
@@ -32,8 +32,12 @@ def price_score(avg_price: float, market_median: float,
     return (ratio - low) / (high - low) * 100.0
 
 
-def weighted_truth(parts: dict[str, Optional[float]], weights: dict[str, float],
-                   weakest_cap_bonus: float = 15.0, yellow_threshold: float = 50.0) -> dict:
+def weighted_truth(
+    parts: dict[str, float | None],
+    weights: dict[str, float],
+    weakest_cap_bonus: float = 15.0,
+    yellow_threshold: float = 50.0,
+) -> dict:
     """Og'irlikli o'rtacha rostlik.
 
     - Ma'lumoti yo'q (None) qismlar chiqarib tashlanadi, og'irliklar qayta taqsimlanadi.
@@ -87,8 +91,9 @@ def compute_market_prices(market, day):
     from apps.catalog.models import Product
 
     by_cat = {}
-    for p in Product.objects.filter(shop__market=market, is_active=True,
-                                    category__isnull=False, sell_price__gt=0):
+    for p in Product.objects.filter(
+        shop__market=market, is_active=True, category__isnull=False, sell_price__gt=0
+    ):
         by_cat.setdefault(p.category_id, []).append(p.sell_price)
 
     result = {}
@@ -99,8 +104,11 @@ def compute_market_prices(market, day):
         p25 = prices[max(0, n // 4)]
         p75 = prices[min(n - 1, 3 * n // 4)]
         MarketPrice.objects.update_or_create(
-            market=market, product_category_id=cat_id, date=day,
-            defaults={"median": med, "p25": p25, "p75": p75})
+            market=market,
+            product_category_id=cat_id,
+            date=day,
+            defaults={"median": med, "p25": p25, "p75": p75},
+        )
         result[cat_id] = med
     return result
 
@@ -108,9 +116,11 @@ def compute_market_prices(market, day):
 def _shop_price_score(shop, medians):
     """Do'kon narx balli: mahsulotlari narxini bozor medianasi bilan solishtiradi."""
     from apps.catalog.models import Product
+
     scores = []
-    for p in Product.objects.filter(shop=shop, is_active=True,
-                                    category__isnull=False, sell_price__gt=0):
+    for p in Product.objects.filter(
+        shop=shop, is_active=True, category__isnull=False, sell_price__gt=0
+    ):
         med = medians.get(p.category_id)
         s = price_score(p.sell_price, med)
         if s is not None:
@@ -122,11 +132,13 @@ def _shop_price_score(shop, medians):
 
 def _entered_sales(shop, day):
     from apps.sales.models import Sale
+
     return sum(s.total for s in Sale.objects.filter(shop=shop, created_at__date=day))
 
 
 def _cash_declared(shop, day):
     from apps.cash.models import CashRecord
+
     return sum(c.amount for c in CashRecord.objects.filter(shop=shop, date=day))
 
 
@@ -136,7 +148,8 @@ def _stock_estimate(shop, day):
     Σ(ertalab + kirim + qaytgan − chiqarilgan − kechqurun) × narx.
     Kun yakuni kiritilmagan bo'lsa None (qoldiq qismi hisobga olinmaydi).
     """
-    from apps.sales.models import DailyClose, SaleReturn, StockIn, WriteOff
+    from apps.sales.models import DailyClose, StockIn
+
     close = DailyClose.objects.filter(shop=shop, date=day).prefetch_related("lines").first()
     if not close:
         return None
@@ -146,8 +159,10 @@ def _stock_estimate(shop, day):
         if sold_qty > 0:
             value += int(sold_qty * line.unit_price)
     # Kun ichidagi kirim qo'shiladi, hisobdan chiqarish/qaytarish tuzatiladi
-    stock_in = sum(int(float(s.quantity) * s.unit_price)
-                   for s in StockIn.objects.filter(shop=shop, created_at__date=day))
+    stock_in = sum(
+        int(float(s.quantity) * s.unit_price)
+        for s in StockIn.objects.filter(shop=shop, created_at__date=day)
+    )
     value += stock_in
     # (WriteOff/SaleReturn summasi kelajakda narx bilan aniqroq ulanadi)
     return value if value > 0 else None
@@ -156,10 +171,12 @@ def _stock_estimate(shop, day):
 def _camera_estimate(shop, day, buyer_ratio):
     """Kamera bahosi: tashriflar × buyer_ratio × o'rtacha chek. Kamera bo'lmasa None."""
     from apps.cameras.models import CameraEvent
+
     visits = CameraEvent.objects.filter(shop=shop, type="visit", ts__date=day).count()
     if not visits:
         return None
     from apps.sales.models import Sale
+
     sales = list(Sale.objects.filter(shop=shop, created_at__date=day))
     if not sales:
         return None
@@ -179,8 +196,12 @@ def recompute_for_date(day) -> int:
     from apps.shops.models import Shop
 
     cfg = SystemSettings.get_solo()
-    weights = {"cash": cfg.weight_cash, "camera": cfg.weight_camera,
-               "stock": cfg.weight_stock, "price": cfg.weight_price}
+    weights = {
+        "cash": cfg.weight_cash,
+        "camera": cfg.weight_camera,
+        "stock": cfg.weight_stock,
+        "price": cfg.weight_price,
+    }
 
     # Bozor narxlarini oldindan hisoblaymiz (do'kon narx balli uchun)
     medians_by_market = {m.id: compute_market_prices(m, day) for m in Market.objects.all()}
@@ -199,15 +220,24 @@ def recompute_for_date(day) -> int:
             "stock": match(stock_val, entered) if stock_val is not None else None,
             "price": price_val,
         }
-        result = weighted_truth(parts, weights,
-                                weakest_cap_bonus=cfg.weakest_part_cap,
-                                yellow_threshold=cfg.yellow_threshold)
+        result = weighted_truth(
+            parts,
+            weights,
+            weakest_cap_bonus=cfg.weakest_part_cap,
+            yellow_threshold=cfg.yellow_threshold,
+        )
 
         DailyScore.objects.update_or_create(
-            shop=shop, date=day,
-            defaults={"truth_pct": result["truth"], "parts": result["parts"],
-                      "weakest": result["weakest"], "entered_sales": entered,
-                      "cash_amount": cash})
+            shop=shop,
+            date=day,
+            defaults={
+                "truth_pct": result["truth"],
+                "parts": result["parts"],
+                "weakest": result["weakest"],
+                "entered_sales": entered,
+                "cash_amount": cash,
+            },
+        )
         count += 1
 
         # Signal (yopiq kun bo'lmasa, ma'lumot bo'lsa)
@@ -221,8 +251,13 @@ def recompute_for_date(day) -> int:
         if Alert.objects.filter(shop=shop, date=day).exists():
             continue
         reason = _alert_reason(result, parts, entered, cash)
-        Alert.objects.create(shop=shop, date=day, level=lvl, reason=reason,
-                             assigned_to=shop.market.inspectors.first())
+        Alert.objects.create(
+            shop=shop,
+            date=day,
+            level=lvl,
+            reason=reason,
+            assigned_to=shop.market.inspectors.first(),
+        )
     return count
 
 

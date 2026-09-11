@@ -18,7 +18,16 @@ class ProductCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ("name", "shop", "category", "unit", "buy_price", "sell_price", "stock", "is_active")
+    list_display = (
+        "name",
+        "shop",
+        "category",
+        "unit",
+        "buy_price",
+        "sell_price",
+        "stock",
+        "is_active",
+    )
     list_filter = ("is_active", "category")
     search_fields = ("name", "barcode")
     autocomplete_fields = ("shop", "category")

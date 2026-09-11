@@ -1,7 +1,16 @@
 from django.contrib import admin
 
-from .models import (Correction, DailyClose, DailyCloseLine, Debt, Sale,
-                     SaleItem, SaleReturn, StockIn, WriteOff)
+from .models import (
+    Correction,
+    DailyClose,
+    DailyCloseLine,
+    Debt,
+    Sale,
+    SaleItem,
+    SaleReturn,
+    StockIn,
+    WriteOff,
+)
 
 
 class SaleItemInline(admin.TabularInline):
@@ -11,7 +20,15 @@ class SaleItemInline(admin.TabularInline):
 
 @admin.register(Sale)
 class SaleAdmin(admin.ModelAdmin):
-    list_display = ("shop", "total", "discount", "payment_type", "is_wholesale", "seller", "created_at")
+    list_display = (
+        "shop",
+        "total",
+        "discount",
+        "payment_type",
+        "is_wholesale",
+        "seller",
+        "created_at",
+    )
     list_filter = ("payment_type", "is_wholesale", "mode", "shop__market")
     date_hierarchy = "created_at"
     inlines = [SaleItemInline]

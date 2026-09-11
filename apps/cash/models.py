@@ -1,4 +1,5 @@
 """Kassa/deklaratsiya yozuvi. Boshida Excel, keyin Soliq API (source orqali adapter)."""
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -14,7 +15,9 @@ class CashRecord(TimeStampedModel):
     shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="cash_records")
     date = models.DateField(_("Sana"), db_index=True)
     amount = models.BigIntegerField(_("Summa (so'm)"), default=0)
-    source = models.CharField(_("Manba"), max_length=12, choices=Source.choices, default=Source.EXCEL)
+    source = models.CharField(
+        _("Manba"), max_length=12, choices=Source.choices, default=Source.EXCEL
+    )
 
     class Meta:
         verbose_name = _("Kassa/Deklaratsiya")

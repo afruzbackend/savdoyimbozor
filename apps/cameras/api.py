@@ -20,11 +20,11 @@ type: visit | tamper | sale | gate_in | heartbeat
 Video bozordan chiqmaydi — faqat hodisa (raqam/JSON) yuboriladi. Shubhali
 hodisaning klipi `clip` sifatida keyin biriktiriladi (dalil uchun).
 """
+
 from django.conf import settings
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from rest_framework.decorators import (api_view, authentication_classes,
-                                       permission_classes)
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -56,16 +56,18 @@ def camera_config(request):
         return Response({"detail": "Token noto'g'ri."}, status=401)
     _touch(camera)
     shops = Shop.objects.filter(pk=camera.shop_id) if camera.shop_id else Shop.objects.none()
-    return Response({
-        "camera_id": camera.id,
-        "name": camera.name,
-        "kind": camera.kind,
-        "rtsp_sub": camera.rtsp_sub,           # worker substream'ni o'qiydi
-        "counter_zone": camera.counter_zone,   # xaridor sanaladigan zona
-        "staff_zone": camera.staff_zone,       # sotuvchi zonasi — SANALMAYDI
-        "min_dwell_seconds": settings.VISITOR_MIN_DWELL_SECONDS,
-        "shops": [{"id": s.id, "number": s.number, "name": s.display_name} for s in shops],
-    })
+    return Response(
+        {
+            "camera_id": camera.id,
+            "name": camera.name,
+            "kind": camera.kind,
+            "rtsp_sub": camera.rtsp_sub,  # worker substream'ni o'qiydi
+            "counter_zone": camera.counter_zone,  # xaridor sanaladigan zona
+            "staff_zone": camera.staff_zone,  # sotuvchi zonasi — SANALMAYDI
+            "min_dwell_seconds": settings.VISITOR_MIN_DWELL_SECONDS,
+            "shops": [{"id": s.id, "number": s.number, "name": s.display_name} for s in shops],
+        }
+    )
 
 
 @api_view(["POST"])
@@ -93,8 +95,13 @@ def ingest_events(request):
         if etype == CameraEvent.Type.TAMPER:
             tampered = True
         CameraEvent.objects.create(
-            camera=camera, shop=shop, type=etype,
-            count=int(payload.get("count", 1)), payload=payload, ts=ts)
+            camera=camera,
+            shop=shop,
+            type=etype,
+            count=int(payload.get("count", 1)),
+            payload=payload,
+            ts=ts,
+        )
         created += 1
 
     _touch(camera, Camera.Status.TAMPERED if tampered else Camera.Status.ONLINE)

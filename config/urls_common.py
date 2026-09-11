@@ -1,12 +1,13 @@
 """Barcha interfeyslar uchun umumiy yo'llar: auth, til/tema, API."""
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path
 
 common_patterns = [
-    path("", include("apps.accounts.urls")),          # login/logout/profile/parol
-    path("prefs/", include("apps.core.urls")),         # tema/til almashtirish, styleguide
-    path("api/", include("apps.api.urls")),            # DRF
+    path("", include("apps.accounts.urls")),  # login/logout/profile/parol
+    path("prefs/", include("apps.core.urls")),  # tema/til almashtirish, styleguide
+    path("api/", include("apps.api.urls")),  # DRF
 ]
 
 if settings.DEBUG:

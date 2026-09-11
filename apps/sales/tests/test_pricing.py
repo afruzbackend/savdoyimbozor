@@ -1,4 +1,5 @@
 """Narxlash mantig'i testlari — sof funksiyalar (bazasiz)."""
+
 from types import SimpleNamespace
 
 from apps.sales.services import pricing
@@ -19,7 +20,11 @@ SETTINGS = SimpleNamespace(
 def test_discount_buttons_by_tier():
     assert pricing.discount_buttons(40_000, SETTINGS.discount_tiers) == [2_000, 5_000, 10_000]
     assert pricing.discount_buttons(150_000, SETTINGS.discount_tiers) == [5_000, 10_000, 20_000]
-    assert pricing.discount_buttons(9_000_000, SETTINGS.discount_tiers) == [100_000, 200_000, 300_000]
+    assert pricing.discount_buttons(9_000_000, SETTINGS.discount_tiers) == [
+        100_000,
+        200_000,
+        300_000,
+    ]
 
 
 def test_max_discount_with_known_cost():
@@ -46,12 +51,12 @@ def test_rounding_only_down_and_capped():
 def test_price_sale_end_to_end():
     r = pricing.price_sale(100_000, 50_000, 600, items_cost=70_000, settings=SETTINGS)
     assert r.subtotal == 100_000
-    assert r.discount == 30_000      # tannarxga cheklandi
+    assert r.discount == 30_000  # tannarxga cheklandi
     assert r.rounding == 600
     assert r.total == 100_000 - 30_000 - 600
 
 
 def test_price_sale_no_cost_uses_pct():
     r = pricing.price_sale(100_000, 90_000, 0, items_cost=None, settings=SETTINGS)
-    assert r.discount == 30_000      # 30% chegara
+    assert r.discount == 30_000  # 30% chegara
     assert r.total == 70_000

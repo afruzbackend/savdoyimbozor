@@ -1,4 +1,5 @@
 """sotuvchi.* — sotuvchi interfeysi."""
+
 from django.urls import include, path
 
 from .urls_common import common_patterns

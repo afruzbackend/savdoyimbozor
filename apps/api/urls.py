@@ -1,4 +1,5 @@
 """DRF router + funksional endpointlar. Bosqichma-bosqich to'ldiriladi."""
+
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 

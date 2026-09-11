@@ -13,6 +13,7 @@ Ishga tushirish:
     pip install -r ai_worker/requirements.txt
     python ai_worker/worker.py --config ai_worker/config.json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -21,7 +22,7 @@ import queue
 import threading
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 try:
     import requests
@@ -56,13 +57,16 @@ def load_config(path: str) -> WorkerConf:
     with open(path, encoding="utf-8") as f:
         raw = json.load(f)
     cams = [CameraConf(**c) for c in raw["cameras"]]
-    return WorkerConf(backend_url=raw["backend_url"].rstrip("/"), cameras=cams,
-                      batch_seconds=raw.get("batch_seconds", 5.0),
-                      heartbeat_seconds=raw.get("heartbeat_seconds", 30.0))
+    return WorkerConf(
+        backend_url=raw["backend_url"].rstrip("/"),
+        cameras=cams,
+        batch_seconds=raw.get("batch_seconds", 5.0),
+        heartbeat_seconds=raw.get("heartbeat_seconds", 30.0),
+    )
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 # ============================================================================
@@ -78,7 +82,8 @@ class Detector:
         """frame → [ (x1,y1,x2,y2, score), ... ]  (odam ramkalari)."""
         raise NotImplementedError(
             "Detektor hali ulanmagan. RT-DETR yoki YOLOX (Apache-2.0) modelini "
-            "shu yerga ulang. Ultralytics YOLO ishlatilmaydi (AGPL-3.0).")
+            "shu yerga ulang. Ultralytics YOLO ishlatilmaydi (AGPL-3.0)."
+        )
 
 
 class Tracker:
@@ -132,7 +137,7 @@ class CameraWorker(threading.Thread):
 
     def _process_frame(self, frame):
         """Bitta kadr: aniqlash → treklash → zona/dwell → hodisa navbatiga."""
-        detections = self.detector.detect(frame)      # NotImplementedError (skelet)
+        detections = self.detector.detect(frame)  # NotImplementedError (skelet)
         tracks = self.tracker.update(detections)
         shop_id = self.conf.shops[0]["id"] if self.conf.shops else None
         for tr in tracks:
@@ -145,8 +150,14 @@ class CameraWorker(threading.Thread):
             dwell = time.time() - rec["enter"]
             if not rec["counted"] and dwell >= self.conf.min_dwell_seconds:
                 rec["counted"] = True
-                self.q.put({"type": "visit", "shop_id": shop_id, "timestamp": now_iso(),
-                            "payload": {"dwell_seconds": int(dwell), "track_id": str(tr["id"])}})
+                self.q.put(
+                    {
+                        "type": "visit",
+                        "shop_id": shop_id,
+                        "timestamp": now_iso(),
+                        "payload": {"dwell_seconds": int(dwell), "track_id": str(tr["id"])},
+                    }
+                )
 
 
 # ============================================================================
@@ -175,8 +186,12 @@ class Sender(threading.Thread):
             print("requests o'rnatilmagan — yuborilmadi:", len(body["events"]))
             return
         try:
-            r = requests.post(f"{self.conf.backend_url}/api/events/",
-                              json=body, headers={"X-Camera-Token": self.token}, timeout=8)
+            r = requests.post(
+                f"{self.conf.backend_url}/api/events/",
+                json=body,
+                headers={"X-Camera-Token": self.token},
+                timeout=8,
+            )
             if r.status_code >= 300:
                 print("Backend xatosi:", r.status_code, r.text[:120])
         except requests.RequestException as e:
@@ -197,8 +212,11 @@ class Heartbeat(threading.Thread):
                 if requests is None:
                     break
                 try:
-                    requests.post(f"{self.conf.backend_url}/api/cameras/heartbeat/",
-                                  headers={"X-Camera-Token": cam.token}, timeout=5)
+                    requests.post(
+                        f"{self.conf.backend_url}/api/cameras/heartbeat/",
+                        headers={"X-Camera-Token": cam.token},
+                        timeout=5,
+                    )
                 except requests.RequestException:
                     pass
             self.stop.wait(self.conf.heartbeat_seconds)
@@ -210,8 +228,11 @@ def fetch_remote_config(conf: WorkerConf):
         return
     for cam in conf.cameras:
         try:
-            r = requests.get(f"{conf.backend_url}/api/cameras/config/",
-                             headers={"X-Camera-Token": cam.token}, timeout=8)
+            r = requests.get(
+                f"{conf.backend_url}/api/cameras/config/",
+                headers={"X-Camera-Token": cam.token},
+                timeout=8,
+            )
             if r.ok:
                 d = r.json()
                 cam.camera_id = d.get("camera_id")

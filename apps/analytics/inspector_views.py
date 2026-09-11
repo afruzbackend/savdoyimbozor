@@ -1,16 +1,15 @@
 """Tekshiruvchi interfeysi: dashboard, bozor xaritasi, do'kon sahifasi, signallar, tekshiruv."""
-import json
+
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.cameras.models import Camera
 from apps.geo.models import Market
-from apps.shops.models import Shop
 
 from .models import Alert, DailyScore, Inspection
 
@@ -30,12 +29,15 @@ def _level(truth, cfg):
 @login_required
 def dashboard(request):
     from apps.core.models import SystemSettings
+
     cfg = SystemSettings.get_solo()
     shops = _visible_shops(request)
     today = timezone.localdate()
 
-    latest = {s.shop_id: s for s in DailyScore.objects.filter(
-        shop__in=shops, date=today).select_related("shop")}
+    latest = {
+        s.shop_id: s
+        for s in DailyScore.objects.filter(shop__in=shops, date=today).select_related("shop")
+    }
     truths = [s.truth_pct for s in latest.values()]
     avg_truth = round(sum(truths) / len(truths)) if truths else None
 
@@ -66,6 +68,7 @@ def dashboard(request):
 @login_required
 def market_map(request, pk=None):
     from apps.core.models import SystemSettings
+
     cfg = SystemSettings.get_solo()
     markets = Market.objects.filter(id__in=_visible_shops(request).values("market_id")).distinct()
     market = get_object_or_404(markets, pk=pk) if pk else markets.first()
@@ -73,32 +76,49 @@ def market_map(request, pk=None):
         return render(request, "inspector/market_map.html", {"markets": markets, "market": None})
 
     today = timezone.localdate()
-    scores = {s.shop_id: s.truth_pct for s in DailyScore.objects.filter(
-        shop__market=market, date=today)}
+    scores = {
+        s.shop_id: s.truth_pct for s in DailyScore.objects.filter(shop__market=market, date=today)
+    }
 
     rows = []
     for row in market.rows.all():
         cells = []
         for shop in row.shops.filter(is_active=True):
             t = scores.get(shop.id)
-            cells.append({"shop": shop, "truth": t,
-                          "level": _level(t, cfg) if t is not None else "none"})
+            cells.append(
+                {"shop": shop, "truth": t, "level": _level(t, cfg) if t is not None else "none"}
+            )
         rows.append({"row": row, "cells": cells})
     # Qatorsiz do'konlar
     orphan = market.shops.filter(is_active=True, row__isnull=True)
     if orphan:
-        rows.append({"row": None, "cells": [
-            {"shop": s, "truth": scores.get(s.id),
-             "level": _level(scores.get(s.id), cfg) if scores.get(s.id) is not None else "none"}
-            for s in orphan]})
+        rows.append(
+            {
+                "row": None,
+                "cells": [
+                    {
+                        "shop": s,
+                        "truth": scores.get(s.id),
+                        "level": (
+                            _level(scores.get(s.id), cfg)
+                            if scores.get(s.id) is not None
+                            else "none"
+                        ),
+                    }
+                    for s in orphan
+                ],
+            }
+        )
 
-    return render(request, "inspector/market_map.html", {
-        "markets": markets, "market": market, "rows": rows})
+    return render(
+        request, "inspector/market_map.html", {"markets": markets, "market": market, "rows": rows}
+    )
 
 
 @login_required
 def shop_detail(request, pk):
     from apps.core.models import SystemSettings
+
     cfg = SystemSettings.get_solo()
     shop = get_object_or_404(_visible_shops(request), pk=pk)
     today = timezone.localdate()
@@ -120,18 +140,33 @@ def shop_detail(request, pk):
     peer_scores = DailyScore.objects.filter(shop__in=peers, date=today)
     peer_avg = round(peer_scores.aggregate(a=Avg("truth_pct"))["a"] or 0)
 
-    part_labels = {"cash": "Kassa / deklaratsiya", "camera": "Kamera", "stock": "Qoldiq", "price": "Narx"}
+    part_labels = {
+        "cash": "Kassa / deklaratsiya",
+        "camera": "Kamera",
+        "stock": "Qoldiq",
+        "price": "Narx",
+    }
     parts = []
     if latest:
         for k, lbl in part_labels.items():
             v = latest.parts.get(k)
-            parts.append({"key": k, "label": lbl, "value": v,
-                          "level": _level(v, cfg) if v is not None else "none"})
+            parts.append(
+                {
+                    "key": k,
+                    "label": lbl,
+                    "value": v,
+                    "level": _level(v, cfg) if v is not None else "none",
+                }
+            )
 
     ctx = {
-        "shop": shop, "latest": latest, "level": level, "parts": parts,
+        "shop": shop,
+        "latest": latest,
+        "level": level,
+        "parts": parts,
         "chart": chart,  # json_script o'zi serializatsiya qiladi
-        "peer_avg": peer_avg, "peer_count": peers.count(),
+        "peer_avg": peer_avg,
+        "peer_count": peers.count(),
         "alerts": shop.alerts.order_by("-created_at")[:8],
         "inspections": shop.inspections.select_related("inspector")[:6],
         "appeals": shop.appeals.all()[:5],
@@ -149,8 +184,11 @@ def alerts_list(request):
         alerts = alerts.filter(level=level)
     if status:
         alerts = alerts.filter(status=status)
-    return render(request, "inspector/alerts.html", {
-        "alerts": alerts.order_by("-created_at")[:200], "level": level or "", "status": status})
+    return render(
+        request,
+        "inspector/alerts.html",
+        {"alerts": alerts.order_by("-created_at")[:200], "level": level or "", "status": status},
+    )
 
 
 @login_required
@@ -182,34 +220,51 @@ def inspection_create(request):
     if request.method == "POST":
         shop = get_object_or_404(shops, pk=request.POST.get("shop"))
         insp = Inspection.objects.create(
-            shop=shop, alert_id=request.POST.get("alert") or None,
-            inspector=request.user, result=request.POST.get("result", "pending"),
+            shop=shop,
+            alert_id=request.POST.get("alert") or None,
+            inspector=request.user,
+            result=request.POST.get("result", "pending"),
             act_number=request.POST.get("act_number", "")[:60],
             fine_amount=request.POST.get("fine_amount") or None,
             notes=request.POST.get("notes", ""),
-            photo=request.FILES.get("photo"))
+            photo=request.FILES.get("photo"),
+        )
         if insp.alert_id:
             insp.alert.status = Alert.Status.RESOLVED
             insp.alert.save(update_fields=["status"])
         from django.contrib import messages
+
         messages.success(request, "Tekshiruv natijasi saqlandi.")
         return redirect("inspector:alerts")
 
-    return render(request, "inspector/inspection_form.html", {
-        "shops": shops, "alert": alert, "preselect": preselect,
-        "results": Inspection.Result.choices})
+    return render(
+        request,
+        "inspector/inspection_form.html",
+        {
+            "shops": shops,
+            "alert": alert,
+            "preselect": preselect,
+            "results": Inspection.Result.choices,
+        },
+    )
 
 
 @login_required
 def cameras_status(request):
     shops = _visible_shops(request)
-    cams = Camera.objects.filter(market__in=shops.values("market_id")).select_related("market", "shop")
-    return render(request, "inspector/cameras.html", {
-        "cameras": cams, "online": sum(1 for c in cams if c.is_online), "total": cams.count()})
+    cams = Camera.objects.filter(market__in=shops.values("market_id")).select_related(
+        "market", "shop"
+    )
+    return render(
+        request,
+        "inspector/cameras.html",
+        {"cameras": cams, "online": sum(1 for c in cams if c.is_online), "total": cams.count()},
+    )
 
 
 def _report_range(request):
     from datetime import datetime
+
     today = timezone.localdate()
     try:
         start = datetime.strptime(request.GET["start"], "%Y-%m-%d").date()
@@ -231,14 +286,18 @@ def reports(request):
     confirmed = insp.filter(result=Inspection.Result.CONFIRMED).count()
     false_sig = insp.filter(result=Inspection.Result.FALSE).count()
     ctx = {
-        "start": start, "end": end,
+        "start": start,
+        "end": end,
         "entered": sum(s.entered_sales for s in scores),
         "cash": sum(s.cash_amount for s in scores),
         "avg_truth": round(scores.aggregate(a=Avg("truth_pct"))["a"] or 0),
         "alert_count": Alert.objects.filter(shop__in=shops, date__range=(start, end)).count(),
         "inspection_count": insp.count(),
-        "confirmed": confirmed, "false_signal": false_sig,
-        "accuracy": round(confirmed / (confirmed + false_sig) * 100) if (confirmed + false_sig) else None,
+        "confirmed": confirmed,
+        "false_signal": false_sig,
+        "accuracy": (
+            round(confirmed / (confirmed + false_sig) * 100) if (confirmed + false_sig) else None
+        ),
         "fines": sum(i.fine_amount or 0 for i in insp),
     }
     return render(request, "inspector/reports.html", ctx)
@@ -247,23 +306,47 @@ def reports(request):
 @login_required
 def export_excel(request):
     import openpyxl
+
     shops = _visible_shops(request)
     start, end = _report_range(request)
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Hisobot"
-    ws.append(["Bozor", "Do'kon", "STIR", "Egasi", "O'rtacha rostlik %",
-               "Kiritilgan (so'm)", "Deklaratsiya (so'm)"])
+    ws.append(
+        [
+            "Bozor",
+            "Do'kon",
+            "STIR",
+            "Egasi",
+            "O'rtacha rostlik %",
+            "Kiritilgan (so'm)",
+            "Deklaratsiya (so'm)",
+        ]
+    )
     from django.db.models import Sum
-    rows = (DailyScore.objects.filter(shop__in=shops, date__range=(start, end))
-            .values("shop__market__name", "shop__number", "shop__stir", "shop__owner_name")
-            .annotate(t=Avg("truth_pct"), e=Sum("entered_sales"), c=Sum("cash_amount")))
+
+    rows = (
+        DailyScore.objects.filter(shop__in=shops, date__range=(start, end))
+        .values("shop__market__name", "shop__number", "shop__stir", "shop__owner_name")
+        .annotate(t=Avg("truth_pct"), e=Sum("entered_sales"), c=Sum("cash_amount"))
+    )
     for r in rows:
-        ws.append([r["shop__market__name"], r["shop__number"], r["shop__stir"],
-                   r["shop__owner_name"], round(r["t"] or 0),
-                   int(r["e"] or 0), int(r["c"] or 0)])
+        ws.append(
+            [
+                r["shop__market__name"],
+                r["shop__number"],
+                r["shop__stir"],
+                r["shop__owner_name"],
+                round(r["t"] or 0),
+                int(r["e"] or 0),
+                int(r["c"] or 0),
+            ]
+        )
     from django.http import HttpResponse
-    resp = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    resp = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
     resp["Content-Disposition"] = f'attachment; filename="hisobot_{start}_{end}.xlsx"'
     wb.save(resp)
     return resp

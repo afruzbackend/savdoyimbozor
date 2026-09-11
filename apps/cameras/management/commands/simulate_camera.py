@@ -10,6 +10,7 @@ Bitta kamera "buzilgan" (tamper) qilinadi. So'ng rostlik qayta hisoblanadi.
 Kontrakt: hodisalar `CameraEvent` modeli va /api/events/ formatida. Real kamera
 qo'shilganda faqat manba o'zgaradi, backend o'zgarmaydi.
 """
+
 import random
 from datetime import timedelta
 
@@ -42,8 +43,10 @@ class Command(BaseCommand):
         cams = {}
         for s in shops:
             cam, _ = Camera.objects.get_or_create(
-                shop=s, kind=Camera.Kind.COUNTER,
-                defaults={"market": s.market, "name": f"№{s.number} peshtaxta"})
+                shop=s,
+                kind=Camera.Kind.COUNTER,
+                defaults={"market": s.market, "name": f"№{s.number} peshtaxta"},
+            )
             cam.last_seen = timezone.now()
             cam.status = Camera.Status.ONLINE
             cam.save(update_fields=["last_seen", "status"])
@@ -68,12 +71,19 @@ class Command(BaseCommand):
                 for _ in range(visits):
                     ts = timezone.make_aware(
                         timezone.datetime.combine(day, timezone.datetime.min.time())
-                        + timedelta(hours=random.randint(8, 19), minutes=random.randint(0, 59)))
+                        + timedelta(hours=random.randint(8, 19), minutes=random.randint(0, 59))
+                    )
                     CameraEvent.objects.create(
-                        camera=cams[s.id], shop=s, type=CameraEvent.Type.VISIT,
-                        count=1, ts=ts,
-                        payload={"dwell_seconds": random.randint(6, 40),
-                                 "track_id": f"t{random.randint(1000,9999)}"})
+                        camera=cams[s.id],
+                        shop=s,
+                        type=CameraEvent.Type.VISIT,
+                        count=1,
+                        ts=ts,
+                        payload={
+                            "dwell_seconds": random.randint(6, 40),
+                            "track_id": f"t{random.randint(1000,9999)}",
+                        },
+                    )
                     total_events += 1
 
         # Bitta kamera buzilgan
@@ -81,11 +91,19 @@ class Command(BaseCommand):
         victim.status = Camera.Status.TAMPERED
         victim.save(update_fields=["status"])
         CameraEvent.objects.create(
-            camera=victim, shop=shops[0], type=CameraEvent.Type.TAMPER, count=1,
-            ts=timezone.now(), payload={"kind": "covered", "duration_seconds": 45})
+            camera=victim,
+            shop=shops[0],
+            type=CameraEvent.Type.TAMPER,
+            count=1,
+            ts=timezone.now(),
+            payload={"kind": "covered", "duration_seconds": 45},
+        )
 
         for d in range(opts["days"]):
             recompute_for_date(today - timedelta(days=d))
 
-        self.stdout.write(self.style.SUCCESS(
-            f"{len(cams)} kamera, {total_events} tashrif hodisasi yaratildi. Rostlik yangilandi."))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"{len(cams)} kamera, {total_events} tashrif hodisasi yaratildi. Rostlik yangilandi."
+            )
+        )

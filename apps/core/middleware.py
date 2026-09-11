@@ -1,4 +1,5 @@
 """Host-based routing va audit middleware."""
+
 from __future__ import annotations
 
 from django.conf import settings
@@ -25,6 +26,7 @@ class HostRoutingMiddleware(MiddlewareMixin):
 
 class AuditMiddleware(MiddlewareMixin):
     """Muhim amallarni audit jurnaliga yozadi (POST va eksport ko'rishlari)."""
+
     AUDITED_GET_PREFIXES = ("/reports/export", "/api/reports/export")
 
     def process_response(self, request, response):
@@ -46,6 +48,7 @@ class AuditMiddleware(MiddlewareMixin):
         if not (is_post or is_export):
             return
         from .models import AuditLog
+
         AuditLog.objects.create(
             user=user,
             action=AuditLog.Action.EXPORT if is_export else AuditLog.Action.WRITE,

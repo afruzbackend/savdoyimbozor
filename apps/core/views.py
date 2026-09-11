@@ -11,8 +11,11 @@ def set_theme(request):
     theme = request.POST.get("theme", "")
     if theme not in ("light", "dark", ""):
         theme = ""
-    resp = JsonResponse({"theme": theme}) if request.htmx else redirect(
-        request.META.get("HTTP_REFERER", "/"))
+    resp = (
+        JsonResponse({"theme": theme})
+        if request.htmx
+        else redirect(request.META.get("HTTP_REFERER", "/"))
+    )
     resp.set_cookie("theme", theme, max_age=60 * 60 * 24 * 365, samesite="Lax")
     return resp
 

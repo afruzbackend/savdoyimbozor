@@ -1,11 +1,11 @@
 """Sotuvchi API'lari (API-first). Alpine frontend shu endpointlarni chaqiradi."""
+
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .models import Sale
-from .services import pricing
 from .services.sales import create_sale
 
 
@@ -29,20 +29,31 @@ def create_sale_api(request):
     client_ts = None
     if data.get("client_ts"):
         from django.utils.dateparse import parse_datetime
+
         client_ts = parse_datetime(data["client_ts"])
 
     sale = create_sale(
-        shop=shop, seller=request.user, items=items,
-        discount=int(data.get("discount", 0)), rounding=int(data.get("rounding", 0)),
+        shop=shop,
+        seller=request.user,
+        items=items,
+        discount=int(data.get("discount", 0)),
+        rounding=int(data.get("rounding", 0)),
         payment_type=data.get("payment_type", "cash"),
         is_wholesale=bool(data.get("is_wholesale", False)),
-        mode=data.get("mode", "quick"), client_ts=client_ts,
+        mode=data.get("mode", "quick"),
+        client_ts=client_ts,
         note=data.get("note", ""),
     )
-    return Response({
-        "id": sale.id, "total": sale.total, "discount": sale.discount,
-        "rounding": sale.rounding, "created_at": sale.created_at.strftime("%H:%M"),
-    }, status=status.HTTP_201_CREATED)
+    return Response(
+        {
+            "id": sale.id,
+            "total": sale.total,
+            "discount": sale.discount,
+            "rounding": sale.rounding,
+            "created_at": sale.created_at.strftime("%H:%M"),
+        },
+        status=status.HTTP_201_CREATED,
+    )
 
 
 @api_view(["GET"])
@@ -52,16 +63,24 @@ def product_lookup_api(request):
     if shop is None:
         return Response([], status=200)
     from apps.catalog.models import Product
+
     q = request.GET.get("q", "").strip()
     qs = Product.objects.filter(shop=shop, is_active=True)
     if q:
         exact = qs.filter(barcode=q).first()
         if exact:
-            return Response([{"id": exact.id, "name": exact.name,
-                              "price": exact.sell_price, "unit": exact.unit}])
+            return Response(
+                [
+                    {
+                        "id": exact.id,
+                        "name": exact.name,
+                        "price": exact.sell_price,
+                        "unit": exact.unit,
+                    }
+                ]
+            )
         qs = qs.filter(name__icontains=q)
-    data = [{"id": p.id, "name": p.name, "price": p.sell_price, "unit": p.unit}
-            for p in qs[:20]]
+    data = [{"id": p.id, "name": p.name, "price": p.sell_price, "unit": p.unit} for p in qs[:20]]
     return Response(data)
 
 
@@ -74,7 +93,11 @@ def today_summary_api(request):
     today = timezone.localdate()
     qs = Sale.objects.filter(shop=shop, created_at__date=today)
     total = sum(s.total for s in qs)
-    return Response({
-        "date": str(today), "count": qs.count(), "total": total,
-        "discount": sum(s.discount for s in qs),
-    })
+    return Response(
+        {
+            "date": str(today),
+            "count": qs.count(),
+            "total": total,
+            "discount": sum(s.discount for s in qs),
+        }
+    )

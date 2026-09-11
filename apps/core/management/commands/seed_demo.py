@@ -6,6 +6,7 @@
 va deklaratsiya. 3-4 do'kon ataylab "yashiruvchi" (kassa yashiradi / narx past) —
 nazorat xaritasida qizil chiqadi. Oxirida barcha loginlar chiqariladi.
 """
+
 import random
 from datetime import timedelta
 
@@ -28,16 +29,20 @@ PW = "demo1234"
 # toifa -> (mahsulotlar: nom, birlik, bozor_narxi)
 CATALOG = {
     "Meva-sabzavot": [
-        ("Pomidor", Unit.KG, 12000), ("Bodring", Unit.KG, 10000),
-        ("Kartoshka", Unit.KG, 6000), ("Olma", Unit.KG, 15000),
+        ("Pomidor", Unit.KG, 12000),
+        ("Bodring", Unit.KG, 10000),
+        ("Kartoshka", Unit.KG, 6000),
+        ("Olma", Unit.KG, 15000),
         ("Piyoz", Unit.KG, 5000),
     ],
     "Kiyim-kechak": [
-        ("Kurtka", Unit.PIECE, 250000), ("Ko'ylak", Unit.PIECE, 120000),
+        ("Kurtka", Unit.PIECE, 250000),
+        ("Ko'ylak", Unit.PIECE, 120000),
         ("Shim", Unit.PIECE, 150000),
     ],
     "Oziq-ovqat": [
-        ("Un (paket)", Unit.PIECE, 8000), ("Guruch", Unit.KG, 14000),
+        ("Un (paket)", Unit.PIECE, 8000),
+        ("Guruch", Unit.KG, 14000),
         ("Yog' (1l)", Unit.PIECE, 22000),
     ],
 }
@@ -55,50 +60,82 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         random.seed(2026)
         if opts["reset"]:
-            for M in (DailyCloseLine, DailyClose, SaleItem, Sale, CashRecord, Alert,
-                      DailyScore, MarketPrice, Product, Shop, Row, ProductCategory,
-                      ShopCategory, Market, Region):
+            for M in (
+                DailyCloseLine,
+                DailyClose,
+                SaleItem,
+                Sale,
+                CashRecord,
+                Alert,
+                DailyScore,
+                MarketPrice,
+                Product,
+                Shop,
+                Row,
+                ProductCategory,
+                ShopCategory,
+                Market,
+                Region,
+            ):
                 M.objects.all().delete()
             self.stdout.write("Eski ma'lumot tozalandi.")
 
         region, _ = Region.objects.get_or_create(name="Toshkent shahri", defaults={"code": "10"})
-        market, _ = Market.objects.get_or_create(region=region, name="Chorsu bozori",
-                                                  defaults={"address": "Chorsu, Olmazor"})
-        rows = {name: Row.objects.get_or_create(market=market, label=name,
-                defaults={"order": i})[0] for i, name in enumerate(ROWS)}
+        market, _ = Market.objects.get_or_create(
+            region=region, name="Chorsu bozori", defaults={"address": "Chorsu, Olmazor"}
+        )
+        rows = {
+            name: Row.objects.get_or_create(market=market, label=name, defaults={"order": i})[0]
+            for i, name in enumerate(ROWS)
+        }
 
         shop_cats, prod_cats = {}, {}
         for scat, products in CATALOG.items():
             sc, _ = ShopCategory.objects.get_or_create(name=scat)
             shop_cats[scat] = sc
-            for pname, unit, price in products:
+            for pname, unit, _price in products:
                 pc, _ = ProductCategory.objects.get_or_create(
-                    name=pname, defaults={"shop_category": sc, "default_unit": unit})
+                    name=pname, defaults={"shop_category": sc, "default_unit": unit}
+                )
                 prod_cats[pname] = pc
 
         # Do'konlarni yaratamiz
-        layout = [("Meva-sabzavot", "Meva qatori", 8),
-                  ("Meva-sabzavot", "Sabzavot qatori", 6),
-                  ("Kiyim-kechak", "Kiyim qatori", 6),
-                  ("Oziq-ovqat", "Oziq-ovqat qatori", 4)]
+        layout = [
+            ("Meva-sabzavot", "Meva qatori", 8),
+            ("Meva-sabzavot", "Sabzavot qatori", 6),
+            ("Kiyim-kechak", "Kiyim qatori", 6),
+            ("Oziq-ovqat", "Oziq-ovqat qatori", 4),
+        ]
         shops = []
         num = 1
         for scat, rowname, n in layout:
             for j in range(n):
                 shop, _ = Shop.objects.get_or_create(
-                    market=market, number=str(num),
-                    defaults={"stir": f"3{num:08d}", "owner_name": self._name(num),
-                              "owner_phone": f"+99890{random.randint(1000000,9999999)}",
-                              "category": shop_cats[scat], "row": rows[rowname],
-                              "map_x": (j % 6) * 90 + 40,
-                              "map_y": ROWS.index(rowname) * 90 + 40})
+                    market=market,
+                    number=str(num),
+                    defaults={
+                        "stir": f"3{num:08d}",
+                        "owner_name": self._name(num),
+                        "owner_phone": f"+99890{random.randint(1000000,9999999)}",
+                        "category": shop_cats[scat],
+                        "row": rows[rowname],
+                        "map_x": (j % 6) * 90 + 40,
+                        "map_y": ROWS.index(rowname) * 90 + 40,
+                    },
+                )
                 # Mahsulotlar
                 for pname, unit, price in CATALOG[scat]:
                     Product.objects.get_or_create(
-                        shop=shop, name=pname,
-                        defaults={"category": prod_cats[pname], "unit": unit,
-                                  "sell_price": price, "buy_price": int(price * 0.72),
-                                  "stock": random.randint(50, 300)})
+                        shop=shop,
+                        name=pname,
+                        defaults={
+                            "category": prod_cats[pname],
+                            "unit": unit,
+                            "sell_price": price,
+                            "buy_price": int(price * 0.72),
+                            "stock": random.randint(50, 300),
+                        },
+                    )
                 shops.append((shop, scat))
                 num += 1
 
@@ -117,16 +154,14 @@ class Command(BaseCommand):
         self._user("admin", "Bosh Admin", "superadmin", is_super=True)
         insp = self._user("nazorat", "Nodir Inspektor", "inspector")
         insp.assigned_markets.add(market)
-        self._user("sotuvchi", "Sardor Sotuvchi", "seller",
-                   shop=shops[1][0], is_owner=True)
+        self._user("sotuvchi", "Sardor Sotuvchi", "seller", shop=shops[1][0], is_owner=True)
 
         # 7 kunlik savdo + deklaratsiya
         today = timezone.localdate()
         for d in range(opts["days"]):
             day = today - timedelta(days=d)
             for shop, scat in shops:
-                self._gen_day(shop, scat, day, prod_cats,
-                              is_cash_hider=shop.id in cash_hiders)
+                self._gen_day(shop, scat, day, prod_cats, is_cash_hider=shop.id in cash_hiders)
                 self._gen_close(shop, day, is_stock_hider=shop.id in stock_hiders)
 
         # Rostlik + signal
@@ -134,14 +169,18 @@ class Command(BaseCommand):
             recompute_for_date(today - timedelta(days=d))
 
         reds = Alert.objects.filter(level="red").values("shop").distinct().count()
-        self.stdout.write(self.style.SUCCESS(
-            f"Demo tayyor: {len(shops)} do'kon, {opts['days']} kun. "
-            f"Qizil signalli do'konlar: {reds}."))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Demo tayyor: {len(shops)} do'kon, {opts['days']} kun. "
+                f"Qizil signalli do'konlar: {reds}."
+            )
+        )
         self.stdout.write("Loginlar (parol demo1234): admin / nazorat / sotuvchi")
 
     def _gen_day(self, shop, scat, day, prod_cats, is_cash_hider):
-        base = {"Meva-sabzavot": 2_500_000, "Kiyim-kechak": 4_000_000,
-                "Oziq-ovqat": 1_800_000}[scat]
+        base = {"Meva-sabzavot": 2_500_000, "Kiyim-kechak": 4_000_000, "Oziq-ovqat": 1_800_000}[
+            scat
+        ]
         target = int(base * random.uniform(0.7, 1.3))
         products = list(Product.objects.filter(shop=shop))
         remaining = target
@@ -153,29 +192,43 @@ class Command(BaseCommand):
                 break
             dt = timezone.make_aware(
                 timezone.datetime.combine(day, timezone.datetime.min.time())
-                + timedelta(hours=random.randint(8, 18), minutes=random.randint(0, 59)))
+                + timedelta(hours=random.randint(8, 18), minutes=random.randint(0, 59))
+            )
             sale = Sale.objects.create(
-                shop=shop, total=line, subtotal=line,
-                payment_type=random.choice(["cash", "cash", "card"]))
+                shop=shop,
+                total=line,
+                subtotal=line,
+                payment_type=random.choice(["cash", "cash", "card"]),
+            )
             # auto_now_add created_at ni bekor qiladi — kerakli sanaga majburan o'zgartiramiz
             Sale.objects.filter(pk=sale.pk).update(created_at=dt)
-            SaleItem.objects.create(sale=sale, product=p, product_name=p.name,
-                                    quantity=qty, unit_price=p.sell_price, line_total=line)
+            SaleItem.objects.create(
+                sale=sale,
+                product=p,
+                product_name=p.name,
+                quantity=qty,
+                unit_price=p.sell_price,
+                line_total=line,
+            )
             remaining -= line
         entered = sum(s.total for s in Sale.objects.filter(shop=shop, created_at__date=day))
         # Deklaratsiya: halol ~92-100%, yashiruvchi ~25-40%
         factor = random.uniform(0.25, 0.4) if is_cash_hider else random.uniform(0.9, 1.0)
         CashRecord.objects.update_or_create(
-            shop=shop, date=day, source="excel",
-            defaults={"amount": int(entered * factor)})
+            shop=shop, date=day, source="excel", defaults={"amount": int(entered * factor)}
+        )
 
     def _gen_close(self, shop, day, is_stock_hider):
         """Kun yakuni: sotilgan miqdorni qoldiqqa aylantiradi. Yashiruvchi kam ko'rsatadi."""
         from django.db.models import Sum
-        rows = (SaleItem.objects
-                .filter(sale__shop=shop, sale__created_at__date=day, product__isnull=False)
-                .values("product", "product_name", "unit_price")
-                .annotate(q=Sum("quantity")))
+
+        rows = (
+            SaleItem.objects.filter(
+                sale__shop=shop, sale__created_at__date=day, product__isnull=False
+            )
+            .values("product", "product_name", "unit_price")
+            .annotate(q=Sum("quantity"))
+        )
         if not rows:
             return
         factor = random.uniform(0.3, 0.45) if is_stock_hider else random.uniform(0.95, 1.0)
@@ -183,20 +236,30 @@ class Command(BaseCommand):
         close.lines.all().delete()
         computed = 0
         for r in rows:
-            sold = float(r["q"]) * factor          # ko'rsatilgan sotuv (qoldiq harakati)
+            sold = float(r["q"]) * factor  # ko'rsatilgan sotuv (qoldiq harakati)
             computed += int(sold * r["unit_price"])
             DailyCloseLine.objects.create(
-                close=close, product_id=r["product"], product_name=r["product_name"],
-                morning_qty=sold, evening_qty=0, unit_price=r["unit_price"])
+                close=close,
+                product_id=r["product"],
+                product_name=r["product_name"],
+                morning_qty=sold,
+                evening_qty=0,
+                unit_price=r["unit_price"],
+            )
         entered = sum(s.total for s in Sale.objects.filter(shop=shop, created_at__date=day))
         close.computed_sales = computed
         close.entered_sales = entered
         close.save(update_fields=["computed_sales", "entered_sales"])
 
     def _user(self, username, full, role, is_super=False, shop=None, is_owner=False):
-        u, _ = User.objects.get_or_create(username=username, defaults={
-            "first_name": full.split()[0], "last_name": " ".join(full.split()[1:]),
-            "role": role})
+        u, _ = User.objects.get_or_create(
+            username=username,
+            defaults={
+                "first_name": full.split()[0],
+                "last_name": " ".join(full.split()[1:]),
+                "role": role,
+            },
+        )
         u.role = role
         if is_super:
             u.is_staff = u.is_superuser = True
@@ -209,6 +272,16 @@ class Command(BaseCommand):
         return u
 
     def _name(self, i):
-        first = ["Karimov", "Toshpo'lat", "Rahimova", "Yusupov", "Salimova",
-                 "Ergashev", "Nazarov", "Qodirova", "Islomov", "Xolmatova"]
+        first = [
+            "Karimov",
+            "Toshpo'lat",
+            "Rahimova",
+            "Yusupov",
+            "Salimova",
+            "Ergashev",
+            "Nazarov",
+            "Qodirova",
+            "Islomov",
+            "Xolmatova",
+        ]
         return f"{first[i % len(first)]} {chr(65 + i % 26)}."

@@ -6,6 +6,7 @@ ko'rsatadi. Ikki joyda ikki xil bo'lmasligi kerak (spec 5-bo'lim).
 
 Pul = butun son (so'm). Float ishlatilmaydi.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -41,8 +42,7 @@ def max_discount(subtotal: int, items_cost: int | None, no_cost_pct: int) -> int
     return subtotal * no_cost_pct // 100
 
 
-def clamp_discount(subtotal: int, discount: int, items_cost: int | None,
-                   no_cost_pct: int) -> int:
+def clamp_discount(subtotal: int, discount: int, items_cost: int | None, no_cost_pct: int) -> int:
     """Chegirmani ruxsat chegarasiga cheklaydi (0 dan past emas, maksdan yuqori emas)."""
     if discount < 0:
         return 0
@@ -61,12 +61,12 @@ def apply_rounding(amount: int, rounding: int, rounding_max: int) -> int:
     return min(rounding, amount)  # summani manfiyga tushirmaydi
 
 
-def price_sale(subtotal: int, discount: int, rounding: int, *,
-               items_cost: int | None, settings) -> PricedSale:
+def price_sale(
+    subtotal: int, discount: int, rounding: int, *, items_cost: int | None, settings
+) -> PricedSale:
     """To'liq narxlash: chegirma cheklanadi, yaxlitlash qo'llanadi, jami hisoblanadi."""
     subtotal = max(0, int(subtotal))
-    d = clamp_discount(subtotal, int(discount), items_cost,
-                       settings.max_discount_no_cost_pct)
+    d = clamp_discount(subtotal, int(discount), items_cost, settings.max_discount_no_cost_pct)
     after_discount = subtotal - d
     r = apply_rounding(after_discount, int(rounding), settings.rounding_max)
     total = after_discount - r

@@ -6,6 +6,7 @@ Tamoyillar:
 - Uch interfeys bitta backend: host-based routing (core.middleware.HostRoutingMiddleware).
 - Pul = butun son (so'm). i18n boshidan (uz-lotin/uz-kirill/rus).
 """
+
 from pathlib import Path
 
 import environ
@@ -107,8 +108,10 @@ DATABASES["default"]["CONN_MAX_AGE"] = 60
 AUTH_USER_MODEL = "accounts.User"
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-     "OPTIONS": {"min_length": 6}},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 6},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
 ]
 

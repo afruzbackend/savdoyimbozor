@@ -1,4 +1,5 @@
 """Hudud iyerarxiyasi: viloyat → bozor → qator. Hisobotlar viloyat kesimida."""
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -19,8 +20,9 @@ class Region(TimeStampedModel):
 
 
 class Market(TimeStampedModel):
-    region = models.ForeignKey(Region, verbose_name=_("Viloyat"),
-                               on_delete=models.PROTECT, related_name="markets")
+    region = models.ForeignKey(
+        Region, verbose_name=_("Viloyat"), on_delete=models.PROTECT, related_name="markets"
+    )
     name = models.CharField(_("Bozor"), max_length=200)
     address = models.CharField(_("Manzil"), max_length=300, blank=True)
     latitude = models.FloatField(null=True, blank=True)
@@ -38,8 +40,10 @@ class Market(TimeStampedModel):
 
 class Row(TimeStampedModel):
     """Bozor ichidagi qator (rasta liniyasi) — xarita va solishtirish uchun."""
-    market = models.ForeignKey(Market, verbose_name=_("Bozor"),
-                               on_delete=models.CASCADE, related_name="rows")
+
+    market = models.ForeignKey(
+        Market, verbose_name=_("Bozor"), on_delete=models.CASCADE, related_name="rows"
+    )
     label = models.CharField(_("Qator"), max_length=60)
     order = models.PositiveSmallIntegerField(_("Tartib"), default=0)
 

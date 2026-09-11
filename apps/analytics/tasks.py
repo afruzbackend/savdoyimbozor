@@ -1,4 +1,5 @@
 """Celery fon vazifalari (P3'da scoring bilan to'ldiriladi)."""
+
 from celery import shared_task
 
 
@@ -6,7 +7,9 @@ from celery import shared_task
 def recompute_today():
     """Bugungi rostlik ballarini yangilaydi (har 5 daqiqada)."""
     from django.utils import timezone
+
     from .scoring.services import recompute_for_date
+
     return recompute_for_date(timezone.localdate())
 
 
@@ -16,5 +19,7 @@ def recompute_yesterday():
     from datetime import timedelta
 
     from django.utils import timezone
+
     from .scoring.services import recompute_for_date
+
     return recompute_for_date(timezone.localdate() - timedelta(days=1))

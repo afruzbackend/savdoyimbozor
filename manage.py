@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Django boshqaruv skripti."""
+
 import os
 import sys
 

@@ -1,4 +1,5 @@
 """Foydalanuvchi va rollar. Login = STIR-SHOPNO (superadmin ochadi)."""
+
 from __future__ import annotations
 
 from django.contrib.auth.models import AbstractUser
@@ -26,19 +27,32 @@ class User(AbstractUser):
     - Tekshiruvchi `assigned_markets`ni ko'radi.
     - Ruxsat markazi: `visible_shops()`.
     """
+
     role = models.CharField(_("Rol"), max_length=16, choices=Role.choices, default=Role.SELLER)
     phone = models.CharField(_("Telefon"), max_length=20, blank=True)
-    language = models.CharField(_("Til"), max_length=10, choices=Language.choices, default=Language.UZ)
+    language = models.CharField(
+        _("Til"), max_length=10, choices=Language.choices, default=Language.UZ
+    )
     telegram_id = models.CharField(_("Telegram ID"), max_length=40, blank=True)
 
     # Sotuvchi uchun
-    shop = models.ForeignKey("shops.Shop", verbose_name=_("Do'kon"), null=True, blank=True,
-                             on_delete=models.SET_NULL, related_name="staff")
+    shop = models.ForeignKey(
+        "shops.Shop",
+        verbose_name=_("Do'kon"),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="staff",
+    )
     is_shop_owner = models.BooleanField(_("Do'kon egasi"), default=False)
 
     # Tekshiruvchi uchun
-    assigned_markets = models.ManyToManyField("geo.Market", verbose_name=_("Biriktirilgan bozorlar"),
-                                              blank=True, related_name="inspectors")
+    assigned_markets = models.ManyToManyField(
+        "geo.Market",
+        verbose_name=_("Biriktirilgan bozorlar"),
+        blank=True,
+        related_name="inspectors",
+    )
 
     # Xavfsizlik
     must_change_password = models.BooleanField(_("Parolni almashtirsin"), default=True)
@@ -72,6 +86,7 @@ class User(AbstractUser):
     def visible_shops(self):
         """Foydalanuvchi ko'ra oladigan do'konlar QuerySet'i (markazlashgan ruxsat)."""
         from apps.shops.models import Shop
+
         if self.is_superadmin:
             return Shop.objects.all()
         if self.is_inspector:

@@ -1,4 +1,5 @@
 """Asosiy modellar: umumiy baza, tizim sozlamalari, audit jurnali."""
+
 from __future__ import annotations
 
 from django.db import models
@@ -7,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 class TimeStampedModel(models.Model):
     """Barcha modellar uchun umumiy vaqt maydonlari."""
+
     created_at = models.DateTimeField(_("Yaratilgan"), auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(_("Yangilangan"), auto_now=True)
 
@@ -19,6 +21,7 @@ class SystemSettings(models.Model):
 
     `SystemSettings.get_solo()` orqali olinadi (keshlanadi).
     """
+
     # Rostlik rang chegaralari (%)
     green_threshold = models.PositiveSmallIntegerField(_("Yashil chegara"), default=80)
     yellow_threshold = models.PositiveSmallIntegerField(_("Sariq chegara"), default=50)
@@ -33,15 +36,17 @@ class SystemSettings(models.Model):
     weakest_part_cap = models.PositiveSmallIntegerField(_("Eng zaif qism qo'shimchasi"), default=15)
 
     # Kamera baholash koeffitsientlari
-    buyer_ratio = models.DecimalField(_("Xaridorga aylanish ulushi"), max_digits=4,
-                                      decimal_places=2, default=0.35)
+    buyer_ratio = models.DecimalField(
+        _("Xaridorga aylanish ulushi"), max_digits=4, decimal_places=2, default=0.35
+    )
 
     # Chegirma jadvali (JSON): chek summasi chegarasi → 3 ta tugma (ming so'm)
     discount_tiers = models.JSONField(
-        _("Chegirma jadvali"), default=list,
-        help_text=_("[[chegara, [t1,t2,t3]], ...] — so'mda"))
+        _("Chegirma jadvali"), default=list, help_text=_("[[chegara, [t1,t2,t3]], ...] — so'mda")
+    )
     max_discount_no_cost_pct = models.PositiveSmallIntegerField(
-        _("Tannarx noma'lum bo'lsa maks chegirma (%)"), default=30)
+        _("Tannarx noma'lum bo'lsa maks chegirma (%)"), default=30
+    )
     rounding_max = models.PositiveIntegerField(_("Yaxlitlash maksimum (so'm)"), default=1000)
 
     # Xavfsizlik
@@ -63,7 +68,7 @@ class SystemSettings(models.Model):
         SystemSettings._cache = self
 
     @classmethod
-    def get_solo(cls) -> "SystemSettings":
+    def get_solo(cls) -> SystemSettings:
         cached = getattr(cls, "_cache", None)
         if cached is not None:
             return cached
@@ -86,6 +91,7 @@ class SystemSettings(models.Model):
 
 class AuditLog(TimeStampedModel):
     """O'zgartirilmaydigan log: kirish, ko'rish, eksport, tekshiruv, sozlama."""
+
     class Action(models.TextChoices):
         LOGIN = "login", _("Kirish")
         VIEW = "view", _("Ko'rish")
@@ -93,8 +99,9 @@ class AuditLog(TimeStampedModel):
         WRITE = "write", _("O'zgartirish")
         SETTINGS = "settings", _("Sozlama")
 
-    user = models.ForeignKey("accounts.User", null=True, blank=True,
-                             on_delete=models.SET_NULL, related_name="audit_logs")
+    user = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="audit_logs"
+    )
     action = models.CharField(_("Amal"), max_length=16, choices=Action.choices, default=Action.VIEW)
     method = models.CharField(max_length=8, blank=True)
     path = models.CharField(max_length=300, blank=True)
@@ -106,7 +113,10 @@ class AuditLog(TimeStampedModel):
         verbose_name = _("Audit yozuvi")
         verbose_name_plural = _("Audit jurnali")
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["-created_at"]), models.Index(fields=["user", "-created_at"])]
+        indexes = [
+            models.Index(fields=["-created_at"]),
+            models.Index(fields=["user", "-created_at"]),
+        ]
 
     def __str__(self):
         return f"{self.created_at:%Y-%m-%d %H:%M} {self.user} {self.action}"
