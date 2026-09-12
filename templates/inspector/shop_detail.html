@@ -3,6 +3,8 @@
 {% block title %}№{{ shop.number }} — {{ shop.owner_name }}{% endblock %}
 {% block heading %}№{{ shop.number }} · {{ shop.owner_name }}{% endblock %}
 {% block topbar_actions %}
+  <a class="btn btn-ghost" href="{% url 'inspector:shop_evidence' shop.pk %}">
+    <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Dalil to'plami</a>
   <a class="btn" href="{% url 'inspector:inspection_create' %}?shop={{ shop.pk }}">
     <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Tekshiruv</a>
 {% endblock %}

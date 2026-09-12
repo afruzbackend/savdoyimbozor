@@ -230,6 +230,44 @@ def shop_detail(request, pk):
 
 
 @login_required
+def shop_evidence(request, pk):
+    """Bitta do'kon uchun chop etsa bo'ladigan dalil to'plami (tekshiruv/akt uchun)."""
+
+    from apps.core.models import SystemSettings
+
+    cfg = SystemSettings.get_solo()
+    shop = get_object_or_404(_visible_shops(request), pk=pk)
+    today = timezone.localdate()
+    start = today - timedelta(days=29)
+
+    scores = list(DailyScore.objects.filter(shop=shop, date__range=(start, today)).order_by("date"))
+    latest = scores[-1] if scores else None
+    hidden = sum(s.hidden_sales for s in scores)
+    potential_tax = int(hidden * cfg.tax_rate_percent / 100)
+    peers = shop.similar_shops()
+
+    ctx = {
+        "shop": shop,
+        "latest": latest,
+        "level": _level(latest.truth_pct, cfg) if latest else "none",
+        "start": start,
+        "today": today,
+        "hidden_sales": hidden,
+        "potential_tax": potential_tax,
+        "tax_rate": cfg.tax_rate_percent,
+        "entered_total": sum(s.entered_sales for s in scores),
+        "cash_total": sum(s.cash_amount for s in scores),
+        "invest": _investigation(shop, peers, start, today),
+        "alerts": shop.alerts.order_by("-created_at")[:15],
+        "register_closes": shop.register_closes.order_by("-date")[:10],
+        "inspections": shop.inspections.select_related("inspector")[:6],
+        "now": timezone.now(),
+        "inspector": request.user,
+    }
+    return render(request, "inspector/shop_evidence.html", ctx)
+
+
+@login_required
 def alerts_list(request):
     shops = _visible_shops(request)
     alerts = Alert.objects.filter(shop__in=shops).select_related("shop", "shop__market")

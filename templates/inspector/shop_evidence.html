@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+{% block title %}Dalil to'plami — №{{ shop.number }}{% endblock %}
+{% block head %}
+<style>
+  .doc{max-width:820px;margin:0 auto;padding:var(--sp-5);background:var(--surface);color:var(--ink)}
+  .doc-head{display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--border-strong);padding-bottom:var(--sp-4);margin-bottom:var(--sp-4)}
+  .doc-head .emb{width:52px;height:52px;color:var(--brand-600)}
+  .doc h1{font-size:var(--t-2);margin:0}
+  .doc h2{font-size:var(--t-0);margin:var(--sp-4) 0 var(--sp-2);border-bottom:1px solid var(--border);padding-bottom:4px}
+  .doc table{width:100%;border-collapse:collapse;font-size:var(--t--1)}
+  .doc td,.doc th{padding:6px 8px;border-bottom:1px solid var(--border);text-align:left}
+  .doc .num{text-align:right;font-variant-numeric:tabular-nums}
+  .kv{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:var(--t--1)}
+  .kv .k{color:var(--ink-muted)}
+  .big-money{display:flex;gap:var(--sp-5);margin:var(--sp-3) 0;flex-wrap:wrap}
+  .big-money>div{flex:1;min-width:180px}
+  .big-money .v{font-size:var(--t-3);font-weight:700}
+  .toolbar{max-width:820px;margin:var(--sp-3) auto;display:flex;gap:10px;justify-content:flex-end}
+  @media print{.toolbar,.bottom-nav{display:none!important} .doc{max-width:none;box-shadow:none}
+    body{background:#fff}}
+</style>
+{% endblock %}
+{% block body %}
+<div class="toolbar" data-noloc>
+  <a class="btn btn-ghost" href="{% url 'inspector:shop_detail' shop.pk %}">← Orqaga</a>
+  <button class="btn" onclick="window.print()">Chop etish / PDF</button>
+</div>
+<div class="doc">
+  <div class="doc-head">
+    <span class="emb">{% include 'components/_emblem.html' %}</span>
+    <div>
+      <h1>Tekshiruv dalil to'plami</h1>
+      <div class="muted" style="font-size:var(--t--1)">Davlat soliq qo'mitasi — Bozor nazorati · {{ now|date:"d.m.Y H:i" }}</div>
+    </div>
+  </div>
+
+  <div class="kv">
+    <div><span class="k">Do'kon:</span> <b>№{{ shop.number }} — {{ shop.owner_name }}</b></div>
+    <div><span class="k">STIR:</span> <b class="num">{{ shop.stir|default:"—" }}</b></div>
+    <div><span class="k">Bozor:</span> {{ shop.market.name }}</div>
+    <div><span class="k">Savdo turi:</span> {{ shop.category.name|default:"—" }}</div>
+    <div><span class="k">Manzil:</span> {{ shop.address|default:"—" }}</div>
+    <div><span class="k">Davr:</span> {{ start|date:"d.m.Y" }} — {{ today|date:"d.m.Y" }}</div>
+    <div><span class="k">Tekshiruvchi:</span> {{ inspector.get_full_name|default:inspector.username }}</div>
+    <div><span class="k">Joriy rostlik:</span> <b>{% if latest %}{{ latest.truth_pct }}%{% else %}—{% endif %}</b></div>
+  </div>
+
+  <h2>Asosiy xulosa</h2>
+  <div class="big-money">
+    <div><div class="k muted">Yashirilgan savdo (30 kun)</div><div class="v" style="color:var(--bad)">{{ hidden_sales|intcomma }} so'm</div></div>
+    <div><div class="k muted">Potensial qo'shimcha soliq ({{ tax_rate }}%)</div><div class="v" style="color:var(--ok)">{{ potential_tax|intcomma }} so'm</div></div>
+  </div>
+  <table>
+    <tr><td>Kiritilgan savdo (30 kun)</td><td class="num">{{ entered_total|intcomma }} so'm</td></tr>
+    <tr><td>Deklaratsiya (kassa)</td><td class="num">{{ cash_total|intcomma }} so'm</td></tr>
+    <tr><td>O'rtacha chegirma</td><td class="num">{{ invest.shop_discount }}% (bozor: {{ invest.market_discount }}%)</td></tr>
+    <tr><td>Tannarxga yaqin sotuvlar</td><td class="num">{{ invest.near_cost_pct }}% ({{ invest.near_cost }}/{{ invest.near_cost_total }})</td></tr>
+  </table>
+
+  <h2>Signallar</h2>
+  <table>
+    <thead><tr><th>Sana</th><th>Tur</th><th>Daraja</th><th>Sabab</th></tr></thead>
+    <tbody>
+    {% for a in alerts %}
+      <tr><td class="num">{{ a.date|date:"d.m.Y" }}</td><td>{{ a.get_kind_display }}</td>
+        <td>{{ a.get_level_display }}</td><td>{{ a.reason }}</td></tr>
+    {% empty %}<tr><td colspan="4" class="muted">Signal yo'q.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Kassa yopish (Z-hisobot)</h2>
+  <table>
+    <thead><tr><th>Sana</th><th class="num">Yozilgan naqd</th><th class="num">Sandiqda</th><th class="num">Farq</th></tr></thead>
+    <tbody>
+    {% for z in register_closes %}
+      <tr><td class="num">{{ z.date|date:"d.m.Y" }}</td><td class="num">{{ z.expected_cash|intcomma }}</td>
+        <td class="num">{{ z.counted_cash|intcomma }}</td>
+        <td class="num">{% if z.difference > 0 %}+{% endif %}{{ z.difference|intcomma }}</td></tr>
+    {% empty %}<tr><td colspan="4" class="muted">Ma'lumot yo'q.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h2>O'tkazilgan tekshiruvlar</h2>
+  <table>
+    <thead><tr><th>Sana</th><th>Natija</th><th>Akt</th><th class="num">Jarima</th></tr></thead>
+    <tbody>
+    {% for i in inspections %}
+      <tr><td class="num">{{ i.created_at|date:"d.m.Y" }}</td><td>{{ i.get_result_display }}</td>
+        <td class="num">{{ i.act_number|default:"—" }}</td><td class="num">{{ i.fine_amount|default:0|intcomma }}</td></tr>
+    {% empty %}<tr><td colspan="4" class="muted">Hali tekshiruv yo'q.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <p class="muted" style="margin-top:var(--sp-5);font-size:var(--t--2)">
+    Eslatma: bu hisobot tizim signali — tekshiruvga asos, jarima uchun avtomatik dalil emas.
+    Yakuniy qaror joyida tekshiruv asosida qabul qilinadi.</p>
+</div>
+{% endblock %}
