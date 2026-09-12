@@ -54,6 +54,18 @@ def dashboard(request):
     # Eng xavfli do'konlar (bugungi ball bo'yicha)
     risky = sorted(latest.values(), key=lambda s: s.truth_pct)[:8]
 
+    # Yashirilgan savdo (oxirgi 30 kun) + potensial qo'shimcha soliq
+    from django.db.models import Sum
+
+    since = today - timedelta(days=29)
+    hidden = (
+        DailyScore.objects.filter(shop__in=shops, date__gte=since).aggregate(
+            h=Sum("hidden_sales")
+        )["h"]
+        or 0
+    )
+    potential_tax = int(hidden * cfg.tax_rate_percent / 100)
+
     ctx = {
         "shop_count": shops.count(),
         "red_count": new_alerts.filter(level="red").count(),
@@ -63,6 +75,9 @@ def dashboard(request):
         "alerts": new_alerts.order_by("-created_at")[:12],
         "risky": [(s, _level(s.truth_pct, cfg)) for s in risky],
         "today": today,
+        "hidden_sales": int(hidden),
+        "potential_tax": potential_tax,
+        "tax_rate": cfg.tax_rate_percent,
     }
     return render(request, "inspector/dashboard.html", ctx)
 

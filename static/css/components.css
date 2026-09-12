@@ -220,6 +220,10 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .btn-danger{background:var(--bad);color:#fff;border:1px solid var(--bad)}
 .btn-danger:hover{filter:brightness(1.05)}
 
+/* Pul banneri (yashirilgan savdo + potensial soliq) */
+.money-banner{background:linear-gradient(135deg,color-mix(in srgb,var(--brand-500) 8%,var(--surface)),var(--surface));
+  border:1px solid var(--border-strong)}
+
 /* Bozor sxemasi (rastalar) */
 .bazaar-scroll{overflow:auto;border:1px solid var(--border);border-radius:var(--r-2);
   background:var(--surface-sunken);padding:var(--sp-3)}

@@ -234,6 +234,11 @@ def recompute_for_date(day) -> int:
             yellow_threshold=cfg.yellow_threshold,
         )
 
+        # Yashirilgan savdo (soliqdan): haqiqiy savdo bahosi − deklaratsiya (kassa).
+        # Haqiqiy savdo = yozilgan/kamera/qoldiq eng kattasi (eng ishonchli quyi chegara).
+        real_estimate = max(int(entered), int(cam or 0), int(stock_val or 0))
+        hidden = max(0, real_estimate - int(cash)) if cash else 0
+
         DailyScore.objects.update_or_create(
             shop=shop,
             date=day,
@@ -243,6 +248,7 @@ def recompute_for_date(day) -> int:
                 "weakest": result["weakest"],
                 "entered_sales": entered,
                 "cash_amount": cash,
+                "hidden_sales": hidden,
             },
         )
         count += 1
@@ -273,6 +279,10 @@ def recompute_for_date(day) -> int:
                     pass
             continue  # nol-savdода rostlik signali ortiqcha
 
+        # Anomaliya: bugungi savdo 30-kunlik o'rtachadan keskin tushsa
+        if entered > 0:
+            _generate_anomaly_alert(shop, day, entered, cfg)
+
         if not any(v is not None for v in parts.values()):
             continue
         lvl = level_for(result["truth"], cfg.green_threshold, cfg.yellow_threshold)
@@ -301,6 +311,43 @@ def recompute_for_date(day) -> int:
     # Kassa nomuvofiqligi signali (Z-hisobot asosida, rostlik ballidan mustaqil)
     _generate_cash_mismatch_alerts(day, cfg)
     return count
+
+
+def _generate_anomaly_alert(shop, day, entered, cfg):
+    """Bugungi savdo o'zining 30-kunlik o'rtachasidan keskin tushsa — signal."""
+    from datetime import timedelta
+
+    from apps.analytics.models import Alert, DailyScore
+
+    prior = [
+        s.entered_sales
+        for s in DailyScore.objects.filter(
+            shop=shop, date__lt=day, date__gte=day - timedelta(days=30)
+        )
+        if s.entered_sales > 0
+    ]
+    if len(prior) < 5:  # yetarli tarix bo'lmasa — baholamaymiz
+        return
+    avg = sum(prior) / len(prior)
+    if avg <= 0:
+        return
+    drop_pct = round((1 - entered / avg) * 100)
+    if drop_pct < cfg.anomaly_drop_pct:
+        return
+    if Alert.objects.filter(shop=shop, date=day, kind=Alert.Kind.ANOMALY).exists():
+        return
+    lvl = "red" if drop_pct >= 80 else "yellow"
+    Alert.objects.create(
+        shop=shop,
+        date=day,
+        kind=Alert.Kind.ANOMALY,
+        level=lvl,
+        reason=(
+            f"Savdo keskin tushdi: bugun {int(entered):,} so'm, "
+            f"odatda ~{int(avg):,} so'm ({drop_pct}% kam)"
+        ),
+        assigned_to=shop.market.inspectors.first(),
+    )
 
 
 def _generate_cash_mismatch_alerts(day, cfg):

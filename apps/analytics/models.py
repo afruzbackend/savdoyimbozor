@@ -35,6 +35,8 @@ class DailyScore(TimeStampedModel):
     weakest = models.CharField(_("Eng zaif qism"), max_length=20, blank=True)
     entered_sales = models.BigIntegerField(default=0)
     cash_amount = models.BigIntegerField(default=0)
+    # Mustaqil manbalar yozilgandan qancha ko'p savdo ko'rsatdi = yashirilgan savdo (so'm)
+    hidden_sales = models.BigIntegerField(_("Yashirilgan savdo (so'm)"), default=0)
 
     class Meta:
         verbose_name = _("Kunlik ball")
@@ -62,6 +64,7 @@ class Alert(TimeStampedModel):
         TRUTH = "truth", _("Rostlik darajasi")
         CASH_MISMATCH = "cash_mismatch", _("Kassa nomuvofiqligi")
         ZERO_SALES = "zero_sales", _("Savdo kiritilmagan")
+        ANOMALY = "anomaly", _("Savdo keskin tushdi")
 
     shop = models.ForeignKey("shops.Shop", on_delete=models.CASCADE, related_name="alerts")
     date = models.DateField()

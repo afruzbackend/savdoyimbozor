@@ -13,6 +13,19 @@
     <p>Savdo shaffofligi va soliq intizomini kuzatish tizimi</p>
   </div>
 </div>
+<div class="card money-banner" style="margin-bottom:var(--sp-4)">
+  <div class="grid grid-2" style="gap:var(--sp-4);align-items:center">
+    <div>
+      <small class="muted">Aniqlangan yashirilgan savdo (30 kun)</small>
+      <div class="truth-big num" style="font-size:var(--t-4);color:var(--bad)">{{ hidden_sales|intcomma }} <span style="font-size:var(--t-1)">so'm</span></div>
+    </div>
+    <div style="border-left:3px solid var(--ok);padding-left:var(--sp-4)">
+      <small class="muted">Potensial qo'shimcha soliq ({{ tax_rate }}%)</small>
+      <div class="truth-big num" style="font-size:var(--t-4);color:var(--ok)">{{ potential_tax|intcomma }} <span style="font-size:var(--t-1)">so'm</span></div>
+    </div>
+  </div>
+  <small class="faint">Mustaqil manbalar (kassa/kamera/qoldiq) yozilgan savdodan qancha ko'p ko'rsatgani — ehtiyotkor baho, tekshiruvga signal.</small>
+</div>
 <div class="grid grid-4" style="margin-bottom:var(--sp-4)">
   <div class="card">
     <small class="muted">Nazoratdagi do'kon</small>

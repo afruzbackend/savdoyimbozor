@@ -39,6 +39,12 @@ class SystemSettings(models.Model):
     cash_shortage_pct = models.PositiveSmallIntegerField(
         _("Kassa kamomadi chegarasi (%)"), default=15
     )
+    # Soliq stavkasi — yashirilgan savdodan potensial qo'shimcha soliqni baholash uchun
+    tax_rate_percent = models.PositiveSmallIntegerField(_("Soliq stavkasi (%)"), default=12)
+    # Anomaliya signali: kunlik savdo 30-kunlik o'rtachadan shu %dan ko'p tushsa
+    anomaly_drop_pct = models.PositiveSmallIntegerField(
+        _("Savdo tushishi chegarasi (%)"), default=60
+    )
 
     # Kamera baholash koeffitsientlari
     buyer_ratio = models.DecimalField(

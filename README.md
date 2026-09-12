@@ -47,21 +47,21 @@ python manage.py runserver
 ## Demo ssenariysi
 1. **nazorat** bilan kiring → dashboard va **bozor xaritasi**: yashiruvchi do'konlar qizil
    (kassa yashiradi yoki narx past). Do'kon sahifasida rostlik tarkibi va grafik.
-2. **sotuvchi** bilan kiring (telefon rejimida) → tez sotuv (klaviatura + chegirma) va
-   skaner sotuv; hisobotда rostlik va "qanday oshiraman" maslahati.
-3. **admin** bilan kiring → hisob ochish → chop etiladigan login varaqasi; sozlamalar; audit.
-
-## Telefonda sinash
+2. **a sinash
 Sotuvchi interfeysi telefon uchun. Bir tarmoqda kompyuter IP'sini oching
 (`http://<IP>:8000/`) yoki nginx bilan `sotuvchi.<domen>`. Internet uzilsa sotuv
 telefonda saqlanib, tiklanganda avtomatik yuboriladi (offline navbat).
 
 ## Kunlik hisob-kitob
-```bash
+```bashsotuvchi** bilan kiring (telefon rejimida) → tez sotuv (klaviatura + chegirma) va
+   skan
+## Telefond
 python manage.py recompute            # bugungi rostlik + signal
-python manage.py recompute --date 2026-09-01
+python manage.py recompute -e 2-dat026-09-01
 ```
-Production'da Celery beat buni har 5 daqiqa / har kecha avtomatik bajaradi.
+Production'da Celeer sotuv; hisobotда rostlik va "qanday oshiraman" maslahati.
+3. **admin** bilan kiring → hisob ochish → chop etiladigan login varaqasi; sozlamalar; audit.
+ry beat buni har 5 daqiqa / har kecha avtomatik bajaradi.
 
 ## Kamera keyin qo'shiladi
 Backend kontrakti tayyor (`/api/cameras/config/`, `/api/events/`, heartbeat).
