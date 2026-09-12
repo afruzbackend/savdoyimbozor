@@ -78,9 +78,9 @@
     </div>
   </div>
 
-  {# Milliy naqsh (doppi/koshin) animatsiyasi — til/mavzu almashganda #}
+  {# Milliy naqsh (doppi) animatsiyasi — til/mavzu almashganda chiziladi #}
   <div id="milliy-splash" class="milliy-splash" aria-hidden="true">
-    <div class="milliy-mark">{% include 'components/_koshin.html' %}</div>
+    <div class="milliy-mark">{% include 'components/_doppi.html' %}</div>
   </div>
 </div>
 <script>
@@ -89,7 +89,7 @@
     window.milliyFlash = function(){
       var s = document.getElementById('milliy-splash'); if(!s) return;
       s.classList.remove('show'); void s.offsetWidth; s.classList.add('show');
-      setTimeout(function(){ s.classList.remove('show'); }, 750);
+      setTimeout(function(){ s.classList.remove('show'); }, 1700);
     };
     // Til/mavzu tugmalari bosilganda
     document.querySelectorAll('.lang-toggle button, .theme-toggle button').forEach(function(b){

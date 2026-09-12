@@ -321,17 +321,20 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .modal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);
   padding:var(--sp-5);max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4)}
 
-/* Milliy naqsh chaqnashi (til/mavzu almashganda) */
+/* Milliy doppi naqshi — til/mavzu almashganda chiziq chizilib chiqadi (stroke-draw) */
 .milliy-splash{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
   pointer-events:none;opacity:0}
-.milliy-splash .milliy-mark{width:min(46vw,320px);color:var(--brand-500);opacity:.9;
-  transform:scale(.4) rotate(-25deg)}
-.milliy-splash.show{animation:milliyFade .75s ease-out}
-.milliy-splash.show .milliy-mark{animation:milliySpin .75s cubic-bezier(.2,.8,.2,1)}
-@keyframes milliyFade{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
-@keyframes milliySpin{0%{transform:scale(.4) rotate(-25deg)}60%{transform:scale(1.05) rotate(5deg)}
-  100%{transform:scale(1.2) rotate(0)}}
-@media (prefers-reduced-motion:reduce){.milliy-splash.show,.milliy-splash.show .milliy-mark{animation-duration:.01s}}
+.milliy-splash .milliy-mark{width:min(60vw,420px);color:var(--brand-600)}
+.doppi-pattern{width:100%;height:auto;display:block;
+  stroke-dasharray:1200;stroke-dashoffset:1200}
+/* Ko'rsatilganda: fon yumshoq paydo bo'lib yo'qoladi, naqsh chiziladi */
+.milliy-splash.show{animation:milliyFade 1.7s ease-out forwards}
+.milliy-splash.show .doppi-pattern{animation:doppiDraw 1.5s ease forwards}
+@keyframes milliyFade{0%{opacity:0}12%{opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes doppiDraw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){
+  .milliy-splash.show{animation-duration:.4s}
+  .milliy-splash.show .doppi-pattern{animation:none;stroke-dashoffset:0}}
 
 /* Mobil pastki navigatsiya (sotuvchi/inspektor telefonda) */
 .bottom-nav{display:none}
