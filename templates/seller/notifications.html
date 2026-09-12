@@ -1,0 +1,30 @@
+{% extends 'seller/base.html' %}
+{% load static %}
+{% block title %}Bildirishnomalar{% endblock %}
+{% block heading %}Bildirishnomalar{% endblock %}
+{% block topbar_actions %}
+  {% if items %}<form method="post">{% csrf_token %}<button class="btn btn-ghost">Hammasini o'qildi</button></form>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="stack gap-2" style="max-width:620px">
+  {% for n in items %}
+  <a class="card notif {% if not n.is_read %}notif-unread{% endif %}" href="{{ n.url|default:'#' }}"
+     style="display:flex;gap:12px;align-items:flex-start;text-decoration:none;color:inherit;padding:var(--sp-3)">
+    <span class="notif-ic notif-{{ n.kind }}">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#{% if n.kind == 'debt_due' %}i-wallet{% elif n.kind == 'appeal_reply' %}i-info{% elif n.kind == 'alert' %}i-triangle-alert{% else %}i-bell{% endif %}"></use></svg>
+    </span>
+    <div class="grow" style="min-width:0">
+      <div style="font-weight:600">{{ n.title }}</div>
+      {% if n.body %}<div class="muted" style="font-size:var(--t--1)">{{ n.body }}</div>{% endif %}
+      <small class="faint num">{{ n.created_at|date:"d.m.Y H:i" }}</small>
+    </div>
+    {% if not n.is_read %}<span class="dot-unread" aria-label="yangi"></span>{% endif %}
+  </a>
+  {% empty %}
+  <div class="card center empty" style="padding:var(--sp-6)">
+    <img class="emoji-xl" src="{% static 'emoji/check.svg' %}" alt="" style="width:48px;height:48px">
+    <p class="muted">Bildirishnoma yo'q.</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

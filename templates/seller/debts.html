@@ -10,6 +10,7 @@
       <div class="field"><label class="label">Xaridor</label><input class="input" name="customer_name" required></div>
       <div class="field"><label class="label">Telefon</label><input class="input" name="customer_phone"></div>
       <div class="field"><label class="label">Summa (so'm)</label><input class="input num" type="number" name="amount" required></div>
+      {% include 'components/_datefield.html' with name='due_date' label='Qaytarish sanasi' %}
       <div class="field"><label class="label">Izoh</label><input class="input" name="note"></div>
       <button class="btn btn-block" type="submit">Qo'shish</button>
     </form>
@@ -22,14 +23,16 @@
     <div class="card">
       <div class="card-title" style="margin-bottom:var(--sp-3)">Faol nasiyalar</div>
       <div class="table-wrap"><table class="data">
-        <thead><tr><th>Xaridor</th><th>Telefon</th><th class="num">Summa</th><th></th></tr></thead>
+        <thead><tr><th>Xaridor</th><th>Telefon</th><th class="num">Summa</th><th class="num">Muddat</th><th></th></tr></thead>
         <tbody>
         {% for d in debts %}
-        <tr><td>{{ d.customer_name }}</td><td class="muted num">{{ d.customer_phone|default:"—" }}</td>
+        <tr class="{% if d.due_date and d.due_date <= today %}row-warn{% endif %}">
+          <td>{{ d.customer_name }}</td><td class="muted num">{{ d.customer_phone|default:"—" }}</td>
           <td class="num">{{ d.amount|intcomma }}</td>
+          <td class="num">{% if d.due_date %}<span {% if d.due_date <= today %}style="color:var(--bad);font-weight:600"{% endif %}>{{ d.due_date|date:"d.m.Y" }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
           <td><form method="post">{% csrf_token %}<input type="hidden" name="pay" value="{{ d.pk }}">
             <button class="btn btn-ghost" style="padding:6px 10px">To'landi</button></form></td></tr>
-        {% empty %}<tr><td colspan="4" class="muted">Nasiya yo'q.</td></tr>{% endfor %}
+        {% empty %}<tr><td colspan="5" class="muted">Nasiya yo'q.</td></tr>{% endfor %}
         </tbody></table></div>
     </div>
   </div>

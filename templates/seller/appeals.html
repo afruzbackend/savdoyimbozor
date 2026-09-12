@@ -1,7 +1,29 @@
 {% extends 'seller/base.html' %}
+{% load static %}
 {% block title %}E'tiroz{% endblock %}
 {% block heading %}E'tirozlar{% endblock %}
 {% block content %}
+{% if nosales %}
+<div class="card" style="border-left:3px solid var(--bad);margin-bottom:var(--sp-4)">
+  <div class="row gap-2" style="align-items:center;margin-bottom:var(--sp-2)">
+    <svg class="icon" style="color:var(--bad)"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg>
+    <b>Savdo kiritilmagan kun(lar) bor — sababini tushuntiring</b>
+  </div>
+  <p class="muted" style="margin:0 0 var(--sp-3);font-size:var(--t--1)">
+    Do'kon ochiq bo'lgan, lekin savdo kiritilmagan. Nima uchun ekanini yozing (bu majburiy).</p>
+  {% for al in nosales %}
+  <form method="post" class="card" style="background:var(--surface-sunken);margin-bottom:var(--sp-2)">{% csrf_token %}
+    <input type="hidden" name="nosales_alert" value="{{ al.pk }}">
+    <div class="row" style="justify-content:space-between;margin-bottom:6px">
+      <b class="num">{{ al.date|date:"d.m.Y" }}</b><span class="badge badge-bad">savdo yo'q</span>
+    </div>
+    <textarea class="textarea" name="message" rows="2" required
+      placeholder="Masalan: bozor yopiq edi / kasal bo'ldim / tovar tugagan edi"></textarea>
+    <button class="btn btn-block" type="submit" style="margin-top:8px">Izohni yuborish</button>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
 <div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Yangi e'tiroz</div>

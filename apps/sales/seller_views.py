@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from apps.catalog.models import Product, ProductCategory, Unit
-from apps.core.models import SystemSettings
+from apps.core.models import Notification, SystemSettings, notify
 
 from .models import (
     Correction,
@@ -39,9 +39,43 @@ def _dec(val, default="0"):
         return Decimal(default)
 
 
+def _gen_debt_notifications(user, shop):
+    """Muddati kelgan (yoki o'tgan) nasiyalar uchun bildirishnoma yaratadi."""
+    if shop is None:
+        return
+    today = timezone.localdate()
+    due = Debt.objects.filter(shop=shop, is_paid=False, due_date__lte=today).exclude(due_date=None)
+    for d in due:
+        when = "bugun" if d.due_date == today else f"{d.due_date:%d.%m.%Y} (muddati o'tgan)"
+        notify(
+            user,
+            Notification.Kind.DEBT_DUE,
+            f"Nasiya qaytarish: {d.customer_name or 'xaridor'}",
+            body=f"{d.amount:,} so'm — {when}",
+            url="/nasiya/",
+            key=f"debt:{d.id}:{d.due_date}",
+        )
+
+
+@login_required
+def notifications(request):
+    """Sotuvchi bildirishnomalari ro'yxati."""
+    shop = _shop(request)
+    _gen_debt_notifications(request.user, shop)
+    if request.method == "POST":
+        request.user.notifications.filter(is_read=False).update(is_read=True)
+        return redirect("seller:notifications")
+    items = list(request.user.notifications.all()[:100])
+    return render(request, "seller/notifications.html", {"shop": shop, "items": items})
+
+
 @login_required
 def home(request):
     shop = _shop(request)
+    _gen_debt_notifications(request.user, shop)
+    # Savdo bo'lmagan kun tushuntirilmagan bo'lsa — majburiy e'tirozga yo'naltiramiz
+    if shop is not None and _pending_nosales(shop).exists():
+        return redirect("seller:appeals")
     today = timezone.localdate()
     sales = Sale.objects.filter(shop=shop, created_at__date=today) if shop else Sale.objects.none()
     total = sum(s.total for s in sales)
@@ -181,13 +215,45 @@ def daily_close(request):
         close.computed_sales = computed
         close.entered_sales = entered
         close.save()
+        # Kassa (Z-hisobot) — kun yakunining majburiy qismi
+        t = _register_totals(shop, today)
+        counted = int(request.POST.get("counted_cash") or 0)
+        RegisterClose.objects.update_or_create(
+            shop=shop,
+            date=today,
+            defaults={
+                "seller": request.user,
+                "expected_cash": t["cash"],
+                "counted_cash": counted,
+                "card_total": t["card"],
+                "transfer_total": t["transfer"],
+                "checks_count": t["count"],
+            },
+        )
+        diff = counted - t["cash"]
+        note = ""
+        if diff > 0:
+            note = f" · Kassada ortiqcha: {diff:,} so'm"
+        elif diff < 0:
+            note = f" · Kassada kamomad: {-diff:,} so'm"
         messages.success(
-            request, f"Kun yakunlandi. Hisoblangan: {computed:,} · Kiritilgan: {entered:,} so'm"
+            request,
+            f"Kun yakunlandi. Hisoblangan: {computed:,} · Kiritilgan: {entered:,} so'm{note}",
         )
         return redirect("seller:daily_close")
     existing = DailyClose.objects.filter(shop=shop, date=today).first()
+    reg = _register_totals(shop, today)
+    today_close = RegisterClose.objects.filter(shop=shop, date=today).first()
     return render(
-        request, "seller/daily_close.html", {"shop": shop, "products": prods, "existing": existing}
+        request,
+        "seller/daily_close.html",
+        {
+            "shop": shop,
+            "products": prods,
+            "existing": existing,
+            "reg": reg,
+            "today_close": today_close,
+        },
     )
 
 
@@ -248,11 +314,21 @@ def debts(request):
             debt.save(update_fields=["is_paid", "paid_at"])
             messages.success(request, "Nasiya to'landi deb belgilandi.")
         else:
+            from datetime import datetime
+
+            due = None
+            raw_due = request.POST.get("due_date", "").strip()
+            if raw_due:
+                try:
+                    due = datetime.strptime(raw_due, "%Y-%m-%d").date()
+                except ValueError:
+                    due = None
             Debt.objects.create(
                 shop=shop,
                 customer_name=request.POST.get("customer_name", "")[:200],
                 customer_phone=request.POST.get("customer_phone", "")[:20],
                 amount=int(request.POST.get("amount") or 0),
+                due_date=due,
                 note=request.POST.get("note", "")[:200],
             )
             messages.success(request, "Nasiya qo'shildi.")
@@ -266,6 +342,7 @@ def debts(request):
             "debts": active,
             "total": sum(d.amount for d in active),
             "paid": Debt.objects.filter(shop=shop, is_paid=True)[:10],
+            "today": timezone.localdate(),
         },
     )
 
@@ -573,24 +650,51 @@ def corrections(request):
     )
 
 
+def _pending_nosales(shop):
+    """Tushuntirilmagan 'savdo yo'q' signallari (e'tiroz biriktirilmagan)."""
+    from apps.analytics.models import Alert
+
+    return (
+        Alert.objects.filter(shop=shop, kind=Alert.Kind.ZERO_SALES, status=Alert.Status.NEW)
+        .filter(appeals__isnull=True)
+        .order_by("-date")
+    )
+
+
 @login_required
 def appeals(request):
-    """Sotuvchi e'tirozi: signalga rozi bo'lmasa yozadi; inspektor javobini ko'radi."""
+    """Sotuvchi e'tirozi + 'savdo yo'q' sabablarini tushuntirish."""
     shop = _shop(request)
     if shop is None:
         return redirect("seller:home")
-    from apps.analytics.models import Appeal
+    from apps.analytics.models import Alert, Appeal
 
     if request.method == "POST":
+        alert_id = request.POST.get("nosales_alert")
         msg = request.POST.get("message", "").strip()
-        if msg:
+        if alert_id:  # nol-savdoni tushuntirish
+            alert = Alert.objects.filter(
+                pk=alert_id, shop=shop, kind=Alert.Kind.ZERO_SALES
+            ).first()
+            if alert and msg:
+                Appeal.objects.create(
+                    shop=shop, alert=alert, author=request.user, message=msg[:2000]
+                )
+                alert.status = Alert.Status.RESOLVED
+                alert.save(update_fields=["status"])
+                messages.success(request, "Izoh yuborildi. Rahmat.")
+        elif msg:
             Appeal.objects.create(shop=shop, author=request.user, message=msg[:2000])
             messages.success(request, "E'tiroz yuborildi. Inspektor ko'rib chiqadi.")
         return redirect("seller:appeals")
     return render(
         request,
         "seller/appeals.html",
-        {"shop": shop, "appeals": shop.appeals.select_related("author")[:30]},
+        {
+            "shop": shop,
+            "appeals": shop.appeals.select_related("author")[:30],
+            "nosales": _pending_nosales(shop),
+        },
     )
 
 

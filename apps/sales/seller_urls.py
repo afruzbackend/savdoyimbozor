@@ -19,4 +19,5 @@ urlpatterns = [
     path("reyting/", v.rating, name="rating"),
     path("tuzatish/", v.corrections, name="corrections"),
     path("e-tiroz/", v.appeals, name="appeals"),
+    path("bildirishnomalar/", v.notifications, name="notifications"),
 ]

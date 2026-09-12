@@ -218,6 +218,7 @@ class Debt(TimeStampedModel):
     customer_name = models.CharField(_("Xaridor"), max_length=200)
     customer_phone = models.CharField(_("Telefon"), max_length=20, blank=True)
     amount = models.BigIntegerField(_("Summa (so'm)"), default=0)
+    due_date = models.DateField(_("Qaytarish sanasi"), null=True, blank=True, db_index=True)
     is_paid = models.BooleanField(_("To'langan"), default=False)
     paid_at = models.DateTimeField(null=True, blank=True)
     note = models.CharField(max_length=200, blank=True)

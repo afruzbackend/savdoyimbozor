@@ -14,6 +14,7 @@
 <a class="navlink {% if request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'seller:report' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg> Hisobot</a>
 <a class="navlink {% if request.resolver_match.url_name == 'rating' %}active{% endif %}" href="{% url 'seller:rating' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-trending-up"></use></svg> Reyting</a>
 <a class="navlink {% if request.resolver_match.url_name == 'corrections' %}active{% endif %}" href="{% url 'seller:corrections' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Tuzatish</a>
+<a class="navlink {% if request.resolver_match.url_name == 'notifications' %}active{% endif %}" href="{% url 'seller:notifications' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bell"></use></svg> Bildirishnomalar{% if unread_notifications %} <span class="nav-badge">{{ unread_notifications }}</span>{% endif %}</a>
 <a class="navlink {% if request.resolver_match.url_name == 'appeals' %}active{% endif %}" href="{% url 'seller:appeals' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-info"></use></svg> E'tiroz</a>
 {% endblock %}
 {% block bottom_nav %}

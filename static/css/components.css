@@ -216,6 +216,22 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .btn-danger{background:var(--bad);color:#fff;border:1px solid var(--bad)}
 .btn-danger:hover{filter:brightness(1.05)}
 
+/* Navigatsiya badge (o'qilmagan bildirishnoma) */
+.nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;
+  padding:0 5px;border-radius:99px;background:var(--bad);color:#fff;font-size:11px;font-weight:700;
+  margin-left:auto}
+
+/* Bildirishnoma kartasi */
+.notif{transition:background .12s}
+.notif:hover{background:var(--surface-sunken)}
+.notif-unread{border-left:3px solid var(--brand-500)}
+.notif-ic{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;flex:none;
+  border-radius:50%;background:var(--surface-sunken);color:var(--ink-muted)}
+.notif-ic.notif-debt_due{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.notif-ic.notif-alert{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+.notif-ic.notif-appeal_reply{background:color-mix(in srgb,var(--brand-500) 15%,transparent);color:var(--brand-600)}
+.dot-unread{width:9px;height:9px;border-radius:50%;background:var(--bad);flex:none;align-self:center}
+
 /* Barkod skaner overlay */
 .scanner-overlay{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.85);
   display:flex;align-items:center;justify-content:center;padding:var(--sp-4)}

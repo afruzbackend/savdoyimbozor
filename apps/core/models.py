@@ -124,3 +124,44 @@ class AuditLog(TimeStampedModel):
 
     def __str__(self):
         return f"{self.created_at:%Y-%m-%d %H:%M} {self.user} {self.action}"
+
+
+class Notification(TimeStampedModel):
+    """Foydalanuvchi bildirishnomasi: nasiya muddati, e'tiroz javobi, signal."""
+
+    class Kind(models.TextChoices):
+        DEBT_DUE = "debt_due", _("Nasiya muddati")
+        APPEAL_REPLY = "appeal_reply", _("E'tiroz javobi")
+        ALERT = "alert", _("Signal")
+        INFO = "info", _("Ma'lumot")
+
+    user = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="notifications"
+    )
+    kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.INFO)
+    title = models.CharField(max_length=200)
+    body = models.CharField(max_length=300, blank=True)
+    url = models.CharField(max_length=200, blank=True)
+    key = models.CharField(max_length=120, blank=True)  # takrorlanmaslik uchun
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = _("Bildirishnoma")
+        verbose_name_plural = _("Bildirishnomalar")
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "is_read", "-created_at"])]
+
+    def __str__(self):
+        return f"{self.user} — {self.title}"
+
+
+def notify(user, kind, title, *, body="", url="", key=""):
+    """Bildirishnoma yaratadi. `key` berilsa — takrorlamaydi (idempotent)."""
+    if user is None:
+        return None
+    if key:
+        obj, _created = Notification.objects.get_or_create(
+            user=user, key=key, defaults={"kind": kind, "title": title, "body": body, "url": url}
+        )
+        return obj
+    return Notification.objects.create(user=user, kind=kind, title=title, body=body, url=url)

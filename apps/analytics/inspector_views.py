@@ -315,6 +315,20 @@ def appeal_respond(request, pk):
         appeal.save(update_fields=["status", "response"])
         from django.contrib import messages
 
+        from apps.core.models import Notification, notify
+
+        target = appeal.author or getattr(appeal.shop, "staff", None)
+        if hasattr(target, "first"):  # staff manager
+            target = target.first()
+        verdict = "qabul qilindi" if action == "accepted" else "rad etildi"
+        notify(
+            target,
+            Notification.Kind.APPEAL_REPLY,
+            f"E'tirozingizga javob: {verdict}",
+            body=appeal.response[:200],
+            url="/e-tiroz/",
+            key=f"appeal:{appeal.id}:{action}",
+        )
         messages.success(request, "E'tirozga javob berildi.")
     return redirect("inspector:shop_detail", pk=appeal.shop_id)
 

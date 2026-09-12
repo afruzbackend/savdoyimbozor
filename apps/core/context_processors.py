@@ -20,4 +20,8 @@ def ui_context(request):
     }
     if user and user.is_authenticated:
         ctx["current_role"] = getattr(user, "role", "")
+        try:
+            ctx["unread_notifications"] = user.notifications.filter(is_read=False).count()
+        except Exception:
+            ctx["unread_notifications"] = 0
     return ctx

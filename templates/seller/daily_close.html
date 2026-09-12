@@ -20,6 +20,20 @@
         <td><input class="input num" style="width:100px" type="number" step="0.1" name="evening_{{ p.id }}"></td></tr>
       {% empty %}<tr><td colspan="4" class="muted">Mahsulot yo'q.</td></tr>{% endfor %}
       </tbody></table></div>
+
+    <div class="card" style="background:var(--surface-sunken);margin-top:var(--sp-4)">
+      <div class="card-title" style="margin-bottom:var(--sp-2)">Kassa (naqd sanoq — majburiy)</div>
+      <div class="grid grid-3" style="gap:var(--sp-3);margin-bottom:var(--sp-3)">
+        <div><small class="muted">Naqd savdo (kutilgan)</small><div class="num" style="font-weight:700">{{ reg.cash|intcomma }}</div></div>
+        <div><small class="muted">Karta</small><div class="num" style="font-weight:700">{{ reg.card|intcomma }}</div></div>
+        <div><small class="muted">O'tkazma</small><div class="num" style="font-weight:700">{{ reg.transfer|intcomma }}</div></div>
+      </div>
+      <div class="field"><label class="label">Sandiqdagi sanalgan naqd (so'm)</label>
+        <input class="input num" type="number" name="counted_cash" min="0" required
+               value="{% if today_close %}{{ today_close.counted_cash }}{% else %}{{ reg.cash }}{% endif %}"></div>
+      <small class="faint">Sandiqda yozilgan naqddan ko'p bo'lsa — yozilmagan savdo belgisi (nazoratchiga signal).</small>
+    </div>
+
     <button class="btn btn-lg" type="submit" style="margin-top:var(--sp-4)">Kunni yakunlash</button>
   </form>
 </div>
