@@ -248,12 +248,13 @@ def recompute_for_date(day) -> int:
         lvl = level_for(result["truth"], cfg.green_threshold, cfg.yellow_threshold)
         if lvl == "green":
             continue
-        if Alert.objects.filter(shop=shop, date=day).exists():
+        if Alert.objects.filter(shop=shop, date=day, kind=Alert.Kind.TRUTH).exists():
             continue
         reason = _alert_reason(result, parts, entered, cash)
         alert = Alert.objects.create(
             shop=shop,
             date=day,
+            kind=Alert.Kind.TRUTH,
             level=lvl,
             reason=reason,
             assigned_to=shop.market.inspectors.first(),
@@ -266,7 +267,55 @@ def recompute_for_date(day) -> int:
                 notify_alert(alert)
             except Exception:  # noqa: BLE001 — xabar asosiy oqimni buzmasin
                 pass
+
+    # Kassa kamomadi signali (Z-hisobot asosida, rostlik ballidan mustaqil)
+    _generate_cash_shortage_alerts(day, cfg)
     return count
+
+
+def _generate_cash_shortage_alerts(day, cfg):
+    """Sanalgan naqd kutilgandan sezilarli kam bo'lsa signal (savdoni yashirish belgisi).
+
+    Rostlik ballidan alohida: sotuvchi Z-hisobotда naqdni kam sanasa, kassa
+    deklaratsiyasi to'g'ri bo'lsa ham bu shubhali. kind=CASH_SHORTAGE.
+    """
+    from apps.analytics.models import Alert
+    from apps.sales.models import RegisterClose
+
+    threshold = cfg.cash_shortage_pct or 15
+    for z in RegisterClose.objects.filter(date=day).select_related("shop", "shop__market"):
+        if z.expected_cash <= 0:
+            continue
+        short = z.expected_cash - z.counted_cash
+        if short <= 0:
+            continue
+        pct = round(short / z.expected_cash * 100)
+        if pct < threshold:
+            continue
+        if Alert.objects.filter(
+            shop_id=z.shop_id, date=day, kind=Alert.Kind.CASH_SHORTAGE
+        ).exists():
+            continue
+        lvl = "red" if pct >= threshold * 2 else "yellow"
+        reason = (
+            f"Kassa kamomadi: sanalgan {int(z.counted_cash):,} / "
+            f"kutilgan {int(z.expected_cash):,} so'm ({pct}% kam)"
+        )
+        alert = Alert.objects.create(
+            shop_id=z.shop_id,
+            date=day,
+            kind=Alert.Kind.CASH_SHORTAGE,
+            level=lvl,
+            reason=reason,
+            assigned_to=z.shop.market.inspectors.first(),
+        )
+        if lvl == "red":
+            try:
+                from apps.analytics.notifications import notify_alert
+
+                notify_alert(alert)
+            except Exception:  # noqa: BLE001
+                pass
 
 
 def _alert_reason(result, parts, entered, cash):

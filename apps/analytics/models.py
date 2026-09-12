@@ -58,8 +58,13 @@ class Alert(TimeStampedModel):
         RESOLVED = "resolved", _("Yakunlangan")
         DISMISSED = "dismissed", _("E'tiborsiz")
 
+    class Kind(models.TextChoices):
+        TRUTH = "truth", _("Rostlik darajasi")
+        CASH_SHORTAGE = "cash_shortage", _("Kassa kamomadi")
+
     shop = models.ForeignKey("shops.Shop", on_delete=models.CASCADE, related_name="alerts")
     date = models.DateField()
+    kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.TRUTH)
     level = models.CharField(max_length=10, choices=Level.choices)
     reason = models.CharField(_("Sabab"), max_length=300)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.NEW)

@@ -35,6 +35,11 @@ class SystemSettings(models.Model):
     # "Eng zaif qism" jarimasi: umumiy ball ≤ (zaif qism + shu qiymat)
     weakest_part_cap = models.PositiveSmallIntegerField(_("Eng zaif qism qo'shimchasi"), default=15)
 
+    # Kassa kamomadi signali: sanalgan naqd kutilgandan shu %dan ko'p kam bo'lsa signal
+    cash_shortage_pct = models.PositiveSmallIntegerField(
+        _("Kassa kamomadi chegarasi (%)"), default=15
+    )
+
     # Kamera baholash koeffitsientlari
     buyer_ratio = models.DecimalField(
         _("Xaridorga aylanish ulushi"), max_digits=4, decimal_places=2, default=0.35
