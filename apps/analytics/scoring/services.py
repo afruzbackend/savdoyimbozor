@@ -136,6 +136,13 @@ def _entered_sales(shop, day):
     return sum(s.total for s in Sale.objects.filter(shop=shop, created_at__date=day))
 
 
+def _has_stock(shop):
+    """Do'konda sotuvga tovar bormi (nol-savdo signalini asoslaydi)."""
+    from apps.catalog.models import Product
+
+    return Product.objects.filter(shop=shop, is_active=True, stock__gt=0).exists()
+
+
 def _cash_declared(shop, day):
     from apps.cash.models import CashRecord
 
@@ -243,6 +250,29 @@ def recompute_for_date(day) -> int:
         # Signal (yopiq kun bo'lmasa, ma'lumot bo'lsa)
         if day.weekday() in shop.closed_weekday_list():
             continue
+
+        # Nol-savdo: ochiq kun, tovari yoki kamera oqimи bor, lekin 0 savdo kiritilган
+        has_activity = cam or (stock_val and stock_val > 0) or _has_stock(shop)
+        if entered == 0 and has_activity:
+            if not Alert.objects.filter(
+                shop=shop, date=day, kind=Alert.Kind.ZERO_SALES
+            ).exists():
+                za = Alert.objects.create(
+                    shop=shop,
+                    date=day,
+                    kind=Alert.Kind.ZERO_SALES,
+                    level="red",
+                    reason="Do'kon ochiq, ammo bugun savdo kiritilmagan (tovar/kamera oqimi bor)",
+                    assigned_to=shop.market.inspectors.first(),
+                )
+                try:
+                    from apps.analytics.notifications import notify_alert
+
+                    notify_alert(za)
+                except Exception:  # noqa: BLE001
+                    pass
+            continue  # nol-savdода rostlik signali ortiqcha
+
         if not any(v is not None for v in parts.values()):
             continue
         lvl = level_for(result["truth"], cfg.green_threshold, cfg.yellow_threshold)
@@ -268,16 +298,19 @@ def recompute_for_date(day) -> int:
             except Exception:  # noqa: BLE001 — xabar asosiy oqimni buzmasin
                 pass
 
-    # Kassa kamomadi signali (Z-hisobot asosida, rostlik ballidan mustaqil)
-    _generate_cash_shortage_alerts(day, cfg)
+    # Kassa nomuvofiqligi signali (Z-hisobot asosida, rostlik ballidan mustaqil)
+    _generate_cash_mismatch_alerts(day, cfg)
     return count
 
 
-def _generate_cash_shortage_alerts(day, cfg):
-    """Sanalgan naqd kutilgandan sezilarli kam bo'lsa signal (savdoni yashirish belgisi).
+def _generate_cash_mismatch_alerts(day, cfg):
+    """Sandiqdagi naqd yozilgan naqd savdodan sezilarli farq qilsa — signal.
 
-    Rostlik ballidan alohida: sotuvchi Z-hisobotда naqdni kam sanasa, kassa
-    deklaratsiyasi to'g'ri bo'lsa ham bu shubhali. kind=CASH_SHORTAGE.
+    Ikki yo'nalish:
+    - ORTIQCHA (sandiqda ko'p): yozilmagan naqd savdo — soliq yashirishning asosiy
+      belgisi (kuchliroq signal).
+    - KAMOMAD (sandiqda kam): pul yo'qolgan / soxta savdo — o'g'irlik/nomuvofiqlik.
+    Rostlik ballidan mustaqil. kind=CASH_MISMATCH.
     """
     from apps.analytics.models import Alert
     from apps.sales.models import RegisterClose
@@ -286,25 +319,32 @@ def _generate_cash_shortage_alerts(day, cfg):
     for z in RegisterClose.objects.filter(date=day).select_related("shop", "shop__market"):
         if z.expected_cash <= 0:
             continue
-        short = z.expected_cash - z.counted_cash
-        if short <= 0:
-            continue
-        pct = round(short / z.expected_cash * 100)
+        diff = z.counted_cash - z.expected_cash  # + ortiqcha, − kamomad
+        pct = round(abs(diff) / z.expected_cash * 100)
         if pct < threshold:
             continue
         if Alert.objects.filter(
-            shop_id=z.shop_id, date=day, kind=Alert.Kind.CASH_SHORTAGE
+            shop_id=z.shop_id, date=day, kind=Alert.Kind.CASH_MISMATCH
         ).exists():
             continue
         lvl = "red" if pct >= threshold * 2 else "yellow"
-        reason = (
-            f"Kassa kamomadi: sanalgan {int(z.counted_cash):,} / "
-            f"kutilgan {int(z.expected_cash):,} so'm ({pct}% kam)"
-        )
+        if diff > 0:
+            # Ortiqcha — yozilmagan savdo belgisi, past chegaradayoq jiddiy
+            lvl = "red" if pct >= threshold else "yellow"
+            reason = (
+                f"Kassa ortiqchasi: sandiqda {int(z.counted_cash):,} / "
+                f"yozilgan {int(z.expected_cash):,} so'm ({pct}% ko'p) — "
+                f"yozilmagan naqd savdo belgisi"
+            )
+        else:
+            reason = (
+                f"Kassa kamomadi: sandiqda {int(z.counted_cash):,} / "
+                f"kutilgan {int(z.expected_cash):,} so'm ({pct}% kam)"
+            )
         alert = Alert.objects.create(
             shop_id=z.shop_id,
             date=day,
-            kind=Alert.Kind.CASH_SHORTAGE,
+            kind=Alert.Kind.CASH_MISMATCH,
             level=lvl,
             reason=reason,
             assigned_to=z.shop.market.inspectors.first(),

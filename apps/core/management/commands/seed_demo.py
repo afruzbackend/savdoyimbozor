@@ -318,7 +318,8 @@ class Command(BaseCommand):
         if count == 0:
             return
         if is_cash_hider:
-            counted = int(cash * random.uniform(0.55, 0.8))  # sezilarli kamomad
+            # Yashiruvchi: sandiqда yozilgandan KO'P naqd (yozilmagan savdo) — ortiqcha
+            counted = int(cash * random.uniform(1.3, 1.8))
         else:
             counted = cash + random.choice([0, 0, 0, -5_000, 3_000])  # deyarli mos
         RegisterClose.objects.update_or_create(

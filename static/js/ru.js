@@ -423,10 +423,11 @@ window.RU_DICT = {
   "O'tkazma": "Перевод",
   "Kassani yopish (Z-hisobot)": "Закрытие кассы (Z-отчёт)",
   "Kassa yopish (Z-hisobot)": "Закрытие кассы (Z-отчёт)",
-  "Sanalgan naqd vs kutilgan naqd — kamomad shubhali":
-    "Пересчитанные наличные vs ожидаемые — недостача подозрительна",
-  "Kamomad (qizil) = sotuvchi sandiqda kutilгандан kam naqd sanaган — savdoni yashirish belgisi bo'lishi mumkin.":
-    "Недостача (красный) = продавец пересчитал меньше ожидаемого — возможный признак сокрытия выручки.",
+  "Sandiqdagi naqd vs yozilgan naqd savdo": "Наличные в кассе vs записанная наличная выручка",
+  "Yozilgan naqd": "Записано наличными",
+  "Sandiqda": "В кассе",
+  "Ortiqcha (qizil) = sandiqda yozilгандан ko'p naqd — yozilmagan savdo belgisi. Kamomad (sariq) = pul kam.":
+    "Излишек (красный) = в кассе больше записанного — признак несписанной выручки. Недостача (жёлтый) = денег меньше.",
   "Kun oxirida sandiqdagi naqdni sanang. Tizim kutilgan naqd bilan solishtiradi.":
     "В конце дня пересчитайте наличные в кассе. Система сравнит с ожидаемым.",
   "Kutilgan naqd": "Ожидаемые наличные",
@@ -455,6 +456,16 @@ window.RU_DICT = {
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
    Tartib muhim — aniqroq/uzunroq bo'laklar oldin. Faqat RU rejimida qo'llanadi. */
 window.RU_FRAGMENTS = [
+  ["Kassa ortiqchasi: sandiqda", "Излишек кассы: в кассе"],
+  ["% ko'p) — yozilmagan naqd savdo belgisi", "% больше) — признак несписанной наличной выручки"],
+  [" / yozilgan ", " / записано "],
+  ["Kassa kamomadi: sandiqda", "Недостача кассы: в кассе"],
+  ["Kassa kamomadi: sanalgan", "Недостача кассы: пересчитано"],
+  ["% kam)", "% меньше)"],
+  ["% ko'p)", "% больше)"],
+  [" / kutilgan ", " / ожидалось "],
+  ["Do'kon ochiq, ammo bugun savdo kiritilmagan (tovar/kamera oqimi bor)",
+   "Магазин открыт, но продажи за сегодня не внесены (есть товар/поток камеры)"],
   ["Deklaratsiya kiritilgandan", "Декларация ниже внесённого на"],
   ["% past (kassa", "% (касса"],
   [" / savdo ", " / выручка "],

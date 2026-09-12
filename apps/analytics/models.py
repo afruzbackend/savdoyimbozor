@@ -60,7 +60,8 @@ class Alert(TimeStampedModel):
 
     class Kind(models.TextChoices):
         TRUTH = "truth", _("Rostlik darajasi")
-        CASH_SHORTAGE = "cash_shortage", _("Kassa kamomadi")
+        CASH_MISMATCH = "cash_mismatch", _("Kassa nomuvofiqligi")
+        ZERO_SALES = "zero_sales", _("Savdo kiritilmagan")
 
     shop = models.ForeignKey("shops.Shop", on_delete=models.CASCADE, related_name="alerts")
     date = models.DateField()
