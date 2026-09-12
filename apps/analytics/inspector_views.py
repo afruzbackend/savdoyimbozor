@@ -36,7 +36,9 @@ def dashboard(request):
 
     latest = {
         s.shop_id: s
-        for s in DailyScore.objects.filter(shop__in=shops, date=today).select_related("shop")
+        for s in DailyScore.objects.filter(shop__in=shops, date=today).select_related(
+            "shop", "shop__category", "shop__market"
+        )
     }
     truths = [s.truth_pct for s in latest.values()]
     avg_truth = round(sum(truths) / len(truths)) if truths else None

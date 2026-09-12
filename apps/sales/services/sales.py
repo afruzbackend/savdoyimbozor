@@ -12,6 +12,10 @@ from ..models import Sale, SaleItem
 from . import pricing
 
 
+class InsufficientStock(Exception):
+    """Qoldiqdan ko'p sotishga urinilganda."""
+
+
 @transaction.atomic
 def create_sale(
     *,
@@ -34,18 +38,35 @@ def create_sale(
     settings_obj = SystemSettings.get_solo()
     subtotal = sum(int(round(float(i["qty"]) * int(i["unit_price"]))) for i in items)
 
-    # Tannarxni yig'amiz (agar product_id bo'lsa) — tannarxdan past sotishni bloklash uchun
-    items_cost = 0
-    have_cost = False
+    from decimal import Decimal
+
     from apps.catalog.models import Product
 
+    # Bir mahsulot bir chekda bir necha marta bo'lishi mumkin — jami miqdorni yig'amiz
+    need = {}
     for i in items:
         pid = i.get("product_id")
         if pid:
-            p = Product.objects.filter(pk=pid).first()
-            if p and p.buy_price:
-                items_cost += int(round(float(i["qty"]) * p.buy_price))
-                have_cost = True
+            need[pid] = need.get(pid, Decimal("0")) + Decimal(str(i["qty"]))
+
+    prods = {p.pk: p for p in Product.objects.filter(pk__in=need)}
+    # Qoldiq tekshiruvi: qoldiqdan ko'p sotib bo'lmaydi (manfiy qoldiq bo'lmasin)
+    for pid, qty in need.items():
+        p = prods.get(pid)
+        if p and qty > p.stock:
+            raise InsufficientStock(
+                f"«{p.name}» qoldig'i yetarli emas: bor {p.stock:g} {p.get_unit_display()}, "
+                f"so'ralgan {qty:g}."
+            )
+
+    # Tannarxni yig'amiz — tannarxdan past sotishni bloklash uchun
+    items_cost = 0
+    have_cost = False
+    for i in items:
+        pid = i.get("product_id")
+        if pid and prods.get(pid) and prods[pid].buy_price:
+            items_cost += int(round(float(i["qty"]) * prods[pid].buy_price))
+            have_cost = True
     cost = items_cost if have_cost else None
 
     priced = pricing.price_sale(

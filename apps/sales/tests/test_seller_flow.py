@@ -46,6 +46,37 @@ def test_sale_reduces_stock(shop, seller, product):
 
 
 @pytest.mark.django_db
+def test_cannot_sell_more_than_stock(shop, seller, product):
+    """Qoldiqdan ko'p sotib bo'lmaydi (manfiy qoldiq bo'lmasin)."""
+    from apps.sales.services.sales import InsufficientStock
+
+    product.stock = 200
+    product.save(update_fields=["stock"])
+    with pytest.raises(InsufficientStock):
+        sale_svc.create_sale(
+            shop=shop, seller=seller,
+            items=[{"product_id": product.pk, "name": product.name, "qty": 500, "unit_price": 12000}],
+        )
+    product.refresh_from_db()
+    assert product.stock == 200  # o'zgarmadi
+
+
+@pytest.mark.django_db
+def test_sale_api_rejects_oversell(sclient, shop, product):
+    product.stock = 10
+    product.save(update_fields=["stock"])
+    r = sclient.post(
+        "/api/sales/",
+        {"items": [{"product_id": product.pk, "name": product.name, "qty": 50, "unit_price": 12000}],
+         "payment_type": "cash", "mode": "scan"},
+        content_type="application/json",
+        HTTP_HOST=SELLER_HOST,
+    )
+    assert r.status_code == 400
+    assert "yetarli emas" in r.json()["detail"]
+
+
+@pytest.mark.django_db
 def test_correction_keeps_old_value(sclient, shop, seller):
     sale = Sale.objects.create(shop=shop, seller=seller, total=50000, subtotal=50000)
     r = sclient.post(

@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .models import Sale
-from .services.sales import create_sale
+from .services.sales import InsufficientStock, create_sale
 
 
 def _seller_shop(request):
@@ -32,18 +32,21 @@ def create_sale_api(request):
 
         client_ts = parse_datetime(data["client_ts"])
 
-    sale = create_sale(
-        shop=shop,
-        seller=request.user,
-        items=items,
-        discount=int(data.get("discount", 0)),
-        rounding=int(data.get("rounding", 0)),
-        payment_type=data.get("payment_type", "cash"),
-        is_wholesale=bool(data.get("is_wholesale", False)),
-        mode=data.get("mode", "quick"),
-        client_ts=client_ts,
-        note=data.get("note", ""),
-    )
+    try:
+        sale = create_sale(
+            shop=shop,
+            seller=request.user,
+            items=items,
+            discount=int(data.get("discount", 0)),
+            rounding=int(data.get("rounding", 0)),
+            payment_type=data.get("payment_type", "cash"),
+            is_wholesale=bool(data.get("is_wholesale", False)),
+            mode=data.get("mode", "quick"),
+            client_ts=client_ts,
+            note=data.get("note", ""),
+        )
+    except InsufficientStock as e:
+        return Response({"detail": str(e)}, status=400)
     return Response(
         {
             "id": sale.id,

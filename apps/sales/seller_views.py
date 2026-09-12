@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import F, Sum
+from django.db.models import Count, F, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -70,6 +70,16 @@ def notifications(request):
 
 
 @login_required
+def notification_open(request, pk):
+    """Bildirishnomani ochish: o'qilgan deb belgilaydi va manziliga o'tadi."""
+    n = get_object_or_404(request.user.notifications, pk=pk)
+    if not n.is_read:
+        n.is_read = True
+        n.save(update_fields=["is_read"])
+    return redirect(n.url or "seller:notifications")
+
+
+@login_required
 def home(request):
     shop = _shop(request)
     _gen_debt_notifications(request.user, shop)
@@ -78,13 +88,15 @@ def home(request):
         return redirect("seller:appeals")
     today = timezone.localdate()
     sales = Sale.objects.filter(shop=shop, created_at__date=today) if shop else Sale.objects.none()
-    total = sum(s.total for s in sales)
+    agg = sales.aggregate(total=Sum("total"), n=Count("id"))  # bitta so'rovda jami+soni
     low_stock = (
-        Product.objects.filter(
-            shop=shop,
-            is_active=True,
-            low_stock_threshold__gt=0,
-            stock__lte=F("low_stock_threshold"),
+        list(
+            Product.objects.filter(
+                shop=shop,
+                is_active=True,
+                low_stock_threshold__gt=0,
+                stock__lte=F("low_stock_threshold"),
+            )[:5]
         )
         if shop
         else []
@@ -94,10 +106,10 @@ def home(request):
         "seller/home.html",
         {
             "shop": shop,
-            "today_total": total,
-            "today_count": sales.count(),
+            "today_total": agg["total"] or 0,
+            "today_count": agg["n"] or 0,
             "recent": sales.order_by("-created_at")[:8],
-            "low_stock": low_stock[:5] if shop else [],
+            "low_stock": low_stock,
         },
     )
 
