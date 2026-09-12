@@ -110,13 +110,8 @@
 
   window.setUiLang = function (v) {
     document.cookie = "uilang=" + v + ";path=/;max-age=" + 60 * 60 * 24 * 365 + ";samesite=Lax";
-    // Doppi naqshi chizilib bo'lgach yangilaymiz (milliy o'tish effekti)
-    if (window.milliyFlash) {
-      window.milliyFlash();
-      setTimeout(function () { location.reload(); }, 400);
-    } else {
-      location.reload();
-    }
+    // Tugma ustidagi doppi sweep ko'rinib bo'lgach yangilaymiz (milliy o'tish)
+    setTimeout(function () { location.reload(); }, 440);
   };
 
   function run() {

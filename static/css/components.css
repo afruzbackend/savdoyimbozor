@@ -321,23 +321,18 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .modal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);
   padding:var(--sp-5);max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4)}
 
-/* Milliy doppi naqshi — bo'limlar ustidan chetdan surilib o'tadi (refresh-wipe) */
-.milliy-sweep{position:fixed;inset:0;z-index:90;pointer-events:none;overflow:hidden;opacity:0}
-.milliy-sweep .sweep-band{position:absolute;top:0;bottom:0;left:0;width:min(46vw,460px);
-  display:flex;align-items:center;justify-content:center;color:var(--brand-600);
-  transform:translateX(-115%);
-  background:linear-gradient(90deg,transparent,
-    color-mix(in srgb,var(--brand-500) 14%,transparent) 45%,
-    color-mix(in srgb,var(--brand-500) 14%,transparent) 55%,transparent)}
-.milliy-sweep .doppi-pattern{width:78%;height:auto;display:block}
-/* Ko'rsatilganda: chapdan o'ngga surilib o'tadi, yumshoq paydo bo'lib yo'qoladi */
-.milliy-sweep.show{animation:sweepFade .75s ease-out forwards}
-.milliy-sweep.show .sweep-band{animation:sweepMove .75s cubic-bezier(.45,0,.25,1) forwards}
-@keyframes sweepFade{0%{opacity:0}12%{opacity:1}80%{opacity:1}100%{opacity:0}}
-@keyframes sweepMove{0%{transform:translateX(-115%)}100%{transform:translateX(255%)}}
+/* Milliy doppi — bosilgan bo'lim tugmasi USTIDAN chapdan o'ngga o'tadi */
+#doppi-src{display:none}
+.navsweep{position:fixed;overflow:hidden;pointer-events:none;z-index:70;border-radius:var(--r-sm);
+  background:color-mix(in srgb,var(--brand-500) 10%,transparent)}
+.navsweep .navsweep-mark{position:absolute;top:50%;left:-90px;height:150%;width:auto;
+  transform:translateY(-50%);color:var(--brand-600)}
+.navsweep.go .navsweep-mark{animation:navSweep .46s ease-out forwards}
+.navsweep.go{animation:navSweepBg .46s ease-out forwards}
+@keyframes navSweep{from{left:-90px}to{left:100%}}
+@keyframes navSweepBg{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){
-  .milliy-sweep.show{animation-duration:.25s}
-  .milliy-sweep.show .sweep-band{animation:none}}
+  .navsweep .navsweep-mark{animation:none;opacity:0}}
 
 /* Mobil pastki navigatsiya (sotuvchi/inspektor telefonda) */
 .bottom-nav{display:none}

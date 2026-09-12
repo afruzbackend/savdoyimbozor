@@ -78,24 +78,31 @@
     </div>
   </div>
 
-  {# Milliy doppi naqshi — bo'limlar ustidan chetdan surilib o'tadi (refresh-wipe) #}
-  <div id="milliy-splash" class="milliy-sweep" aria-hidden="true">
-    <div class="sweep-band">{% include 'components/_doppi.html' %}</div>
-  </div>
+  {# Milliy doppi naqshi manbasi (yashirin) — bosilgan tugma ustidan nusxalanadi #}
+  <div id="doppi-src" hidden>{% include 'components/_doppi.html' %}</div>
 </div>
 <script>
   (function(){
-    // Milliy naqsh chaqnashi
-    window.milliyFlash = function(){
-      var s = document.getElementById('milliy-splash'); if(!s) return;
-      s.classList.remove('show'); void s.offsetWidth; s.classList.add('show');
-      setTimeout(function(){ s.classList.remove('show'); }, 800);
+    var src = document.getElementById('doppi-src');
+    // Doppi naqshini berilgan element (tugma/havola) USTIDAN chapdan o'ngga suradi
+    window.milliySweepOver = function(el, cb){
+      if(!el || !src || !src.firstElementChild){ if(cb) cb(); return; }
+      var r = el.getBoundingClientRect();
+      var w = document.createElement('div');
+      w.className = 'navsweep';
+      w.style.cssText = 'left:'+r.left+'px;top:'+r.top+'px;width:'+r.width+'px;height:'+r.height+'px';
+      var svg = src.firstElementChild.cloneNode(true);
+      svg.classList.add('navsweep-mark');
+      w.appendChild(svg);
+      document.body.appendChild(w);
+      requestAnimationFrame(function(){ w.classList.add('go'); });
+      setTimeout(function(){ w.remove(); if(cb) cb(); }, 440);
     };
-    // Til/mavzu tugmalari bosilganda
+    // Til/mavzu — o'sha bosilgan tugma ustidan sweep
     document.querySelectorAll('.lang-toggle button, .theme-toggle button').forEach(function(b){
-      b.addEventListener('click', function(){ window.milliyFlash(); });
+      b.addEventListener('click', function(){ window.milliySweepOver(b); });
     });
-    // Sahifalar orasida o'tish: nav bosilganda doppi chiziladi, so'ng sahifa ochiladi
+    // Boshqa bo'limga o'tish: bosilgan nav tugmasi ustidan doppi o'tadi, so'ng sahifa ochiladi
     document.querySelectorAll('.sidebar nav a[href], .bottom-nav a[href]').forEach(function(a){
       a.addEventListener('click', function(e){
         var href = a.getAttribute('href');
@@ -103,8 +110,7 @@
         if(a.classList.contains('active')) return;          // joriy sahifa — o'tish yo'q
         if(e.metaKey || e.ctrlKey || e.shiftKey || e.button) return; // yangi tab — tegmaymiz
         e.preventDefault();
-        window.milliyFlash();
-        setTimeout(function(){ window.location.href = href; }, 400);
+        window.milliySweepOver(a, function(){ window.location.href = href; });
       });
     });
   })();
