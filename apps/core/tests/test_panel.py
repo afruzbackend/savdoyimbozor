@@ -10,24 +10,6 @@ from conftest import PW
 PANEL_HOST = "panel.localhost"
 
 
-@pytest.fixture
-def admin_user(db):
-    from apps.accounts.models import Role, User
-
-    u = User.objects.create(username="admin1", role=Role.SUPERADMIN, is_staff=True, is_superuser=True)
-    u.set_password(PW)
-    u.must_change_password = False
-    u.save()
-    return u
-
-
-@pytest.fixture
-def aclient(admin_user):
-    c = Client()
-    c.force_login(admin_user)
-    return c
-
-
 @pytest.mark.django_db
 def test_admin_creates_shop_with_location(aclient, market):
     from apps.catalog.models import ShopCategory

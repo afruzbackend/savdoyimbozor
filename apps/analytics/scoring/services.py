@@ -219,28 +219,120 @@ def recompute_for_date(day) -> int:
     # Bozor narxlarini oldindan hisoblaymiz (do'kon narx balli uchun)
     medians_by_market = {m.id: compute_market_prices(m, day) for m in Market.objects.all()}
 
-    # Bozor bo'yicha o'rtacha chek (kamera bahosi mustaqilligi uchun)
-    from django.db.models import Count as _Count
-    from django.db.models import Sum as _Sum
+    # === BATCHING: N+1 o'rniga bittalik agregat so'rovlar (300 do'konda ham tez) ===
+    from collections import defaultdict
+    from datetime import timedelta
 
-    from apps.sales.models import Sale as _Sale
+    from django.db.models import Count, F, Sum
 
-    avg_check_by_market = {}
-    for m in Market.objects.all():
-        a = _Sale.objects.filter(shop__market=m, created_at__date=day).aggregate(
-            t=_Sum("total"), n=_Count("id")
-        )
-        avg_check_by_market[m.id] = (a["t"] / a["n"]) if a["n"] else 0
+    from apps.cameras.models import CameraEvent
+    from apps.cash.models import CashRecord
+    from apps.catalog.models import Product
+    from apps.sales.models import DailyClose, Sale, StockIn
+
+    shops = list(Shop.objects.filter(is_active=True).select_related("market"))
+    ids = [s.id for s in shops]
+
+    # Kiritilgan savdo + chek soni (do'kon bo'yicha, 1 so'rov)
+    entered_by, checks_by = {}, {}
+    for r in Sale.objects.filter(shop_id__in=ids, created_at__date=day).values("shop").annotate(
+        t=Sum("total"), n=Count("id")
+    ):
+        entered_by[r["shop"]] = int(r["t"] or 0)
+        checks_by[r["shop"]] = r["n"] or 0
+    # Deklaratsiya (kassa) — 1 so'rov
+    cash_by = {
+        r["shop"]: int(r["t"] or 0)
+        for r in CashRecord.objects.filter(shop_id__in=ids, date=day)
+        .values("shop")
+        .annotate(t=Sum("amount"))
+    }
+    # Kamera tashriflari — 1 so'rov
+    visits_by = {
+        r["shop"]: r["c"]
+        for r in CameraEvent.objects.filter(shop_id__in=ids, type="visit", ts__date=day)
+        .values("shop")
+        .annotate(c=Count("id"))
+    }
+    # Bozor o'rtacha cheki (kamera mustaqilligi uchun) — do'kon jamlanmalaridan
+    mkt_sum, mkt_cnt = defaultdict(int), defaultdict(int)
+    for s in shops:
+        mkt_sum[s.market_id] += entered_by.get(s.id, 0)
+        mkt_cnt[s.market_id] += checks_by.get(s.id, 0)
+    avg_check_by_market = {
+        m: (mkt_sum[m] / mkt_cnt[m]) if mkt_cnt[m] else 0 for m in mkt_sum
+    }
+    # Narx balli uchun mahsulotlar — 1 so'rov, do'kon bo'yicha guruh
+    prices_by = defaultdict(list)
+    stock_shop_ids = set()
+    for r in Product.objects.filter(shop_id__in=ids, is_active=True).values(
+        "shop", "category_id", "sell_price", "stock"
+    ):
+        if r["stock"] and r["stock"] > 0:
+            stock_shop_ids.add(r["shop"])
+        if r["category_id"] and r["sell_price"] > 0:
+            prices_by[r["shop"]].append((r["category_id"], r["sell_price"]))
+    # Anomaliya uchun 30-kunlik tarix — 1 so'rov
+    prior_by = defaultdict(list)
+    prior_qs = DailyScore.objects.filter(
+        shop_id__in=ids,
+        date__lt=day,
+        date__gte=day - timedelta(days=30),
+        entered_sales__gt=0,
+    ).values("shop", "entered_sales")
+    for r in prior_qs:
+        prior_by[r["shop"]].append(r["entered_sales"])
+    # Inspektor — bozor bo'yicha (do'kon boshiga takror so'rov emas)
+    insp_by_market = {}
+    for s in shops:
+        if s.market_id not in insp_by_market:
+            insp_by_market[s.market_id] = s.market.inspectors.first()
+    # Qoldiq bahosi (DailyClose asosida) — 2 so'rov (close + lines), StockIn — 1 so'rov
+    stock_val_by, has_close = {}, set()
+    for c in DailyClose.objects.filter(shop_id__in=ids, date=day).prefetch_related("lines"):
+        has_close.add(c.shop_id)
+        v = 0
+        for line in c.lines.all():
+            sold = float(line.morning_qty) - float(line.evening_qty)
+            if sold > 0:
+                v += int(sold * line.unit_price)
+        stock_val_by[c.shop_id] = v
+    for r in StockIn.objects.filter(shop_id__in=ids, created_at__date=day).values("shop").annotate(
+        v=Sum(F("quantity") * F("unit_price"))
+    ):
+        if r["shop"] in stock_val_by:
+            stock_val_by[r["shop"]] += int(r["v"] or 0)
+    # Mavjud signallar (do'kon,tur) — 1 so'rov (har do'konga .exists() o'rniga)
+    existing_alerts = set(
+        Alert.objects.filter(shop_id__in=ids, date=day).values_list("shop_id", "kind")
+    )
+
+    def _price_score_from(rows, medians):
+        scores = [
+            price_score(sp, medians.get(cid))
+            for cid, sp in rows
+            if price_score(sp, medians.get(cid)) is not None
+        ]
+        return (sum(scores) / len(scores)) if scores else None
 
     count = 0
-    for shop in Shop.objects.filter(is_active=True).select_related("market"):
-        entered = _entered_sales(shop, day)
-        cash = _cash_declared(shop, day)
-        cam = _camera_estimate(
-            shop, day, cfg.buyer_ratio, avg_check_by_market.get(shop.market_id, 0)
+    for shop in shops:
+        entered = entered_by.get(shop.id, 0)
+        cash = cash_by.get(shop.id, 0)
+        # Kamera bahosi (dict'lardan; alohida so'rovsiz)
+        visits = visits_by.get(shop.id, 0)
+        cam = None
+        if visits:
+            own_avg = entered / checks_by[shop.id] if checks_by.get(shop.id) else 0
+            avg_check = max(own_avg, avg_check_by_market.get(shop.market_id, 0))
+            cam = int(visits * float(cfg.buyer_ratio) * avg_check) if avg_check > 0 else None
+        stock_val = stock_val_by.get(shop.id) if shop.id in has_close else None
+        if stock_val is not None and stock_val <= 0:
+            stock_val = None
+        price_val = _price_score_from(
+            prices_by.get(shop.id, []), medians_by_market.get(shop.market_id, {})
         )
-        stock_val = _stock_estimate(shop, day)
-        price_val = _shop_price_score(shop, medians_by_market.get(shop.market_id, {}))
+        inspector = insp_by_market.get(shop.market_id)
 
         parts = {
             "cash": match(cash, entered),
@@ -279,18 +371,17 @@ def recompute_for_date(day) -> int:
             continue
 
         # Nol-savdo: ochiq kun, tovari yoki kamera oqimи bor, lekin 0 savdo kiritilган
-        has_activity = cam or (stock_val and stock_val > 0) or _has_stock(shop)
+        has_activity = cam or (stock_val and stock_val > 0) or (shop.id in stock_shop_ids)
         if entered == 0 and has_activity:
-            if not Alert.objects.filter(
-                shop=shop, date=day, kind=Alert.Kind.ZERO_SALES
-            ).exists():
+            if (shop.id, Alert.Kind.ZERO_SALES) not in existing_alerts:
+                existing_alerts.add((shop.id, Alert.Kind.ZERO_SALES))
                 za = Alert.objects.create(
                     shop=shop,
                     date=day,
                     kind=Alert.Kind.ZERO_SALES,
                     level="red",
                     reason="Do'kon ochiq, ammo bugun savdo kiritilmagan (tovar/kamera oqimi bor)",
-                    assigned_to=shop.market.inspectors.first(),
+                    assigned_to=inspector,
                 )
                 try:
                     from apps.analytics.notifications import notify_alert
@@ -300,17 +391,19 @@ def recompute_for_date(day) -> int:
                     pass
             continue  # nol-savdода rostlik signali ortiqcha
 
-        # Anomaliya: bugungi savdo 30-kunlik o'rtachadan keskin tushsa
-        if entered > 0:
-            _generate_anomaly_alert(shop, day, entered, cfg)
+        # Anomaliya: bugungi savdo 30-kunlik o'rtachadan keskin tushsa (batched tarix)
+        if entered > 0 and (shop.id, Alert.Kind.ANOMALY) not in existing_alerts:
+            if _anomaly_from(shop, day, entered, prior_by.get(shop.id, []), cfg, inspector):
+                existing_alerts.add((shop.id, Alert.Kind.ANOMALY))
 
         if not any(v is not None for v in parts.values()):
             continue
         lvl = level_for(result["truth"], cfg.green_threshold, cfg.yellow_threshold)
         if lvl == "green":
             continue
-        if Alert.objects.filter(shop=shop, date=day, kind=Alert.Kind.TRUTH).exists():
+        if (shop.id, Alert.Kind.TRUTH) in existing_alerts:
             continue
+        existing_alerts.add((shop.id, Alert.Kind.TRUTH))
         reason = _alert_reason(result, parts, entered, cash)
         alert = Alert.objects.create(
             shop=shop,
@@ -318,7 +411,7 @@ def recompute_for_date(day) -> int:
             kind=Alert.Kind.TRUTH,
             level=lvl,
             reason=reason,
-            assigned_to=shop.market.inspectors.first(),
+            assigned_to=inspector,
         )
         # Qizil signal → inspektorga darrov Telegram (token bo'lsa; aks holda jim o'tadi)
         if lvl == "red":
@@ -330,33 +423,22 @@ def recompute_for_date(day) -> int:
                 pass
 
     # Kassa nomuvofiqligi signali (Z-hisobot asosida, rostlik ballidan mustaqil)
-    _generate_cash_mismatch_alerts(day, cfg)
+    _generate_cash_mismatch_alerts(day, cfg, existing_alerts, insp_by_market)
     return count
 
 
-def _generate_anomaly_alert(shop, day, entered, cfg):
-    """Bugungi savdo o'zining 30-kunlik o'rtachasidan keskin tushsa — signal."""
-    from datetime import timedelta
+def _anomaly_from(shop, day, entered, prior, cfg, inspector):
+    """Bugungi savdo 30-kunlik o'rtachadan keskin tushsa — signal. Qaytadi: yaratildimi (bool)."""
+    from apps.analytics.models import Alert
 
-    from apps.analytics.models import Alert, DailyScore
-
-    prior = [
-        s.entered_sales
-        for s in DailyScore.objects.filter(
-            shop=shop, date__lt=day, date__gte=day - timedelta(days=30)
-        )
-        if s.entered_sales > 0
-    ]
     if len(prior) < 5:  # yetarli tarix bo'lmasa — baholamaymiz
-        return
+        return False
     avg = sum(prior) / len(prior)
     if avg <= 0:
-        return
+        return False
     drop_pct = round((1 - entered / avg) * 100)
     if drop_pct < cfg.anomaly_drop_pct:
-        return
-    if Alert.objects.filter(shop=shop, date=day, kind=Alert.Kind.ANOMALY).exists():
-        return
+        return False
     lvl = "red" if drop_pct >= 80 else "yellow"
     Alert.objects.create(
         shop=shop,
@@ -367,11 +449,12 @@ def _generate_anomaly_alert(shop, day, entered, cfg):
             f"Savdo keskin tushdi: bugun {int(entered):,} so'm, "
             f"odatda ~{int(avg):,} so'm ({drop_pct}% kam)"
         ),
-        assigned_to=shop.market.inspectors.first(),
+        assigned_to=inspector,
     )
+    return True
 
 
-def _generate_cash_mismatch_alerts(day, cfg):
+def _generate_cash_mismatch_alerts(day, cfg, existing_alerts=None, insp_by_market=None):
     """Sandiqdagi naqd yozilgan naqd savdodan sezilarli farq qilsa — signal.
 
     Ikki yo'nalish:
@@ -383,6 +466,15 @@ def _generate_cash_mismatch_alerts(day, cfg):
     from apps.analytics.models import Alert
     from apps.sales.models import RegisterClose
 
+    if existing_alerts is None:
+        existing_alerts = set(
+            Alert.objects.filter(date=day, kind=Alert.Kind.CASH_MISMATCH).values_list(
+                "shop_id", "kind"
+            )
+        )
+    if insp_by_market is None:
+        insp_by_market = {}
+
     threshold = cfg.cash_shortage_pct or 15
     for z in RegisterClose.objects.filter(date=day).select_related("shop", "shop__market"):
         if z.expected_cash <= 0:
@@ -391,10 +483,9 @@ def _generate_cash_mismatch_alerts(day, cfg):
         pct = round(abs(diff) / z.expected_cash * 100)
         if pct < threshold:
             continue
-        if Alert.objects.filter(
-            shop_id=z.shop_id, date=day, kind=Alert.Kind.CASH_MISMATCH
-        ).exists():
+        if (z.shop_id, Alert.Kind.CASH_MISMATCH) in existing_alerts:
             continue
+        existing_alerts.add((z.shop_id, Alert.Kind.CASH_MISMATCH))
         lvl = "red" if pct >= threshold * 2 else "yellow"
         if diff > 0:
             # Ortiqcha — yozilmagan savdo belgisi, past chegaradayoq jiddiy
@@ -409,13 +500,16 @@ def _generate_cash_mismatch_alerts(day, cfg):
                 f"Kassa kamomadi: sandiqda {int(z.counted_cash):,} / "
                 f"kutilgan {int(z.expected_cash):,} so'm ({pct}% kam)"
             )
+        inspector = insp_by_market.get(z.shop.market_id)
+        if inspector is None and z.shop.market_id not in insp_by_market:
+            inspector = z.shop.market.inspectors.first()
         alert = Alert.objects.create(
             shop_id=z.shop_id,
             date=day,
             kind=Alert.Kind.CASH_MISMATCH,
             level=lvl,
             reason=reason,
-            assigned_to=z.shop.market.inspectors.first(),
+            assigned_to=inspector,
         )
         if lvl == "red":
             try:
