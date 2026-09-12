@@ -89,11 +89,23 @@
     window.milliyFlash = function(){
       var s = document.getElementById('milliy-splash'); if(!s) return;
       s.classList.remove('show'); void s.offsetWidth; s.classList.add('show');
-      setTimeout(function(){ s.classList.remove('show'); }, 1700);
+      setTimeout(function(){ s.classList.remove('show'); }, 900);
     };
     // Til/mavzu tugmalari bosilganda
     document.querySelectorAll('.lang-toggle button, .theme-toggle button').forEach(function(b){
       b.addEventListener('click', function(){ window.milliyFlash(); });
+    });
+    // Sahifalar orasida o'tish: nav bosilganda doppi chiziladi, so'ng sahifa ochiladi
+    document.querySelectorAll('.sidebar nav a[href], .bottom-nav a[href]').forEach(function(a){
+      a.addEventListener('click', function(e){
+        var href = a.getAttribute('href');
+        if(!href || href.charAt(0) === '#' || href.indexOf('logout') !== -1) return;
+        if(a.classList.contains('active')) return;          // joriy sahifa — o'tish yo'q
+        if(e.metaKey || e.ctrlKey || e.shiftKey || e.button) return; // yangi tab — tegmaymiz
+        e.preventDefault();
+        window.milliyFlash();
+        setTimeout(function(){ window.location.href = href; }, 480);
+      });
     });
   })();
 </script>
