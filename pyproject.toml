@@ -18,3 +18,7 @@ known-first-party = ["apps", "config"]
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.dev"
 python_files = ["test_*.py", "tests.py"]
+filterwarnings = [
+    # WhiteNoise testda staticfiles/ yo'qligidan ogohlantiradi (USE_FINDERS baribir uzatadi) — bexatar
+    "ignore:No directory at:UserWarning",
+]
