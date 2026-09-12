@@ -55,6 +55,7 @@
       <h1>{% block heading %}{% endblock %}</h1>
       <div class="row gap-3">{% block topbar_actions %}{% endblock %}</div>
     </header>
+    <div class="page-ornament" aria-hidden="true" data-noloc>{% include 'components/_koshin.html' %}</div>
     <main class="content">
       {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
       {% block content %}{% endblock %}

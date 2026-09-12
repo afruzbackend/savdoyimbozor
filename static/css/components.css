@@ -187,7 +187,13 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
   padding:var(--sp-4) var(--sp-5);background:var(--surface);border-bottom:1px solid var(--border);
   position:sticky;top:0;z-index:20}
 .topbar h1{font-size:var(--t-2);margin:0}
-.content{padding:var(--sp-5);max-width:1180px;width:100%;margin:0 auto}
+.main{position:relative}
+.content{padding:var(--sp-5);max-width:1180px;width:100%;margin:0 auto;position:relative;z-index:1}
+/* Milliy koshin suv belgisi — bo'sh joylarga nafis milliy tus beradi */
+.page-ornament{position:absolute;right:-50px;bottom:-50px;width:400px;height:400px;
+  color:var(--brand-500);opacity:.07;pointer-events:none;z-index:0;overflow:hidden}
+:root[data-theme="dark"] .page-ornament{color:var(--brand-300);opacity:.09}
+@media (max-width:860px){.page-ornament{display:none}}
 
 /* Tema tugmasi (2 rejim: yorug'/qorong'i) */
 .theme-toggle{display:flex;border:1px solid var(--border-strong);border-radius:var(--r-full);overflow:hidden}
