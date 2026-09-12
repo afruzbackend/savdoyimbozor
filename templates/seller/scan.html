@@ -8,8 +8,10 @@
   <div class="card" style="margin-bottom:var(--sp-4)">
     <label class="label">Barkod yoki nom</label>
     <div class="row gap-2">
-      <input class="input" x-model="q" @input.debounce.250ms="search()" @keydown.enter="quickAdd()"
+      <input class="input grow" x-model="q" @input.debounce.250ms="search()" @keydown.enter="quickAdd()"
              placeholder="Barkodni skanerlang yoki nom yozing" autofocus x-ref="scan">
+      <button type="button" class="scan-btn" @click="scanCamera()" title="Kamerani ochish">
+        <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg></button>
     </div>
     <div x-show="results.length" x-cloak style="margin-top:var(--sp-2);border:1px solid var(--border);border-radius:var(--r-sm)">
       <template x-for="r in results" :key="r.id">
@@ -55,6 +57,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>
 <script>
   window.__PRICING__ = {{ pricing_config|safe }};
   document.addEventListener('alpine:init', () => {
@@ -68,6 +71,7 @@
       async search(){ if(!this.q){ this.results=[]; return; }
         const r = await fetch('/api/products/lookup/?q='+encodeURIComponent(this.q));
         this.results = r.ok ? await r.json() : []; },
+      scanCamera(){ window.openBarcodeScanner(async (code)=>{ this.q=code; await this.quickAdd(); }); },
       add(r){ const e=this.cart.find(c=>c.id===r.id); if(e) e.qty++; else this.cart.push({id:r.id,name:r.name,price:r.price,qty:1});
         this.q=''; this.results=[]; this.$refs.scan.focus(); },
       async quickAdd(){ await this.search(); if(this.results.length) this.add(this.results[0]); },

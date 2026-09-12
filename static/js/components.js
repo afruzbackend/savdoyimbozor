@@ -112,6 +112,48 @@
     document.body.addEventListener &&
     document.body.addEventListener("htmx:afterSwap", (e) => enhanceSelects(e.target));
 
+  // ---- Barkod skaner (kamera) — ZXing, hamma brauzerda ishlaydi ----
+  window.openBarcodeScanner = function (onDetect) {
+    if (!window.ZXing) {
+      window.toast && window.toast("Skaner yuklanmadi — qo'lda kiriting", "bad");
+      return;
+    }
+    const ov = document.createElement("div");
+    ov.className = "scanner-overlay";
+    ov.innerHTML =
+      '<div class="scanner-box">' +
+      '<video class="scanner-video" playsinline muted></video>' +
+      '<div class="scanner-frame"></div>' +
+      '<div class="scanner-hint">Barkodni ramka ichiga tuting</div>' +
+      '<button type="button" class="btn btn-danger scanner-close">Yopish</button>' +
+      "</div>";
+    document.body.appendChild(ov);
+    const video = ov.querySelector("video");
+    const reader = new window.ZXing.BrowserMultiFormatReader();
+    let done = false;
+    function close() {
+      if (done) return;
+      done = true;
+      try { reader.reset(); } catch (e) {}
+      ov.remove();
+    }
+    ov.querySelector(".scanner-close").addEventListener("click", close);
+    ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+    reader
+      .decodeFromConstraints({ video: { facingMode: "environment" } }, video, (result) => {
+        if (result && !done) {
+          const val = result.getText();
+          close();
+          try { navigator.vibrate && navigator.vibrate(80); } catch (e) {}
+          onDetect(val);
+        }
+      })
+      .catch(() => {
+        window.toast && window.toast("Kamera ochilmadi — ruxsat bering yoki qo'lda kiriting", "bad");
+        close();
+      });
+  };
+
   // ---- Custom fayl tanlash: tanlanган fayl nomini ko'rsatadi ----
   document.addEventListener("change", (e) => {
     const inp = e.target;

@@ -1,5 +1,5 @@
 {% extends 'seller/base.html' %}
-{% load humanize %}
+{% load humanize static %}
 {% block title %}Mahsulotlar{% endblock %}
 {% block heading %}Mahsulotlar{% endblock %}
 {% block content %}
@@ -16,14 +16,21 @@
   </div>
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Yangi mahsulot</div>
-    <form method="post">{% csrf_token %}
+    <form method="post" x-data="{}">{% csrf_token %}
       <div class="field"><label class="label">Nomi</label><input class="input" name="name" required></div>
       <div class="field"><label class="label">Toifa</label>
         <select class="select-native" name="category"><option value="" disabled selected>Toifani tanlang</option>
           {% for c in categories %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
       <div class="field"><label class="label">Birlik</label>
         <select class="select-native" name="unit">{% for v,l in units %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
-      <div class="field"><label class="label">Barkod</label><input class="input" name="barcode"></div>
+      <div class="field"><label class="label">Barkod</label>
+        <div class="row gap-2">
+          <input class="input grow" name="barcode" x-ref="bc">
+          <button type="button" class="scan-btn" title="Kamerani ochish"
+                  @click="window.openBarcodeScanner(c=>{ $refs.bc.value=c; })">
+            <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg></button>
+        </div>
+      </div>
       <div class="grid grid-2">
         <div class="field"><label class="label">Tannarx</label><input class="input num" type="number" name="buy_price" value="0"></div>
         <div class="field"><label class="label">Sotish narxi</label><input class="input num" type="number" name="sell_price" value="0"></div>
@@ -34,3 +41,4 @@
   </div>
 </div>
 {% endblock %}
+{% block extra_js %}<script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>{% endblock %}

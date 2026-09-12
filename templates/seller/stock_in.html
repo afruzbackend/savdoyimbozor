@@ -1,27 +1,35 @@
 {% extends 'seller/base.html' %}
-{% load humanize %}
+{% load humanize static %}
 {% block title %}Kirim{% endblock %}
 {% block heading %}Kirim (mahsulot kelishi){% endblock %}
 {% block content %}
 <div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
-  <div class="card" x-data="{scanMsg:''}">
+  <div class="card" x-data="{scanMsg:'', matchBarcode(v){
+        const sel=$refs.prod;
+        const opt=[...sel.options].find(o=>o.dataset.barcode && o.dataset.barcode===String(v).trim());
+        if(opt){sel.value=opt.value; this.scanMsg='✓ '+opt.textContent;}
+        else{this.scanMsg='Topilmadi — ro\'yxatdan tanlang';}
+      }}">
     <form method="post">{% csrf_token %}
-      <div class="field"><label class="label">Barkod (skaner)</label>
-        <input class="input" placeholder="Barkodni skanerlang va Enter"
-               @keydown.enter.prevent="
-                 const sel=$refs.prod;
-                 const opt=[...sel.options].find(o=>o.dataset.barcode && o.dataset.barcode===$event.target.value.trim());
-                 if(opt){sel.value=opt.value; scanMsg='✓ '+opt.textContent; $event.target.value='';}
-                 else{scanMsg='Topilmadi — ro\'yxatdan tanlang';}">
+      <div class="field"><label class="label">Barkod</label>
+        <div class="row gap-2">
+          <input class="input grow" x-ref="bc" placeholder="Barkodni skanerlang yoki yozing"
+                 @keydown.enter.prevent="matchBarcode($event.target.value); $event.target.value=''">
+          <button type="button" class="scan-btn" title="Kamerani ochish"
+                  @click="window.openBarcodeScanner(c=>{ $refs.bc.value=c; matchBarcode(c); })">
+            <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg></button>
+        </div>
         <div class="hint" x-text="scanMsg" x-show="scanMsg" x-cloak></div>
       </div>
       <div class="field"><label class="label">Mahsulot</label>
         <select class="select-native" name="product" x-ref="prod" required>
           {% for p in products %}<option value="{{ p.pk }}" data-barcode="{{ p.barcode }}">{{ p.name }} ({{ p.stock }} {{ p.unit }})</option>{% endfor %}</select></div>
       <div class="field"><label class="label">Miqdor</label><input class="input num" type="number" step="0.1" name="quantity" required></div>
-      <label class="switch" style="margin-bottom:var(--sp-3)"><input type="checkbox" name="in_packs"><span class="track"></span><span class="thumb"></span>
-        <span>Qopda/qutida (koeffitsient bo'yicha)</span></label>
-      <div class="field"><label class="label">Kelish narxi (birlik)</label><input class="input num" type="number" name="unit_price" value="0"></div>
+      <label class="switch-row" style="margin-bottom:var(--sp-2)">
+        <span><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg> Qop/quti hisobida keldi</span>
+        <input type="checkbox" name="in_packs"></label>
+      <p class="faint" style="margin:0 0 var(--sp-3);font-size:var(--t--2)">Yoqilsa: kiritilgan son qop/quti soni deb olinadi va mahsulotning "1 qopda nechta" koeffitsientiga ko'paytiriladi.</p>
+      <div class="field"><label class="label">Kelish narxi (1 birlik uchun, so'm)</label><input class="input num" type="number" name="unit_price" value="0"></div>
       <button class="btn btn-block" type="submit">Kirim qo'shish</button>
     </form>
   </div>
@@ -37,3 +45,4 @@
   </div>
 </div>
 {% endblock %}
+{% block extra_js %}<script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>{% endblock %}
