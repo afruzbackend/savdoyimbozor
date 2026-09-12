@@ -30,6 +30,7 @@ class Shop(TimeStampedModel):
     stir = models.CharField(_("STIR"), max_length=15, blank=True, db_index=True)
     owner_name = models.CharField(_("Egasi"), max_length=200, blank=True)
     owner_phone = models.CharField(_("Egasi telefoni"), max_length=20, blank=True)
+    address = models.CharField(_("Manzil"), max_length=300, blank=True)
     # Xarita o'rni (bozor sxemasida)
     map_x = models.FloatField(null=True, blank=True)
     map_y = models.FloatField(null=True, blank=True)

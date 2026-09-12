@@ -2,8 +2,9 @@
 {% load static %}
 {% block title %}Hisob ochish{% endblock %}
 {% block heading %}Hisob ochish{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/leaflet.css' %}?v={{ asset_v }}">{% endblock %}
 {% block content %}
-<div class="card" style="max-width:600px" x-data="{role:'seller'}">
+<div class="card" style="max-width:640px" x-data="{role:'seller', mode:'new'}">
   <form method="post">
     {% csrf_token %}
     <div class="field"><label class="label">Rol</label>
@@ -19,13 +20,43 @@
       <input class="input" name="phone" placeholder="+998..."></div>
 
     <div x-show="role==='seller'" x-cloak>
-      <div class="field"><label class="label">Do'kon (sotuvchisiz)</label>
-        <select class="select-native" name="shop">
-          {% for s in shops %}<option value="{{ s.pk }}">№{{ s.number }} — {{ s.owner_name }} ({{ s.market.name }})</option>{% endfor %}
-        </select>
-        <div class="hint">Login avtomatik: STIR-do'kon raqami. Vaqtinchalik parol beriladi.</div>
+      <div class="segmented" style="margin-bottom:var(--sp-3)">
+        <button type="button" :aria-selected="mode==='new'" @click="mode='new'">Yangi do'kon</button>
+        <button type="button" :aria-selected="mode==='existing'" @click="mode='existing'">Mavjud do'kon</button>
       </div>
+
+      <div x-show="mode==='new'">
+        <div class="grid grid-2">
+          <div class="field"><label class="label">Do'kon raqami</label><input class="input" name="number" placeholder="masalan: 12"></div>
+          <div class="field"><label class="label">STIR</label><input class="input num" name="stir" placeholder="123456789"></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label class="label">Bozor</label>
+            <select class="select-native" name="market" x-ref="market">
+              {% for m in markets %}<option value="{{ m.pk }}" data-lat="{{ m.latitude|default:'' }}" data-lng="{{ m.longitude|default:'' }}">{{ m.name }}</option>{% endfor %}</select></div>
+          <div class="field"><label class="label">Savdo turi</label>
+            <select class="select-native" name="category">
+              <option value="" disabled selected>Tanlang</option>
+              {% for c in categories %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
+        </div>
+        <div class="field"><label class="label">Manzil</label><input class="input" name="address" placeholder="Ko'cha, mo'ljal"></div>
+        <div class="field"><label class="label">Lokatsiya (xaritada bosing)</label>
+          <div id="loc-map" style="height:260px;border-radius:var(--r-2);overflow:hidden;border:1px solid var(--border)"></div>
+          <input type="hidden" name="latitude" x-ref="lat">
+          <input type="hidden" name="longitude" x-ref="lng">
+          <small class="faint">Do'kon joyini belgilash uchun xaritани bosing.</small>
+        </div>
+      </div>
+
+      <div x-show="mode==='existing'" x-cloak>
+        <div class="field"><label class="label">Do'kon (sotuvchisiz)</label>
+          <select class="select-native" name="shop">
+            {% for s in shops %}<option value="{{ s.pk }}">№{{ s.number }} — {{ s.owner_name }} ({{ s.market.name }})</option>{% endfor %}
+          </select></div>
+      </div>
+      <div class="hint">Login avtomatik: STIR-do'kon raqami. Vaqtinchalik parol beriladi.</div>
     </div>
+
     <div x-show="role==='inspector'" x-cloak>
       <div class="field"><label class="label">Biriktirilgan bozorlar</label>
         <div class="stack gap-1">
@@ -33,7 +64,35 @@
         </div>
       </div>
     </div>
-    <button class="btn btn-lg" type="submit">Hisob ochish</button>
+    <button class="btn btn-lg" type="submit" style="margin-top:var(--sp-3)">Hisob ochish</button>
   </form>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/leaflet.js' %}?v={{ asset_v }}"></script>
+<script>
+  (function(){
+    function init(){
+      var el=document.getElementById('loc-map'); if(!el||!window.L) { setTimeout(init,200); return; }
+      var map=L.map(el).setView([41.311,69.2797],13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+      var marker=null;
+      function setLoc(lat,lng){
+        if(marker) marker.setLatLng([lat,lng]); else marker=L.marker([lat,lng]).addTo(map);
+        var la=document.querySelector('[name=latitude]'), ln=document.querySelector('[name=longitude]');
+        if(la) la.value=lat.toFixed(6); if(ln) ln.value=lng.toFixed(6);
+      }
+      map.on('click', function(e){ setLoc(e.latlng.lat, e.latlng.lng); });
+      // Bozor tanlanganda markazga o'tish
+      window.__locMap=map; window.__locSet=setLoc;
+      var ms=document.querySelector('[name=market]');
+      if(ms){ ms.addEventListener('change', function(){
+        var o=ms.options[ms.selectedIndex]; var lat=parseFloat(o.dataset.lat), lng=parseFloat(o.dataset.lng);
+        if(!isNaN(lat)&&!isNaN(lng)) map.setView([lat,lng],15);
+      }); ms.dispatchEvent(new Event('change')); }
+      setTimeout(function(){ map.invalidateSize(); }, 300);
+    }
+    document.addEventListener('DOMContentLoaded', init);
+  })();
+</script>
 {% endblock %}

@@ -81,7 +81,31 @@ def account_create(request):
     if request.method == "POST":
         role = request.POST.get("role")
         if role == Role.SELLER:
-            shop = get_object_or_404(Shop, pk=request.POST.get("shop"))
+            existing = request.POST.get("shop")
+            if existing:
+                shop = get_object_or_404(Shop, pk=existing)
+            else:
+                # Yangi do'kon: STIR, bozor, savdo turi, manzil, lokatsiya (xaritadan)
+                market = get_object_or_404(Market, pk=request.POST.get("market"))
+                category = ShopCategory.objects.filter(pk=request.POST.get("category") or 0).first()
+
+                def _f(v):
+                    try:
+                        return float(v)
+                    except (TypeError, ValueError):
+                        return None
+
+                shop = Shop.objects.create(
+                    market=market,
+                    number=request.POST.get("number", "").strip()[:20] or "0",
+                    stir=request.POST.get("stir", "").strip()[:15],
+                    owner_name=request.POST.get("full_name", "").strip()[:200],
+                    owner_phone=request.POST.get("phone", "").strip()[:20],
+                    address=request.POST.get("address", "").strip()[:300],
+                    category=category,
+                    latitude=_f(request.POST.get("latitude")),
+                    longitude=_f(request.POST.get("longitude")),
+                )
             cred = create_seller(
                 shop,
                 full_name=request.POST.get("full_name", ""),
@@ -103,6 +127,7 @@ def account_create(request):
         {
             "shops": Shop.objects.select_related("market").filter(staff__isnull=True),
             "markets": Market.objects.all(),
+            "categories": ShopCategory.objects.all(),
             "roles": [(Role.SELLER, "Sotuvchi"), (Role.INSPECTOR, "Tekshiruvchi")],
         },
     )
