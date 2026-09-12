@@ -1,11 +1,31 @@
-{% extends 'base.html' %}
+{% extends base_template|default:'inspector/base.html' %}
+{% load static %}
 {% block title %}Profil{% endblock %}
+{% block heading %}Profil{% endblock %}
 {% block content %}
-<div class="card">
-  <h2>{{ user.get_full_name|default:user.username }}</h2>
-  <p>Rol: {{ user.get_role_display }}</p>
-  {% if user.shop %}<p>Do'kon: {{ user.shop }}</p>{% endif %}
-  <p><a href="{% url 'password_change' %}">Parolni almashtirish</a></p>
-  <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button>Chiqish</button></form>
+<div class="grid" style="grid-template-columns:1fr 1fr;gap:var(--sp-4);align-items:start;max-width:820px">
+  <div class="card center">
+    <div class="avatar-lg">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</div>
+    <div class="card-title" style="margin-top:var(--sp-3)">{{ user.get_full_name|default:user.username }}</div>
+    <span class="badge badge-neutral" style="margin-top:6px">{{ user.get_role_display }}</span>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Ma'lumotlar</div>
+    <table class="data" style="font-size:var(--t--1)">
+      <tr><td class="muted">Login</td><td class="num">{{ user.username }}</td></tr>
+      <tr><td class="muted">Telefon</td><td>{{ user.phone|default:"—" }}</td></tr>
+      {% if user.shop %}
+      <tr><td class="muted">Do'kon</td><td>№{{ user.shop.number }} · {{ user.shop.market.name }}</td></tr>
+      <tr><td class="muted">STIR</td><td class="num">{{ user.shop.stir|default:"—" }}</td></tr>
+      {% endif %}
+    </table>
+    <div class="stack gap-2" style="margin-top:var(--sp-4)">
+      <a class="btn btn-block" href="{% url 'account_settings' %}">
+        <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-settings"></use></svg> Sozlamalar</a>
+      <a class="btn btn-ghost btn-block" href="{% url 'password_change' %}">Parolni almashtirish</a>
+      <button type="button" class="btn btn-danger btn-block"
+              onclick="document.getElementById('logout-confirm').hidden=false">Chiqish</button>
+    </div>
+  </div>
 </div>
 {% endblock %}

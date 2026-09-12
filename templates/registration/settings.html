@@ -1,0 +1,31 @@
+{% extends base_template|default:'inspector/base.html' %}
+{% load static %}
+{% block title %}Sozlamalar{% endblock %}
+{% block heading %}Sozlamalar{% endblock %}
+{% block content %}
+<div class="stack gap-4" style="max-width:560px">
+  {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+
+  <form method="post" class="card">{% csrf_token %}
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Aloqa va bildirishnoma</div>
+    <div class="field"><label class="label">Telefon</label>
+      <input class="input" name="phone" value="{{ user.phone }}" placeholder="+998..."></div>
+    <label class="switch-row">
+      <span><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bell"></use></svg>
+        Telegram bildirishnoma</span>
+      <input type="checkbox" name="notify_telegram" {% if user.notify_telegram %}checked{% endif %}>
+    </label>
+    <button class="btn btn-block" type="submit" style="margin-top:var(--sp-3)">Saqlash</button>
+  </form>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-2)">Xavfsizlik</div>
+    <a class="btn btn-ghost btn-block" href="{% url 'password_change' %}">Parolni almashtirish</a>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-2)">Ko'rinish</div>
+    <p class="muted" style="margin:0;font-size:var(--t--1)">Til va rejim (yorug'/qorong'i) chap menyu pastida.</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,4 +1,5 @@
 {% extends 'seller/base.html' %}
+{% load static %}
 {% block title %}Hisobdan chiqarish{% endblock %}
 {% block heading %}Hisobdan chiqarish{% endblock %}
 {% block content %}
@@ -8,7 +9,13 @@
     <form method="post" enctype="multipart/form-data">{% csrf_token %}
       <div class="field"><label class="label">Mahsulot</label><input class="input" name="product_name" required></div>
       <div class="field"><label class="label">Miqdor</label><input class="input num" type="number" step="0.1" name="quantity" required></div>
-      <div class="field"><label class="label">Foto (majburiy)</label><input class="input" type="file" name="photo" accept="image/*" capture="environment" required></div>
+      <div class="field"><label class="label">Foto (majburiy)</label>
+        <label class="file-drop">
+          <input type="file" name="photo" accept="image/*" capture="environment" required hidden>
+          <span class="file-btn"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-camera"></use></svg> Rasmga olish</span>
+          <span class="file-name muted" data-noloc>Fayl tanlanmagan</span>
+        </label>
+      </div>
       <div class="field"><label class="label">Sabab</label><input class="input" name="reason"></div>
       <button class="btn btn-block" type="submit">Qayd etish</button>
     </form>

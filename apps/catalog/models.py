@@ -9,6 +9,8 @@ from apps.core.models import TimeStampedModel
 class Unit(models.TextChoices):
     PIECE = "dona", _("dona")
     KG = "kg", _("kg")
+    QOP = "qop", _("qop")
+    BUNDLE = "bog'lam", _("bog'lam")
     LITER = "litr", _("litr")
     METER = "metr", _("metr")
     PACK = "quti", _("quti")

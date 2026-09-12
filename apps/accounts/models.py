@@ -34,6 +34,7 @@ class User(AbstractUser):
         _("Til"), max_length=10, choices=Language.choices, default=Language.UZ
     )
     telegram_id = models.CharField(_("Telegram ID"), max_length=40, blank=True)
+    notify_telegram = models.BooleanField(_("Telegram bildirishnoma"), default=True)
 
     # Sotuvchi uchun
     shop = models.ForeignKey(

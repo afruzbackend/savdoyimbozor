@@ -216,6 +216,32 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .btn-danger{background:var(--bad);color:#fff;border:1px solid var(--bad)}
 .btn-danger:hover{filter:brightness(1.05)}
 
+/* Profil avatar */
+.avatar-lg{width:72px;height:72px;border-radius:50%;margin:0 auto;display:flex;align-items:center;
+  justify-content:center;font-size:var(--t-3);font-weight:700;color:#fff;
+  background:linear-gradient(135deg,var(--brand-500),var(--brand-600))}
+
+/* Custom toggle (switch) qatori */
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;
+  cursor:pointer}
+.switch-row span{display:inline-flex;align-items:center;gap:8px;font-weight:500}
+.switch-row input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:42px;height:24px;
+  border-radius:99px;background:var(--surface-sunken);border:1px solid var(--border-strong);
+  position:relative;cursor:pointer;flex:none;transition:background .15s}
+.switch-row input[type="checkbox"]::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;
+  border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .15s}
+.switch-row input[type="checkbox"]:checked{background:var(--ok);border-color:var(--ok)}
+.switch-row input[type="checkbox"]:checked::after{left:20px}
+
+/* Custom fayl tanlash (native input yashiriladi) */
+.file-drop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer}
+.file-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:var(--r-2);
+  border:1px dashed var(--border-strong);background:var(--surface-sunken);color:var(--ink);
+  font-weight:600;font-size:var(--t--1)}
+.file-drop:hover .file-btn{border-color:var(--brand-500);color:var(--brand-600)}
+.file-name{font-size:var(--t--1);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-drop.has-file .file-btn{border-style:solid;border-color:var(--ok);color:var(--ok)}
+
 /* Modal (tasdiqlash) */
 [hidden]{display:none!important}
 .modal-backdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;

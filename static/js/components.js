@@ -112,6 +112,19 @@
     document.body.addEventListener &&
     document.body.addEventListener("htmx:afterSwap", (e) => enhanceSelects(e.target));
 
+  // ---- Custom fayl tanlash: tanlanган fayl nomini ko'rsatadi ----
+  document.addEventListener("change", (e) => {
+    const inp = e.target;
+    if (!inp.matches || !inp.matches('.file-drop input[type="file"]')) return;
+    const drop = inp.closest(".file-drop");
+    const nameEl = drop && drop.querySelector(".file-name");
+    if (nameEl) {
+      const f = inp.files && inp.files[0];
+      nameEl.textContent = f ? f.name : "Fayl tanlanmagan";
+      drop.classList.toggle("has-file", !!f);
+    }
+  });
+
   document.addEventListener("alpine:init", () => {
     // ---- Custom sana maydoni (o'zbekcha kalendar, hidden inputga yozadi) ----
     Alpine.data("dateField", (initialIso = "") => ({

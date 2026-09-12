@@ -19,7 +19,7 @@
     <form method="post">{% csrf_token %}
       <div class="field"><label class="label">Nomi</label><input class="input" name="name" required></div>
       <div class="field"><label class="label">Toifa</label>
-        <select class="select-native" name="category"><option value="">—</option>
+        <select class="select-native" name="category"><option value="" disabled selected>Toifani tanlang</option>
           {% for c in categories %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
       <div class="field"><label class="label">Birlik</label>
         <select class="select-native" name="unit">{% for v,l in units %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>

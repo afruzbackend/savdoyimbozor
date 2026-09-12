@@ -81,5 +81,36 @@ def password_change(request):
 
 
 @login_required
+def _iface_base(request):
+    bases = {
+        "seller": "seller/base.html",
+        "inspector": "inspector/base.html",
+        "panel": "panel/base.html",
+    }
+    return bases.get(getattr(request, "interface", "inspector"), "inspector/base.html")
+
+
+@login_required
 def profile(request):
-    return render(request, "registration/profile.html")
+    return render(request, "registration/profile.html", {"base_template": _iface_base(request)})
+
+
+@login_required
+def account_settings(request):
+    """Foydalanuvchi sozlamalari: parol, telefon, bildirishnoma afzalliklari."""
+    user = request.user
+    if request.method == "POST":
+        phone = request.POST.get("phone", "").strip()[:20]
+        if phone:
+            user.phone = phone
+        user.notify_telegram = bool(request.POST.get("notify_telegram"))
+        user.save(update_fields=["phone", "notify_telegram"])
+        from django.contrib import messages
+
+        messages.success(request, "Sozlamalar saqlandi.")
+        return redirect("account_settings")
+    return render(
+        request,
+        "registration/settings.html",
+        {"base_template": _iface_base(request)},
+    )
