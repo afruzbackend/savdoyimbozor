@@ -57,3 +57,22 @@ def test_inspector_stays_on_inspector_host(iclient):
     """Tekshiruvchi o'z hostида qoladi (yo'naltirilmaydi)."""
     r = iclient.get("/", HTTP_HOST=INSPECTOR_HOST)
     assert r.status_code == 200
+
+
+@pytest.mark.django_db
+def test_ip_host_redirects_to_valid_localhost_not_broken_host(sclient):
+    """127.0.0.1 (IP host)da rol mos kelmasa — buzuq host emas, to'g'ri *.localhost.
+
+    Regressiya: ilgari '127.0.0.1' → 'sotuvchi.0.0.1' (ERR_INVALID_REDIRECT/loop).
+    """
+    r = sclient.get("/", HTTP_HOST="127.0.0.1:8000")
+    assert r.status_code == 302
+    assert "sotuvchi.localhost" in r.url  # to'g'ri dev manzili
+    assert "0.0.1" not in r.url  # buzuq host yasalmaydi
+
+
+@pytest.mark.django_db
+def test_ip_host_login_page_not_redirected(client):
+    """127.0.0.1/login/ — loop bo'lmasin (login sahifasi ochilaveradi)."""
+    r = client.get("/login/", HTTP_HOST="127.0.0.1:8000")
+    assert r.status_code == 200

@@ -48,15 +48,25 @@ class HostRoutingMiddleware(MiddlewareMixin):
         if request.path in ("/login/", "/logout/"):
             return None
         own = ROLE_INTERFACE.get(getattr(user, "role", ""))
-        if own and own != interface:
-            # Foydalanuvchini o'z interfeysining hostiga yo'naltiramiz
-            reverse_map = {v: k for k, v in settings.HOST_PREFIX_MAP.items()}
-            new_prefix = reverse_map.get(own)
-            parts = request.get_host().split(".")
-            if new_prefix and parts:
-                parts[0] = new_prefix
-                return redirect(f"{request.scheme}://{'.'.join(parts)}/")
-        return None
+        if not own or own == interface:
+            return None
+        # Foydalanuvchini o'z interfeysining hostiga yo'naltiramiz
+        reverse_map = {v: k for k, v in settings.HOST_PREFIX_MAP.items()}
+        new_prefix = reverse_map.get(own)
+        if not new_prefix:
+            return None
+        hostname, _, port = request.get_host().partition(":")
+        labels = hostname.split(".")
+        if labels and labels[0] in settings.HOST_PREFIX_MAP:
+            # Ma'lum prefiksli host (nazorat.* → sotuvchi.*): birinchi bo'lakni almashtiramiz
+            labels[0] = new_prefix
+            target = ".".join(labels)
+        else:
+            # IP (127.0.0.1) / bare host: buzuq host yasamaymiz — dev *.localhost manzili
+            target = f"{new_prefix}.localhost"
+        if port:
+            target += f":{port}"
+        return redirect(f"{request.scheme}://{target}/")
 
 
 class AuditMiddleware(MiddlewareMixin):
