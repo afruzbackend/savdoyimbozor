@@ -19,3 +19,4 @@ ruff
 black
 pytest
 pytest-django
+whitenoise==6.8.2

@@ -2,7 +2,9 @@
 
 from .base import *  # noqa
 
-DEBUG = True
+# Standart: False (demo paytida hech kim debug sahifasini ko'rmaydi).
+# Xato izlash kerak bo'lsa, .env'da DEBUG=True yozing.
+DEBUG = env.bool("DEBUG", default=False)  # noqa: F405
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
