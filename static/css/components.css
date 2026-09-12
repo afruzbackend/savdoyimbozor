@@ -186,11 +186,55 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .topbar h1{font-size:var(--t-2);margin:0}
 .content{padding:var(--sp-5);max-width:1180px;width:100%;margin:0 auto}
 
-/* Tema tugmasi */
-.theme-toggle{display:inline-flex;border:1px solid var(--border-strong);border-radius:var(--r-full);
-  overflow:hidden}
-.theme-toggle button{border:none;background:transparent;padding:7px 10px;cursor:pointer;color:var(--ink-muted)}
+/* Tema tugmasi (2 rejim: yorug'/qorong'i) */
+.theme-toggle{display:flex;border:1px solid var(--border-strong);border-radius:var(--r-full);overflow:hidden}
+.theme-toggle button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:none;background:transparent;padding:8px 10px;cursor:pointer;color:var(--ink-muted);
+  font-size:var(--t--1);font-weight:500}
 .theme-toggle button.active{background:var(--surface-sunken);color:var(--ink)}
+.theme-toggle button span{white-space:nowrap}
+
+/* Til tugmasi (bayroqlar bilan) */
+.lang-toggle{display:flex;border:1px solid var(--border-strong);border-radius:var(--r-full);overflow:hidden}
+.lang-toggle button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:none;background:transparent;padding:8px 8px;cursor:pointer;color:var(--ink-muted);
+  font-size:var(--t--1);font-weight:600}
+.lang-toggle button.active{background:var(--surface-sunken);color:var(--ink)}
+.lang-toggle button + button{border-left:1px solid var(--border)}
+.flag{border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.08);flex:none;vertical-align:middle}
+.flag-pair{display:inline-flex;align-items:center;gap:1px}
+.flag-pair i{font-style:normal;color:var(--ink-faint);font-weight:700;margin:0 1px}
+.flag-pair .flag{width:14px;height:7px}
+
+/* Foydalanuvchi chipi + qizil chiqish */
+.user-chip{display:block;text-decoration:none;color:inherit;border-radius:var(--r-2);padding:4px 6px}
+.user-chip:hover{background:var(--surface-sunken)}
+.btn-logout{display:inline-flex;align-items:center;justify-content:center;flex:none;
+  border:1px solid transparent;background:color-mix(in srgb,var(--bad) 14%,transparent);
+  color:var(--bad);border-radius:var(--r-2);padding:8px;cursor:pointer}
+.btn-logout:hover{background:var(--bad);color:#fff}
+.btn-danger{background:var(--bad);color:#fff;border:1px solid var(--bad)}
+.btn-danger:hover{filter:brightness(1.05)}
+
+/* Modal (tasdiqlash) */
+[hidden]{display:none!important}
+.modal-backdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.5);padding:var(--sp-4)}
+.modal-backdrop[hidden]{display:none}
+.modal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);
+  padding:var(--sp-5);max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+
+/* Milliy naqsh chaqnashi (til/mavzu almashganda) */
+.milliy-splash{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
+  pointer-events:none;opacity:0}
+.milliy-splash .milliy-mark{width:min(46vw,320px);color:var(--brand-500);opacity:.9;
+  transform:scale(.4) rotate(-25deg)}
+.milliy-splash.show{animation:milliyFade .75s ease-out}
+.milliy-splash.show .milliy-mark{animation:milliySpin .75s cubic-bezier(.2,.8,.2,1)}
+@keyframes milliyFade{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+@keyframes milliySpin{0%{transform:scale(.4) rotate(-25deg)}60%{transform:scale(1.05) rotate(5deg)}
+  100%{transform:scale(1.2) rotate(0)}}
+@media (prefers-reduced-motion:reduce){.milliy-splash.show,.milliy-splash.show .milliy-mark{animation-duration:.01s}}
 
 /* Mobil pastki navigatsiya (sotuvchi/inspektor telefonda) */
 .bottom-nav{display:none}

@@ -7,10 +7,10 @@ from django.views.decorators.http import require_POST
 
 @require_POST
 def set_theme(request):
-    """Tema tanlovini cookie'ga saqlaydi: light / dark / '' (tizim)."""
+    """Tema tanlovini cookie'ga saqlaydi: faqat 2 rejim — light / dark."""
     theme = request.POST.get("theme", "")
-    if theme not in ("light", "dark", ""):
-        theme = ""
+    if theme not in ("light", "dark"):
+        theme = "light"
     resp = (
         JsonResponse({"theme": theme})
         if request.htmx

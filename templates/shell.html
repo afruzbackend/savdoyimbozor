@@ -5,38 +5,40 @@
 {% block body %}
 <div class="app" x-data="themeCtl">
   <aside class="sidebar">
-    <div class="brand">
+    <a class="brand" href="/" data-tip="Bosh sahifa / yangilash" title="Bosh sahifa / yangilash">
       <span class="brand-emblem">{% include 'components/_emblem.html' %}</span>
       <div class="brand-text">
         <div class="brand-name">Bozor Nazorat</div>
         <div class="brand-sub">Soliq qo'mitasi</div>
       </div>
-    </div>
+    </a>
     <nav>
       {% block nav %}{% endblock %}
     </nav>
     <div class="side-foot stack gap-3">
-      <div class="theme-toggle" role="group" aria-label="Til" data-noloc>
-        <button type="button" class="{% if not uilang %}active{% endif %}" onclick="setUiLang('')">Lot</button>
-        <button type="button" class="{% if uilang == 'cyrl' %}active{% endif %}" onclick="setUiLang('cyrl')">Кир</button>
-        <button type="button" class="{% if uilang == 'ru' %}active{% endif %}" onclick="setUiLang('ru')">Рус</button>
+      <div class="lang-toggle" role="group" aria-label="Til" data-noloc>
+        <button type="button" class="{% if not uilang %}active{% endif %}" onclick="setUiLang('')" title="Lotin">
+          {% include 'components/_flag_uz.html' %}<span>Lotin</span></button>
+        <button type="button" class="{% if uilang == 'cyrl' %}active{% endif %}" onclick="setUiLang('cyrl')" title="Кирилл">
+          <span class="flag-pair">{% include 'components/_flag_uz.html' %}<i>/</i>{% include 'components/_flag_ru.html' %}</span><span>Кир</span></button>
+        <button type="button" class="{% if uilang == 'ru' %}active{% endif %}" onclick="setUiLang('ru')" title="Русский">
+          {% include 'components/_flag_ru.html' %}<span>Рус</span></button>
       </div>
       <div class="theme-toggle" role="group" aria-label="Mavzu">
-        <button type="button" :class="theme===''&&'active'" @click="set('')" data-tip="Tizim">
-          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-eye"></use></svg></button>
         <button type="button" :class="theme==='light'&&'active'" @click="set('light')" data-tip="Yorug'">
-          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-sun"></use></svg></button>
+          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-sun"></use></svg><span>Yorug'</span></button>
         <button type="button" :class="theme==='dark'&&'active'" @click="set('dark')" data-tip="Qorong'i">
-          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-moon"></use></svg></button>
+          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-moon"></use></svg><span>Qorong'i</span></button>
       </div>
       <div class="row gap-2">
-        <div class="grow" style="min-width:0">
+        <a class="grow user-chip" href="{% url 'profile' %}" style="min-width:0" data-tip="Profil">
           <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
             {{ user.get_full_name|default:user.username }}</div>
           <small class="muted">{{ user.get_role_display }}</small>
-        </div>
-        <a class="btn-quiet btn-icon" href="{% url 'logout' %}" data-tip="Chiqish">
-          <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-log-out"></use></svg></a>
+        </a>
+        <button type="button" class="btn-logout btn-icon" data-tip="Chiqish"
+                onclick="document.getElementById('logout-confirm').hidden=false">
+          <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-log-out"></use></svg></button>
       </div>
     </div>
   </aside>
@@ -61,5 +63,38 @@
 
   {# Mobil pastki navigatsiya #}
   <nav class="bottom-nav">{% block bottom_nav %}{% endblock %}</nav>
+
+  {# Chiqishni tasdiqlash #}
+  <div id="logout-confirm" class="modal-backdrop" hidden
+       onclick="if(event.target===this)this.hidden=true">
+    <div class="modal-card center">
+      <svg class="icon-lg" style="color:var(--bad)"><use href="{% static 'icons/sprite.svg' %}#i-log-out"></use></svg>
+      <div class="card-title" style="margin:var(--sp-2) 0">Tizimdan chiqasizmi?</div>
+      <p class="muted" style="margin:0 0 var(--sp-4)">Qaytadan kirish uchun login va parol kerak bo'ladi.</p>
+      <div class="row gap-2" style="justify-content:center">
+        <button class="btn btn-ghost" onclick="document.getElementById('logout-confirm').hidden=true">Bekor</button>
+        <a class="btn btn-danger" href="{% url 'logout' %}">Ha, chiqish</a>
+      </div>
+    </div>
+  </div>
+
+  {# Milliy naqsh (doppi/koshin) animatsiyasi — til/mavzu almashganda #}
+  <div id="milliy-splash" class="milliy-splash" aria-hidden="true">
+    <div class="milliy-mark">{% include 'components/_koshin.html' %}</div>
+  </div>
 </div>
+<script>
+  (function(){
+    // Milliy naqsh chaqnashi
+    window.milliyFlash = function(){
+      var s = document.getElementById('milliy-splash'); if(!s) return;
+      s.classList.remove('show'); void s.offsetWidth; s.classList.add('show');
+      setTimeout(function(){ s.classList.remove('show'); }, 750);
+    };
+    // Til/mavzu tugmalari bosilganda
+    document.querySelectorAll('.lang-toggle button, .theme-toggle button').forEach(function(b){
+      b.addEventListener('click', function(){ window.milliyFlash(); });
+    });
+  })();
+</script>
 {% endblock %}
