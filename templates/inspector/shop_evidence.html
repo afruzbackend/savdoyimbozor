@@ -48,8 +48,8 @@
 
   <h2>Asosiy xulosa</h2>
   <div class="big-money">
-    <div><div class="k muted">Yashirilgan savdo (30 kun)</div><div class="v" style="color:var(--bad)">{{ hidden_sales|intcomma }} so'm</div></div>
-    <div><div class="k muted">Potensial qo'shimcha soliq ({{ tax_rate }}%)</div><div class="v" style="color:var(--ok)">{{ potential_tax|intcomma }} so'm</div></div>
+    <div><div class="k muted">Yashirilgan savdo (30 kun, taxminiy)</div><div class="v" style="color:var(--bad)">{{ hidden_sales|intcomma }} so'm</div></div>
+    <div><div class="k muted">Potensial qo'shimcha soliq ({{ tax_rate }}%, taxminiy)</div><div class="v" style="color:var(--ok)">{{ potential_tax|intcomma }} so'm</div></div>
   </div>
   <table>
     <tr><td>Kiritilgan savdo (30 kun)</td><td class="num">{{ entered_total|intcomma }} so'm</td></tr>

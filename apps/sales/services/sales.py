@@ -35,22 +35,29 @@ def create_sale(
     items: [{"product_id"?, "name", "qty", "unit_price"}] — quick rejimda bitta qator ham bo'ladi.
     Vaqt serverdan olinadi; client_ts kelsa va farq katta bo'lsa is_late belgilanadi.
     """
-    settings_obj = SystemSettings.get_solo()
-    subtotal = sum(int(round(float(i["qty"]) * int(i["unit_price"]))) for i in items)
-
     from decimal import Decimal
 
     from apps.catalog.models import Product
 
+    settings_obj = SystemSettings.get_solo()
+    # Miqdor — hamma joyda Decimal (float yaxlitlash xatosi bo'lmasin). Pul = butun so'm.
+    # lines: [(qty, unit_price, product_id, name), ...]
+    lines = [
+        (Decimal(str(i["qty"])), int(i["unit_price"]), i.get("product_id"), i.get("name", ""))
+        for i in items
+    ]
+    subtotal = sum(int((q * up).quantize(Decimal("1"))) for q, up, _pid, _n in lines)
+
     # Bir mahsulot bir chekda bir necha marta bo'lishi mumkin — jami miqdorni yig'amiz
     need = {}
-    for i in items:
-        pid = i.get("product_id")
+    for q, _up, pid, _n in lines:
         if pid:
-            need[pid] = need.get(pid, Decimal("0")) + Decimal(str(i["qty"]))
+            need[pid] = need.get(pid, Decimal("0")) + q
 
-    prods = {p.pk: p for p in Product.objects.filter(pk__in=need)}
-    # Qoldiq tekshiruvi: qoldiqdan ko'p sotib bo'lmaydi (manfiy qoldiq bo'lmasin)
+    # RACE himoyasi: qoldiq qatorlarini select_for_update bilan QULFLAB o'qiymiz —
+    # ikki sotuv bir vaqtda kelsa, ikkinchisi birinchisining commit'ini kutadi va
+    # yangilangan qoldiqni ko'radi (manfiy qoldiq bo'lmaydi).
+    prods = {p.pk: p for p in Product.objects.select_for_update().filter(pk__in=need)}
     for pid, qty in need.items():
         p = prods.get(pid)
         if p and qty > p.stock:
@@ -62,10 +69,9 @@ def create_sale(
     # Tannarxni yig'amiz — tannarxdan past sotishni bloklash uchun
     items_cost = 0
     have_cost = False
-    for i in items:
-        pid = i.get("product_id")
+    for q, _up, pid, _n in lines:
         if pid and prods.get(pid) and prods[pid].buy_price:
-            items_cost += int(round(float(i["qty"]) * prods[pid].buy_price))
+            items_cost += int((q * prods[pid].buy_price).quantize(Decimal("1")))
             have_cost = True
     cost = items_cost if have_cost else None
 
@@ -96,18 +102,16 @@ def create_sale(
         is_late=is_late,
         note=note[:200],
     )
-    for i in items:
-        qty = float(i["qty"])
-        up = int(i["unit_price"])
+    for q, up, pid, name in lines:
         SaleItem.objects.create(
             sale=sale,
-            product_id=i.get("product_id"),
-            product_name=i.get("name", "")[:200],
-            quantity=qty,
+            product_id=pid,
+            product_name=name[:200],
+            quantity=q,
             unit_price=up,
-            line_total=int(round(qty * up)),
+            line_total=int((q * up).quantize(Decimal("1"))),
         )
-        # Qoldiqni kamaytiramiz
-        if i.get("product_id"):
-            Product.objects.filter(pk=i["product_id"]).update(stock=F("stock") - qty)
+        # Qoldiqni kamaytiramiz (qatorlar allaqachon qulflangan)
+        if pid:
+            Product.objects.filter(pk=pid).update(stock=F("stock") - q)
     return sale
