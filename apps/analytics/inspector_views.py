@@ -405,6 +405,8 @@ def inventory(request, pk=None):
 
     Prokuratura ssenariysi: "bozor yondi, qaysi do'konda qancha mahsulot bor edi".
     """
+    from django.db.models import Count, DecimalField, F, Q, Sum
+
     from apps.catalog.models import Product
 
     markets = Market.objects.filter(id__in=_visible_shops(request).values("market_id")).distinct()
@@ -412,13 +414,26 @@ def inventory(request, pk=None):
     rows = []
     total_value = total_items = 0
     if market:
+        # BITTA agregat so'rov: har do'kon bo'yicha qiymat/mahsulot soni (N+1 yo'q)
+        agg = {
+            r["shop"]: r
+            for r in Product.objects.filter(shop__market=market, is_active=True)
+            .values("shop")
+            .annotate(
+                value=Sum(F("stock") * F("sell_price"), output_field=DecimalField()),
+                items=Count("id", filter=Q(stock__gt=0)),
+                products=Count("id"),
+            )
+        }
         for shop in market.shops.filter(is_active=True).order_by("number"):
-            prods = list(Product.objects.filter(shop=shop, is_active=True))
-            value = sum(int(p.stock * p.sell_price) for p in prods)
-            items = sum(1 for p in prods if p.stock > 0)
+            a = agg.get(shop.id, {})
+            value = int(a.get("value") or 0)
+            items = a.get("items") or 0
             total_value += value
             total_items += items
-            rows.append({"shop": shop, "value": value, "items": items, "products": len(prods)})
+            rows.append(
+                {"shop": shop, "value": value, "items": items, "products": a.get("products") or 0}
+            )
         rows.sort(key=lambda r: r["value"], reverse=True)
     return render(
         request,
