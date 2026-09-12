@@ -422,6 +422,11 @@ window.RU_DICT = {
   "Karta": "Карта",
   "O'tkazma": "Перевод",
   "Kassani yopish (Z-hisobot)": "Закрытие кассы (Z-отчёт)",
+  "Kassa yopish (Z-hisobot)": "Закрытие кассы (Z-отчёт)",
+  "Sanalgan naqd vs kutilgan naqd — kamomad shubhali":
+    "Пересчитанные наличные vs ожидаемые — недостача подозрительна",
+  "Kamomad (qizil) = sotuvchi sandiqda kutilгандан kam naqd sanaган — savdoni yashirish belgisi bo'lishi mumkin.":
+    "Недостача (красный) = продавец пересчитал меньше ожидаемого — возможный признак сокрытия выручки.",
   "Kun oxirida sandiqdagi naqdni sanang. Tizim kutilgan naqd bilan solishtiradi.":
     "В конце дня пересчитайте наличные в кассе. Система сравнит с ожидаемым.",
   "Kutilgan naqd": "Ожидаемые наличные",

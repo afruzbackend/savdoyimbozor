@@ -126,6 +126,29 @@
     </div>
     {% endif %}
 
+    {% if register_closes %}
+    <div class="card">
+      <div class="card-header"><span class="card-title">Kassa yopish (Z-hisobot)</span>
+        <small class="faint">Sanalgan naqd vs kutilgan naqd — kamomad shubhali</small></div>
+      <div class="table-wrap"><table class="data" style="font-size:var(--t--1)">
+        <thead><tr><th>Sana</th><th class="num">Kutilgan naqd</th><th class="num">Sanalgan</th><th class="num">Farq</th><th class="num">Karta</th><th class="num">Cheklar</th></tr></thead>
+        <tbody>
+        {% for z in register_closes %}
+        <tr class="{% if z.difference < 0 %}row-bad{% elif z.difference > 0 %}row-warn{% endif %}">
+          <td class="num">{{ z.date|date:"d.m.Y" }}</td>
+          <td class="num muted">{{ z.expected_cash|intcomma }}</td>
+          <td class="num">{{ z.counted_cash|intcomma }}</td>
+          <td class="num" style="font-weight:600;{% if z.difference < 0 %}color:var(--bad){% elif z.difference > 0 %}color:var(--warn){% endif %}">
+            {% if z.difference > 0 %}+{% endif %}{{ z.difference|intcomma }}</td>
+          <td class="num muted">{{ z.card_total|intcomma }}</td>
+          <td class="num">{{ z.checks_count }}</td>
+        </tr>
+        {% endfor %}
+        </tbody></table></div>
+      <small class="faint">Kamomad (qizil) = sotuvchi sandiqda kutilгандан kam naqd sanaган — savdoni yashirish belgisi bo'lishi mumkin.</small>
+    </div>
+    {% endif %}
+
     {% if corrections %}
     <div class="card">
       <div class="card-header"><span class="card-title">Sotuv tuzatishlari</span>

@@ -26,6 +26,7 @@ from apps.sales.models import (
     DailyClose,
     DailyCloseLine,
     Debt,
+    RegisterClose,
     Sale,
     SaleItem,
     SaleReturn,
@@ -87,6 +88,7 @@ class Command(BaseCommand):
                 WriteOff,
                 StockIn,
                 Correction,
+                RegisterClose,
                 Debt,
                 CashRecord,
                 Product,
@@ -199,6 +201,7 @@ class Command(BaseCommand):
             for shop, scat in shops:
                 self._gen_day(shop, scat, day, prod_cats, is_cash_hider=shop.id in cash_hiders)
                 self._gen_close(shop, day, is_stock_hider=shop.id in stock_hiders)
+                self._gen_register_close(shop, day, is_cash_hider=shop.id in cash_hiders)
 
         # Rostlik + signal
         for d in range(opts["days"]):
@@ -293,6 +296,42 @@ class Command(BaseCommand):
         close.computed_sales = computed
         close.entered_sales = entered
         close.save(update_fields=["computed_sales", "entered_sales"])
+
+    def _gen_register_close(self, shop, day, is_cash_hider):
+        """Kassa yopish (Z-hisobot): to'lov turi bo'yicha jamlanma + sanalgan naqd.
+
+        Halol do'kon: sanalgan ≈ kutilgan (kichik farq). Yashiruvchi: ataylab
+        kam sanaydi (kamomad) — nazoratchiga signal bo'ladi.
+        """
+        from django.db.models import Count, Sum
+
+        agg = {
+            r["payment_type"]: r
+            for r in Sale.objects.filter(shop=shop, created_at__date=day)
+            .values("payment_type")
+            .annotate(s=Sum("total"), n=Count("id"))
+        }
+        cash = agg.get("cash", {}).get("s") or 0
+        card = agg.get("card", {}).get("s") or 0
+        transfer = agg.get("transfer", {}).get("s") or 0
+        count = sum((agg.get(k, {}).get("n") or 0) for k in ("cash", "card", "transfer"))
+        if count == 0:
+            return
+        if is_cash_hider:
+            counted = int(cash * random.uniform(0.55, 0.8))  # sezilarli kamomad
+        else:
+            counted = cash + random.choice([0, 0, 0, -5_000, 3_000])  # deyarli mos
+        RegisterClose.objects.update_or_create(
+            shop=shop,
+            date=day,
+            defaults={
+                "expected_cash": cash,
+                "counted_cash": max(0, counted),
+                "card_total": card,
+                "transfer_total": transfer,
+                "checks_count": count,
+            },
+        )
 
     def _user(self, username, full, role, is_super=False, shop=None, is_owner=False):
         u, _ = User.objects.get_or_create(

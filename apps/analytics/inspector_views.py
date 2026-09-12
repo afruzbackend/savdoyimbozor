@@ -206,6 +206,7 @@ def shop_detail(request, pk):
         "inspections": shop.inspections.select_related("inspector")[:6],
         "appeals": shop.appeals.all()[:5],
         "corrections": shop.corrections.select_related("user")[:8],
+        "register_closes": shop.register_closes.order_by("-date")[:10],
     }
     return render(request, "inspector/shop_detail.html", ctx)
 
