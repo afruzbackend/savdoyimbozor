@@ -113,7 +113,7 @@
     // Doppi naqshi chizilib bo'lgach yangilaymiz (milliy o'tish effekti)
     if (window.milliyFlash) {
       window.milliyFlash();
-      setTimeout(function () { location.reload(); }, 480);
+      setTimeout(function () { location.reload(); }, 400);
     } else {
       location.reload();
     }
