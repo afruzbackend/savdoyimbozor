@@ -9,14 +9,21 @@ from conftest import SELLER_HOST
 
 
 @pytest.mark.django_db
-def test_add_product(sclient, shop):
+def test_add_product_from_catalog(sclient, shop):
+    """Mahsulot tayyor katalogdan (ProductCategory) tanlab qo'shiladi."""
+    from apps.catalog.models import ProductCategory
+
+    cat = ProductCategory.objects.create(name="Olma", shop_category=shop.category, default_unit="kg")
     r = sclient.post(
         "/mahsulotlar/",
-        {"name": "Kartoshka", "unit": "kg", "buy_price": "5000", "sell_price": "7000"},
+        {"category": cat.pk, "variant": "qizil", "unit": "kg", "sell_price": "15000"},
         HTTP_HOST=SELLER_HOST,
     )
     assert r.status_code == 302
-    assert Product.objects.filter(shop=shop, name="Kartoshka").exists()
+    p = Product.objects.filter(shop=shop, category=cat).first()
+    assert p is not None
+    assert p.name == "Olma — qizil"
+    assert p.unit == "kg"
 
 
 @pytest.mark.django_db

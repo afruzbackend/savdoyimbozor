@@ -21,6 +21,23 @@ def test_shop_detail_visible_to_assigned_inspector(iclient, shop):
 
 
 @pytest.mark.django_db
+def test_evidence_page_renders(iclient, shop):
+    """Dalil to'plami sahifasi ochiladi va asosiy bo'limlar bor."""
+    r = iclient.get(f"/dokon/{shop.pk}/dalil/", HTTP_HOST=INSPECTOR_HOST)
+    assert r.status_code == 200
+    html = r.content.decode()
+    assert "Tekshiruv dalil" in html
+    assert "Yashirilgan savdo" in html
+
+
+@pytest.mark.django_db
+def test_dashboard_shows_hidden_sales(iclient, shop):
+    r = iclient.get("/", HTTP_HOST=INSPECTOR_HOST)
+    assert r.status_code == 200
+    assert "yashirilgan savdo" in r.content.decode().lower()
+
+
+@pytest.mark.django_db
 def test_statistics_shows_seller_row(iclient, shop, seller):
     from django.utils import timezone
 

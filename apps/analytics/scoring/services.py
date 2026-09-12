@@ -175,8 +175,12 @@ def _stock_estimate(shop, day):
     return value if value > 0 else None
 
 
-def _camera_estimate(shop, day, buyer_ratio):
-    """Kamera bahosi: tashriflar × buyer_ratio × o'rtacha chek. Kamera bo'lmasa None."""
+def _camera_estimate(shop, day, buyer_ratio, market_avg_check=0):
+    """Kamera bahosi: tashriflar × buyer_ratio × o'rtacha chek. Kamera bo'lmasa None.
+
+    O'rtacha chek — BOZOR bo'yicha (o'z chekiga emas): shunda sotuvchi har chekni
+    arzon yozib kamera bahosini pasaytira olmaydi (mustaqillik kuchayadi).
+    """
     from apps.cameras.models import CameraEvent
 
     visits = CameraEvent.objects.filter(shop=shop, type="visit", ts__date=day).count()
@@ -185,9 +189,11 @@ def _camera_estimate(shop, day, buyer_ratio):
     from apps.sales.models import Sale
 
     sales = list(Sale.objects.filter(shop=shop, created_at__date=day))
-    if not sales:
+    own_avg = (sum(s.total for s in sales) / len(sales)) if sales else 0
+    # Bozor o'rtachasi bilan o'z o'rtachasining KATTASI — pasaytirib aldashni to'sadi
+    avg_check = max(own_avg, market_avg_check or 0)
+    if avg_check <= 0:
         return None
-    avg_check = sum(s.total for s in sales) / len(sales)
     return int(visits * float(buyer_ratio) * avg_check)
 
 
@@ -213,11 +219,26 @@ def recompute_for_date(day) -> int:
     # Bozor narxlarini oldindan hisoblaymiz (do'kon narx balli uchun)
     medians_by_market = {m.id: compute_market_prices(m, day) for m in Market.objects.all()}
 
+    # Bozor bo'yicha o'rtacha chek (kamera bahosi mustaqilligi uchun)
+    from django.db.models import Count as _Count
+    from django.db.models import Sum as _Sum
+
+    from apps.sales.models import Sale as _Sale
+
+    avg_check_by_market = {}
+    for m in Market.objects.all():
+        a = _Sale.objects.filter(shop__market=m, created_at__date=day).aggregate(
+            t=_Sum("total"), n=_Count("id")
+        )
+        avg_check_by_market[m.id] = (a["t"] / a["n"]) if a["n"] else 0
+
     count = 0
     for shop in Shop.objects.filter(is_active=True).select_related("market"):
         entered = _entered_sales(shop, day)
         cash = _cash_declared(shop, day)
-        cam = _camera_estimate(shop, day, cfg.buyer_ratio)
+        cam = _camera_estimate(
+            shop, day, cfg.buyer_ratio, avg_check_by_market.get(shop.market_id, 0)
+        )
         stock_val = _stock_estimate(shop, day)
         price_val = _shop_price_score(shop, medians_by_market.get(shop.market_id, {}))
 

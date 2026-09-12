@@ -65,6 +65,21 @@ def test_no_duplicate_mismatch_alert(shop, seller):
 
 
 @pytest.mark.django_db
+def test_hidden_sales_computed(shop, seller):
+    """Yozilgan savdo > deklaratsiya bo'lsa — yashirilgan savdo hisoblanadi."""
+    from apps.analytics.models import DailyScore
+    from apps.cash.models import CashRecord
+    from apps.sales.models import Sale
+
+    day = timezone.localdate()
+    Sale.objects.create(shop=shop, seller=seller, total=1_000_000, payment_type="cash")
+    CashRecord.objects.create(shop=shop, date=day, amount=300_000, source="excel")
+    recompute_for_date(day)
+    ds = DailyScore.objects.get(shop=shop, date=day)
+    assert ds.hidden_sales == 700_000  # 1M real - 300k deklaratsiya
+
+
+@pytest.mark.django_db
 def test_zero_sales_with_stock_is_red(shop, seller, product):
     """Do'kon ochiq, tovari bor, lekin 0 savdo kiritilган — qizil signal."""
     day = timezone.localdate()

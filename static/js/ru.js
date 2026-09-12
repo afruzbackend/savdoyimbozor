@@ -451,6 +451,27 @@ window.RU_DICT = {
   "Mahsulotlaringiz reytingi": "Рейтинг ваших товаров",
   "Boshqa do'konlar ma'lumoti maxfiy — faqat o'z o'rningizni ko'rasiz.":
     "Данные других магазинов скрыты — вы видите только своё место.",
+  // Nav guruhlari
+  "Savdo": "Продажа", "Ombor": "Склад", "Boshqa": "Прочее",
+  "Bildirishnomalar": "Уведомления", "E'tiroz": "Возражение",
+  // Pul banneri (dashboard)
+  "Aniqlangan yashirilgan savdo (30 kun)": "Выявленная скрытая выручка (30 дней)",
+  "Potensial qo'shimcha soliq": "Потенциальный доп. налог",
+  "Mustaqil manbalar (kassa/kamera/qoldiq) yozilgan savdodan qancha ko'p ko'rsatgani — ehtiyotkor baho, tekshiruvga signal.":
+    "Насколько независимые источники (касса/камера/остаток) показывают больше записанного — осторожная оценка, сигнал к проверке.",
+  // Bozor sxemasi
+  "Bozor sxemasi": "Схема рынка", "Do'konlar": "Магазины", "Xavf": "Риск", "E'tibor": "Внимание",
+  // Katalog
+  "Mahsulot (ro'yxatdan tanlang)": "Товар (выберите из списка)",
+  "Nav / rang / xil (ixtiyoriy)": "Сорт / цвет / вид (необязательно)",
+  "Kamerani ochish": "Открыть камеру",
+  // Dalil to'plami
+  "Tekshiruv dalil to'plami": "Доказательный пакет проверки",
+  "Dalil to'plami": "Пакет доказательств",
+  "Chop etish / PDF": "Печать / PDF", "Asosiy xulosa": "Основной вывод",
+  "Yashirilgan savdo (30 kun)": "Скрытая выручка (30 дней)",
+  "Potensial qo'shimcha soliq ({{ tax_rate }}%)": "Потенциальный доп. налог",
+  "Signallar": "Сигналы", "O'tkazilgan tekshiruvlar": "Проведённые проверки",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
