@@ -125,12 +125,29 @@ def products(request):
     shop = _shop(request)
     if shop is None:
         return redirect("seller:home")
+    # Tayyor katalog: do'kon savdo turiga (shop_category) mos mahsulot toifalari
+    catalog_qs = ProductCategory.objects.select_related("shop_category")
+    if shop.category_id:
+        catalog_qs = catalog_qs.filter(shop_category=shop.category)
+    if not catalog_qs.exists():  # savdo turi biriktirilmagan bo'lsa — barchasi
+        catalog_qs = ProductCategory.objects.all()
+    catalog = list(catalog_qs.order_by("name"))
+
     if request.method == "POST":
+        cat = ProductCategory.objects.filter(pk=request.POST.get("category") or 0).first()
+        # Nom: katalog nomi + ixtiyoriy nav/rang (masalan "Olma — qizil")
+        variant = request.POST.get("variant", "").strip()
+        base_name = cat.name if cat else request.POST.get("name", "").strip()
+        name = f"{base_name} — {variant}" if variant else base_name
+        unit = request.POST.get("unit") or (cat.default_unit if cat else Unit.PIECE)
+        if not name:
+            messages.error(request, "Mahsulotni ro'yxatdan tanlang.")
+            return redirect("seller:products")
         Product.objects.create(
             shop=shop,
-            name=request.POST.get("name", "")[:200],
-            category=ProductCategory.objects.filter(pk=request.POST.get("category") or 0).first(),
-            unit=request.POST.get("unit", Unit.PIECE),
+            name=name[:200],
+            category=cat,
+            unit=unit,
             barcode=request.POST.get("barcode", "")[:64],
             buy_price=int(request.POST.get("buy_price") or 0),
             sell_price=int(request.POST.get("sell_price") or 0),
@@ -138,13 +155,18 @@ def products(request):
         )
         messages.success(request, "Mahsulot qo'shildi.")
         return redirect("seller:products")
+    catalog_json = [
+        {"id": c.pk, "name": c.name, "unit": c.default_unit}
+        for c in catalog
+    ]
     return render(
         request,
         "seller/products.html",
         {
             "shop": shop,
             "products": Product.objects.filter(shop=shop).order_by("name"),
-            "categories": ProductCategory.objects.all(),
+            "catalog": catalog,
+            "catalog_json": catalog_json,  # json_script o'zi kodlaydi (ikki marta EMAS)
             "units": Unit.choices,
         },
     )

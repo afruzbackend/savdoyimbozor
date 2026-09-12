@@ -16,13 +16,31 @@
   </div>
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Yangi mahsulot</div>
-    <form method="post" x-data="{}">{% csrf_token %}
-      <div class="field"><label class="label">Nomi</label><input class="input" name="name" required></div>
-      <div class="field"><label class="label">Toifa</label>
-        <select class="select-native" name="category"><option value="" disabled selected>Toifani tanlang</option>
-          {% for c in categories %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
+    {% if shop.category %}<p class="faint" style="margin:0 0 var(--sp-3);font-size:var(--t--1)">Savdo turi: <b>{{ shop.category.name }}</b> — ro'yxat shunga mos.</p>{% endif %}
+    <form method="post" x-data="prodForm()">{% csrf_token %}
+      <input type="hidden" name="category" :value="picked ? picked.id : ''">
+      <div class="field"><label class="label">Mahsulot (ro'yxatdan tanlang)</label>
+        <div class="dropdown" @click.outside="open=false">
+          <button type="button" class="input select-trigger" @click="open=!open">
+            <span x-text="picked ? picked.name : 'Tanlang...'" :class="!picked&&'muted'"></span>
+            <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-chevron-down"></use></svg>
+          </button>
+          <div class="dropdown-panel" x-show="open" x-cloak>
+            <input class="input" x-model="q" placeholder="Qidirish..." x-ref="search">
+            <div class="dropdown-list">
+              <template x-for="c in filtered" :key="c.id">
+                <div class="option" @click="pick(c)"><span x-text="c.name"></span>
+                  <span class="muted" x-text="c.unit"></span></div>
+              </template>
+              <template x-if="!filtered.length"><div class="option muted">Topilmadi</div></template>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="field"><label class="label">Nav / rang / xil (ixtiyoriy)</label>
+        <input class="input" name="variant" placeholder="masalan: qizil, mahalliy, katta"></div>
       <div class="field"><label class="label">Birlik</label>
-        <select class="select-native" name="unit">{% for v,l in units %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+        <select class="select-native" name="unit" x-ref="unit">{% for v,l in units %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
       <div class="field"><label class="label">Barkod</label>
         <div class="row gap-2">
           <input class="input grow" name="barcode" x-ref="bc">
@@ -36,9 +54,24 @@
         <div class="field"><label class="label">Sotish narxi</label><input class="input num" type="number" name="sell_price" value="0"></div>
       </div>
       <div class="field"><label class="label">Kam qoldiq chegarasi</label><input class="input num" type="number" name="low_stock_threshold" value="0"></div>
-      <button class="btn btn-block" type="submit">Qo'shish</button>
+      <button class="btn btn-block" type="submit" :disabled="!picked">Qo'shish</button>
     </form>
   </div>
 </div>
 {% endblock %}
-{% block extra_js %}<script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>
+{{ catalog_json|json_script:"catalog-data" }}
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('prodForm', () => ({
+      items: JSON.parse(document.getElementById('catalog-data').textContent),
+      q: '', open: false, picked: null,
+      get filtered(){ const s=this.q.toLowerCase();
+        return this.items.filter(i=>i.name.toLowerCase().includes(s)); },
+      pick(c){ this.picked=c; this.open=false; this.q='';
+        this.$nextTick(()=>{ if(this.$refs.unit) this.$refs.unit.value=c.unit; }); },
+    }));
+  });
+</script>
+{% endblock %}
