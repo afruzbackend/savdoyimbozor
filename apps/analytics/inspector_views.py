@@ -80,35 +80,36 @@ def market_map(request, pk=None):
         s.shop_id: s.truth_pct for s in DailyScore.objects.filter(shop__market=market, date=today)
     }
 
-    # Haqiqiy xarita uchun: do'kon markerlari (koordinata + rostlik %)
-    pts = []
-    lats, lngs = [], []
-    for shop in market.shops.filter(is_active=True):
-        if shop.latitude is None or shop.longitude is None:
-            continue
+    # Bozor sxemasi: do'konlar QATOR bo'yicha guruhlanadi, har rasta rangli % belgi.
+    from collections import defaultdict
+
+    by_row = defaultdict(list)
+    counts = {"green": 0, "yellow": 0, "red": 0, "none": 0}
+    for shop in market.shops.filter(is_active=True).select_related("row").order_by("number"):
         t = scores.get(shop.id)
-        pts.append(
+        lvl = _level(t, cfg) if t is not None else "none"
+        counts[lvl] += 1
+        row_label = shop.row.label if shop.row_id else "Boshqa"
+        by_row[row_label].append(
             {
                 "id": shop.id,
-                "lat": shop.latitude,
-                "lng": shop.longitude,
                 "number": shop.number,
                 "owner": shop.owner_name,
                 "truth": t,
-                "level": _level(t, cfg) if t is not None else "none",
+                "level": lvl,
             }
         )
-        lats.append(shop.latitude)
-        lngs.append(shop.longitude)
-
-    center_lat = market.latitude or (sum(lats) / len(lats) if lats else 41.311)
-    center_lng = market.longitude or (sum(lngs) / len(lngs) if lngs else 69.2797)
-    map_data = {"shops": pts, "center": [center_lat, center_lng]}
+    rows_data = [{"label": lbl, "stalls": by_row[lbl]} for lbl in sorted(by_row)]
 
     return render(
         request,
         "inspector/market_map.html",
-        {"markets": markets, "market": market, "map_data": map_data},
+        {
+            "markets": markets,
+            "market": market,
+            "rows_data": rows_data,
+            "counts": counts,
+        },
     )
 
 

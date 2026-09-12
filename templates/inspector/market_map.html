@@ -1,7 +1,7 @@
 {% extends 'inspector/base.html' %}
 {% load static %}
-{% block title %}Bozor xaritasi{% endblock %}
-{% block heading %}Bozor xaritasi{% endblock %}
+{% block title %}Bozor sxemasi{% endblock %}
+{% block heading %}Bozor sxemasi{% endblock %}
 {% block topbar_actions %}
   <div class="row gap-3" data-noloc>
     <span class="row gap-1" style="font-size:var(--t--1)"><span class="dot dot-ok"></span> Rost</span>
@@ -9,21 +9,6 @@
     <span class="row gap-1" style="font-size:var(--t--1)"><span class="dot dot-bad"></span> Xavf</span>
   </div>
 {% endblock %}
-
-{% block head %}
-<link rel="stylesheet" href="{% static 'css/leaflet.css' %}">
-<style>
-  #bmap{width:100%;height:600px;border-radius:var(--r-lg);z-index:1}
-  .mk{min-width:38px;text-align:center;font-weight:700;font-size:12px;font-family:var(--font-sans);
-    padding:4px 7px;border-radius:999px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);
-    color:#fff;white-space:nowrap}
-  .mk-green{background:#1e8a5a}.mk-yellow{background:#bf7d16}.mk-red{background:#c23b3b}
-  .mk-none{background:#8d8371}
-  .leaflet-popup-content{font-family:var(--font-sans)}
-  .leaflet-popup-content b{font-family:var(--font-serif)}
-</style>
-{% endblock %}
-
 {% block content %}
 {% if markets.count > 1 %}
 <div class="segmented" style="margin-bottom:var(--sp-4)" data-noloc>
@@ -34,52 +19,49 @@
 {% endif %}
 
 {% if market %}
-<div class="card" style="padding:0;overflow:hidden">
-  <div class="row" style="justify-content:space-between;padding:var(--sp-4) var(--sp-5)">
+<div class="grid grid-4" style="margin-bottom:var(--sp-4)">
+  <div class="card"><small class="muted">Do'konlar</small><div class="truth-big" style="font-size:var(--t-3)">{{ market.shops.count }}</div></div>
+  <div class="card"><small class="muted">Rost</small><div class="truth-big" style="font-size:var(--t-3);color:var(--ok)">{{ counts.green }}</div></div>
+  <div class="card"><small class="muted">E'tibor</small><div class="truth-big" style="font-size:var(--t-3);color:var(--warn)">{{ counts.yellow }}</div></div>
+  <div class="card"><small class="muted">Xavf</small><div class="truth-big" style="font-size:var(--t-3);color:var(--bad)">{{ counts.red }}</div></div>
+</div>
+
+<div class="card" x-data="{zoom:1}">
+  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:var(--sp-3)">
     <div><span class="card-title">{{ market.name }}</span>
       <small class="muted" style="margin-left:8px">{{ market.region.name }}</small></div>
+    <div class="zoom-ctl" data-noloc>
+      <button type="button" @click="zoom=Math.max(0.6,zoom-0.15)">−</button>
+      <button type="button" @click="zoom=1">↺</button>
+      <button type="button" @click="zoom=Math.min(1.8,zoom+0.15)">+</button>
+    </div>
   </div>
-  <div id="bmap"></div>
-  <div class="muted" style="padding:10px var(--sp-5);font-size:var(--t--1);border-top:1px solid var(--border)">
-    Marker ustidagi raqam — rostlik darajasi (%). Yaqinlashtirib ko'ring; do'konni bosing — batafsil.
+  <div class="bazaar-scroll">
+    <div class="bazaar" :style="`transform:scale(${zoom});transform-origin:top left`">
+      {% for row in rows_data %}
+      <div class="bazaar-row">
+        <div class="bazaar-row-label">{{ row.label }}</div>
+        <div class="bazaar-stalls">
+          {% for st in row.stalls %}
+          <a class="stall stall-{{ st.level }}" href="{% url 'inspector:shop_detail' st.id %}"
+             title="№{{ st.number }} {{ st.owner }}">
+            <span class="stall-no">№{{ st.number }}</span>
+            <span class="stall-truth">{% if st.truth is not None %}{{ st.truth }}%{% else %}—{% endif %}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% empty %}
+      <p class="muted" style="padding:var(--sp-4)">Do'kon yo'q.</p>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="muted" style="margin-top:var(--sp-3);font-size:var(--t--1)">
+    Har rasta ustidagi raqam — rostlik darajasi (%). Rastани bosing — batafsil. Kattalashtirish uchun +/−.
   </div>
 </div>
 {% else %}
 <div class="empty"><img class="emoji-xl" src="{% static 'emoji/box.svg' %}" alt="">
   <h3>Bozor topilmadi</h3><p class="muted">Sizga bozor biriktirilmagan.</p></div>
 {% endif %}
-{% endblock %}
-
-{% block extra_js %}
-{{ map_data|json_script:"map-data" }}
-<script src="{% static 'js/leaflet.js' %}"></script>
-<script>
-  (function () {
-    const d = JSON.parse(document.getElementById("map-data").textContent);
-    if (!window.L || !document.getElementById("bmap")) return;
-    const map = L.map("bmap", { scrollWheelZoom: true }).setView(d.center, 17);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "© OpenStreetMap",
-    }).addTo(map);
-
-    const bounds = [];
-    for (const s of d.shops) {
-      const label = s.truth === null ? "—" : s.truth + "%";
-      const icon = L.divIcon({
-        className: "",
-        html: `<div class="mk mk-${s.level}">${label}</div>`,
-        iconSize: [40, 24],
-        iconAnchor: [20, 12],
-      });
-      const m = L.marker([s.lat, s.lng], { icon }).addTo(map);
-      m.bindPopup(
-        `<b>№${s.number} ${s.owner}</b><br>Rostlik: <b>${label}</b><br>` +
-          `<a href="/dokon/${s.id}/">Batafsil →</a>`
-      );
-      bounds.push([s.lat, s.lng]);
-    }
-    if (bounds.length) map.fitBounds(bounds, { padding: [40, 40] });
-  })();
-</script>
 {% endblock %}

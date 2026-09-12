@@ -10,9 +10,11 @@
     </button>
     <div class="dropdown-panel cal" x-show="open" x-transition x-cloak>
       <div class="cal-head">
+        <button type="button" class="btn-quiet btn-icon" @click="prevYear()" title="Oldingi yil" data-noloc>«</button>
         <button type="button" class="btn-quiet btn-icon" @click="prev()"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-chevron-left"></use></svg></button>
         <span class="m" x-text="title"></span>
         <button type="button" class="btn-quiet btn-icon" @click="next()"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-chevron-right"></use></svg></button>
+        <button type="button" class="btn-quiet btn-icon" @click="nextYear()" title="Keyingi yil" data-noloc>»</button>
       </div>
       <div class="cal-grid">
         <template x-for="w in wd" :key="w"><div class="wd" x-text="w"></div></template>

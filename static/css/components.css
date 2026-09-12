@@ -216,6 +216,28 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .btn-danger{background:var(--bad);color:#fff;border:1px solid var(--bad)}
 .btn-danger:hover{filter:brightness(1.05)}
 
+/* Bozor sxemasi (rastalar) */
+.bazaar-scroll{overflow:auto;border:1px solid var(--border);border-radius:var(--r-2);
+  background:var(--surface-sunken);padding:var(--sp-3)}
+.bazaar{display:flex;flex-direction:column;gap:14px;min-width:max-content;transition:transform .12s}
+.bazaar-row{display:flex;align-items:center;gap:12px}
+.bazaar-row-label{flex:none;width:120px;font-weight:600;font-size:var(--t--1);color:var(--ink-muted);
+  text-align:right;padding-right:8px;border-right:2px dashed var(--border-strong)}
+.bazaar-stalls{display:flex;gap:8px;flex-wrap:wrap}
+.stall{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  width:62px;height:56px;border-radius:10px;text-decoration:none;color:#fff;font-family:var(--font-sans);
+  box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .1s}
+.stall:hover{transform:translateY(-2px) scale(1.05);z-index:2}
+.stall-no{font-size:11px;opacity:.9}
+.stall-truth{font-size:14px;font-weight:700}
+.stall-green{background:#1e8a5a}.stall-yellow{background:#bf7d16}
+.stall-red{background:#c23b3b}.stall-none{background:#8d8371}
+.zoom-ctl{display:inline-flex;border:1px solid var(--border-strong);border-radius:var(--r-2);overflow:hidden}
+.zoom-ctl button{border:none;background:transparent;color:var(--ink);padding:6px 12px;cursor:pointer;
+  font-size:16px;font-weight:700}
+.zoom-ctl button:hover{background:var(--surface-sunken)}
+.zoom-ctl button+button{border-left:1px solid var(--border)}
+
 /* Navigatsiya badge (o'qilmagan bildirishnoma) */
 .nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;
   padding:0 5px;border-radius:99px;background:var(--bad);color:#fff;font-size:11px;font-weight:700;

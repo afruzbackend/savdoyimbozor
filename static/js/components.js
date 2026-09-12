@@ -207,6 +207,8 @@
       },
       prev() { this.view = new Date(this.view.getFullYear(), this.view.getMonth() - 1, 1); },
       next() { this.view = new Date(this.view.getFullYear(), this.view.getMonth() + 1, 1); },
+      prevYear() { this.view = new Date(this.view.getFullYear() - 1, this.view.getMonth(), 1); },
+      nextYear() { this.view = new Date(this.view.getFullYear() + 1, this.view.getMonth(), 1); },
       isoOf(d) {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
           d.getDate()
@@ -273,6 +275,8 @@
       },
       prev() { this.view = new Date(this.view.getFullYear(), this.view.getMonth() - 1, 1); },
       next() { this.view = new Date(this.view.getFullYear(), this.view.getMonth() + 1, 1); },
+      prevYear() { this.view = new Date(this.view.getFullYear() - 1, this.view.getMonth(), 1); },
+      nextYear() { this.view = new Date(this.view.getFullYear() + 1, this.view.getMonth(), 1); },
       iso(d) { return d.toISOString().slice(0, 10); },
       isToday(d) { return this.iso(d) === this.iso(new Date()); },
       isSel(d) { const s = this.iso(d);
