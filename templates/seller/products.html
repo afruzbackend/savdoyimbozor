@@ -13,6 +13,7 @@
         <td class="num">{{ p.sell_price|intcomma }}</td><td class="num">{{ p.stock }}</td></tr>
       {% empty %}<tr><td colspan="4" class="muted">Mahsulot yo'q.</td></tr>{% endfor %}
       </tbody></table></div>
+    {% include 'components/_pagination.html' %}
   </div>
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Yangi mahsulot</div>

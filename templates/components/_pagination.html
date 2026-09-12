@@ -1,0 +1,13 @@
+{% comment %}Sahifalash. Parametr: page (Page obyekti). Boshqa GET'lar saqlanadi.{% endcomment %}
+{% if page.paginator.num_pages > 1 %}
+<nav class="pager" data-noloc aria-label="Sahifalar">
+  {% if page.has_previous %}
+    <a class="pager-btn" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page.previous_page_number }}">‹</a>
+  {% else %}<span class="pager-btn disabled">‹</span>{% endif %}
+  <span class="pager-info">{{ page.number }} / {{ page.paginator.num_pages }}
+    <span class="muted">({{ page.paginator.count }})</span></span>
+  {% if page.has_next %}
+    <a class="pager-btn" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page.next_page_number }}">›</a>
+  {% else %}<span class="pager-btn disabled">›</span>{% endif %}
+</nav>
+{% endif %}

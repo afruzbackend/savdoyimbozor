@@ -171,12 +171,16 @@ def products(request):
         {"id": c.pk, "name": c.name, "unit": c.default_unit}
         for c in catalog
     ]
+    from apps.core.pagination import paginate
+
+    page = paginate(request, Product.objects.filter(shop=shop).order_by("name"), per_page=50)
     return render(
         request,
         "seller/products.html",
         {
             "shop": shop,
-            "products": Product.objects.filter(shop=shop).order_by("name"),
+            "products": page.object_list,
+            "page": page,
             "catalog": catalog,
             "catalog_json": catalog_json,  # json_script o'zi kodlaydi (ikki marta EMAS)
             "units": Unit.choices,

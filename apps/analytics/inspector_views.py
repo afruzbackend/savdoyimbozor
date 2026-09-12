@@ -277,10 +277,20 @@ def alerts_list(request):
         alerts = alerts.filter(level=level)
     if status:
         alerts = alerts.filter(status=status)
+    from apps.core.pagination import paginate
+
+    page = paginate(request, alerts.order_by("-created_at"), per_page=50)
+    qs = f"level={level or ''}&status={status}"
     return render(
         request,
         "inspector/alerts.html",
-        {"alerts": alerts.order_by("-created_at")[:200], "level": level or "", "status": status},
+        {
+            "alerts": page.object_list,
+            "page": page,
+            "querystring": qs,
+            "level": level or "",
+            "status": status,
+        },
     )
 
 
@@ -577,16 +587,22 @@ def statistics(request):
     totals = DailyScore.objects.filter(shop__in=shops, date__range=(start, end)).aggregate(
         e=Sum("entered_sales"), c=Sum("cash_amount"), t=Avg("truth_pct")
     )
+    from apps.core.pagination import paginate
+
+    seller_count = len(rows)
+    page = paginate(request, rows, per_page=50)
     ctx = {
         "start": start,
         "end": end,
         "sort": sort,
         "dynamics": dynamics,
-        "rows": rows,
+        "rows": page.object_list,
+        "page": page,
+        "querystring": f"start={start:%Y-%m-%d}&end={end:%Y-%m-%d}&sort={sort}",
         "total_entered": int(totals["e"] or 0),
         "total_cash": int(totals["c"] or 0),
         "avg_truth": round(totals["t"] or 0),
-        "seller_count": len(rows),
+        "seller_count": seller_count,
     }
     return render(request, "inspector/statistics.html", ctx)
 

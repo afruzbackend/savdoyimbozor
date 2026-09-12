@@ -220,6 +220,15 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .btn-danger{background:var(--bad);color:#fff;border:1px solid var(--bad)}
 .btn-danger:hover{filter:brightness(1.05)}
 
+/* Sahifalash */
+.pager{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:var(--sp-4)}
+.pager-btn{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;
+  border:1px solid var(--border-strong);border-radius:var(--r-2);color:var(--ink);font-weight:700;
+  text-decoration:none}
+.pager-btn:hover{background:var(--surface-sunken)}
+.pager-btn.disabled{opacity:.4;pointer-events:none}
+.pager-info{font-size:var(--t--1);color:var(--ink-muted);font-variant-numeric:tabular-nums}
+
 /* Pul banneri (yashirilgan savdo + potensial soliq) */
 .money-banner{background:linear-gradient(135deg,color-mix(in srgb,var(--brand-500) 8%,var(--surface)),var(--surface));
   border:1px solid var(--border-strong)}

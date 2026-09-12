@@ -49,8 +49,19 @@ def user_list(request):
     q = request.GET.get("q")
     if q:
         users = users.filter(username__icontains=q)
+    from apps.core.pagination import paginate
+
+    page = paginate(request, users, per_page=50)
     return render(
-        request, "panel/users.html", {"users": users[:300], "role": role or "", "q": q or ""}
+        request,
+        "panel/users.html",
+        {
+            "users": page.object_list,
+            "page": page,
+            "querystring": f"role={role or ''}&q={q or ''}",
+            "role": role or "",
+            "q": q or "",
+        },
     )
 
 
