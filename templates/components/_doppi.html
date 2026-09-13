@@ -1,20 +1,17 @@
-{% comment %}Milliy doppi naqshi — qayrilgan islimiy motif (statik suv belgisi). currentColor.{% endcomment %}
-<svg class="doppi-pattern" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg"
-     fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"
-     stroke-linejoin="round" aria-hidden="true" focusable="false" data-noloc>
-  <path d="M65 105 C125 55, 230 65, 310 145 C330 165, 340 190, 335 220"/>
-  <path d="M78 112 C135 75, 225 82, 295 150 C315 170, 322 192, 318 213"/>
-  <path d="M92 120 C145 92, 215 98, 278 158 C295 175, 302 193, 300 207"/>
-  <ellipse cx="72" cy="105" rx="30" ry="25"/>
-  <ellipse cx="72" cy="105" rx="19" ry="16"/>
-  <ellipse cx="72" cy="105" rx="8" ry="7"/>
-  <ellipse cx="287" cy="170" rx="30" ry="27"/>
-  <ellipse cx="287" cy="170" rx="18" ry="17"/>
-  <ellipse cx="287" cy="170" rx="7" ry="7"/>
-  <circle cx="355" cy="95" r="3"/>
-  <circle cx="375" cy="110" r="3"/>
-  <circle cx="365" cy="125" r="3"/>
-  <circle cx="250" cy="125" r="3"/>
-  <circle cx="260" cy="135" r="3"/>
-  <circle cx="270" cy="125" r="3"/>
+{% comment %}Milliy koshin rozetkasi — simmetrik girih (8-burchak yulduz). Statik suv belgisi, currentColor.{% endcomment %}
+<svg class="doppi-pattern" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"
+     fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"
+     aria-hidden="true" focusable="false" data-noloc>
+  {# tashqi ramka #}
+  <circle cx="100" cy="100" r="93" stroke-width="1"/>
+  <circle cx="100" cy="100" r="88" stroke-width="0.7"/>
+  {# asosiy 8-burchak yulduz #}
+  <path d="M 100.00 12.00 L 115.31 63.04 L 162.23 37.77 L 136.96 84.69 L 188.00 100.00 L 136.96 115.31 L 162.23 162.23 L 115.31 136.96 L 100.00 188.00 L 84.69 136.96 L 37.77 162.23 L 63.04 115.31 L 12.00 100.00 L 63.04 84.69 L 37.77 37.77 L 84.69 63.04 Z" stroke-width="1.6"/>
+  {# ichki halqa #}
+  <circle cx="100" cy="100" r="44" stroke-width="1"/>
+  {# ichki 8-burchak yulduz #}
+  <path d="M 100.00 60.00 L 106.51 84.29 L 128.28 71.72 L 115.71 93.49 L 140.00 100.00 L 115.71 106.51 L 128.28 128.28 L 106.51 115.71 L 100.00 140.00 L 93.49 115.71 L 71.72 128.28 L 84.29 106.51 L 60.00 100.00 L 84.29 93.49 L 71.72 71.72 L 93.49 84.29 Z" stroke-width="1.2"/>
+  {# markaz #}
+  <circle cx="100" cy="100" r="8" stroke-width="1"/>
+  <circle cx="100" cy="100" r="2.4" fill="currentColor" stroke="none"/>
 </svg>
