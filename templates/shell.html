@@ -55,7 +55,7 @@
       <h1>{% block heading %}{% endblock %}</h1>
       <div class="row gap-3">{% block topbar_actions %}{% endblock %}</div>
     </header>
-    <div class="page-ornament" aria-hidden="true" data-noloc>{% include 'components/_koshin.html' %}</div>
+    <div class="page-ornament" aria-hidden="true" data-noloc>{% include 'components/_doppi.html' %}</div>
     <main class="content">
       {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
       {% block content %}{% endblock %}
@@ -79,41 +79,5 @@
     </div>
   </div>
 
-  {# Milliy doppi naqshi manbasi (yashirin) — bosilgan tugma ustidan nusxalanadi #}
-  <div id="doppi-src" hidden>{% include 'components/_doppi.html' %}</div>
 </div>
-<script>
-  (function(){
-    var src = document.getElementById('doppi-src');
-    // Doppi naqshini berilgan element (tugma/havola) USTIDAN chapdan o'ngga suradi
-    window.milliySweepOver = function(el, cb){
-      if(!el || !src || !src.firstElementChild){ if(cb) cb(); return; }
-      var r = el.getBoundingClientRect();
-      var w = document.createElement('div');
-      w.className = 'navsweep';
-      w.style.cssText = 'left:'+r.left+'px;top:'+r.top+'px;width:'+r.width+'px;height:'+r.height+'px';
-      var svg = src.firstElementChild.cloneNode(true);
-      svg.classList.add('navsweep-mark');
-      w.appendChild(svg);
-      document.body.appendChild(w);
-      requestAnimationFrame(function(){ w.classList.add('go'); });
-      setTimeout(function(){ w.remove(); if(cb) cb(); }, 440);
-    };
-    // Til/mavzu — o'sha bosilgan tugma ustidan sweep
-    document.querySelectorAll('.lang-toggle button, .theme-toggle button').forEach(function(b){
-      b.addEventListener('click', function(){ window.milliySweepOver(b); });
-    });
-    // Boshqa bo'limga o'tish: bosilgan nav tugmasi ustidan doppi o'tadi, so'ng sahifa ochiladi
-    document.querySelectorAll('.sidebar nav a[href], .bottom-nav a[href]').forEach(function(a){
-      a.addEventListener('click', function(e){
-        var href = a.getAttribute('href');
-        if(!href || href.charAt(0) === '#' || href.indexOf('logout') !== -1) return;
-        if(a.classList.contains('active')) return;          // joriy sahifa — o'tish yo'q
-        if(e.metaKey || e.ctrlKey || e.shiftKey || e.button) return; // yangi tab — tegmaymiz
-        e.preventDefault();
-        window.milliySweepOver(a, function(){ window.location.href = href; });
-      });
-    });
-  })();
-</script>
 {% endblock %}

@@ -110,8 +110,7 @@
 
   window.setUiLang = function (v) {
     document.cookie = "uilang=" + v + ";path=/;max-age=" + 60 * 60 * 24 * 365 + ";samesite=Lax";
-    // Tugma ustidagi doppi sweep ko'rinib bo'lgach yangilaymiz (milliy o'tish)
-    setTimeout(function () { location.reload(); }, 440);
+    location.reload();
   };
 
   function run() {

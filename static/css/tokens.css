@@ -22,11 +22,11 @@
   src:url('/static/fonts/spectral-v15-cyrillic_latin-700.woff2') format('woff2')}
 
 :root{
-  /* ---- Brend palitrasi: suzani indigo (asosiy) ---- */
-  --brand-50:#eef1fa;  --brand-100:#dde3f4; --brand-200:#bcc7e8;
-  --brand-300:#93a3d7; --brand-400:#6a7cc0; --brand-500:#4a5ca8;
-  --brand-600:#3a4e8c; --brand-700:#2e3d6e; --brand-800:#26305680;
-  --brand-900:#1e2748;
+  /* ---- Brend palitrasi: soliq.uz davlat ko'ki (asosiy) ---- */
+  --brand-50:#eaf1fd;  --brand-100:#d4e2fb; --brand-200:#a9c4f6;
+  --brand-300:#7099ee; --brand-400:#4a76e3; --brand-500:#2f5fd0;
+  --brand-600:#2450bb; --brand-700:#1d3f93; --brand-800:#183472;
+  --brand-900:#132a5b;
 
   /* ---- Akцent: g'isht/terrakota (kam ishlatiladi) ---- */
   --clay-400:#c8794f; --clay-500:#b5603a; --clay-600:#9c4a2e;
@@ -58,7 +58,7 @@
   --primary-hover:var(--brand-700);
   --primary-ink:#ffffff;
   --accent:var(--clay-500);
-  --ring:rgba(58,78,140,.35);
+  --ring:rgba(36,80,187,.35);
   --shadow-sm:0 1px 2px rgba(31,28,23,.06),0 1px 3px rgba(31,28,23,.05);
   --shadow-md:0 4px 12px rgba(31,28,23,.08),0 2px 4px rgba(31,28,23,.05);
   --shadow-lg:0 12px 32px rgba(31,28,23,.12);

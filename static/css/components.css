@@ -222,10 +222,11 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .topbar h1{font-size:var(--t-2);margin:0}
 .main{position:relative}
 .content{padding:var(--sp-5);max-width:1180px;width:100%;margin:0 auto;position:relative;z-index:1}
-/* Milliy koshin suv belgisi — bo'sh joylarga nafis milliy tus beradi */
-.page-ornament{position:absolute;right:-50px;bottom:-50px;width:400px;height:400px;
-  color:var(--brand-500);opacity:.07;pointer-events:none;z-index:0;overflow:hidden}
-:root[data-theme="dark"] .page-ornament{color:var(--brand-300);opacity:.09}
+/* Milliy doppi (qayrilgan islimiy) suv belgisi — bo'sh joylarga nafis milliy tus */
+.page-ornament{position:absolute;right:-40px;bottom:-30px;width:440px;height:auto;
+  color:var(--brand-500);opacity:.06;pointer-events:none;z-index:0;overflow:hidden}
+.page-ornament .doppi-pattern{width:100%;height:auto;display:block}
+:root[data-theme="dark"] .page-ornament{color:var(--brand-300);opacity:.08}
 @media (max-width:860px){.page-ornament{display:none}}
 
 /* Tema tugmasi (2 rejim: yorug'/qorong'i) */
@@ -359,19 +360,6 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .modal-backdrop[hidden]{display:none}
 .modal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);
   padding:var(--sp-5);max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4)}
-
-/* Milliy doppi — bosilgan bo'lim tugmasi USTIDAN chapdan o'ngga o'tadi */
-#doppi-src{display:none}
-.navsweep{position:fixed;overflow:hidden;pointer-events:none;z-index:70;border-radius:var(--r-sm);
-  background:color-mix(in srgb,var(--brand-500) 10%,transparent)}
-.navsweep .navsweep-mark{position:absolute;top:50%;left:-90px;height:150%;width:auto;
-  transform:translateY(-50%);color:var(--brand-600)}
-.navsweep.go .navsweep-mark{animation:navSweep .46s ease-out forwards}
-.navsweep.go{animation:navSweepBg .46s ease-out forwards}
-@keyframes navSweep{from{left:-90px}to{left:100%}}
-@keyframes navSweepBg{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
-@media (prefers-reduced-motion:reduce){
-  .navsweep .navsweep-mark{animation:none;opacity:0}}
 
 /* Mobil pastki navigatsiya (sotuvchi/inspektor telefonda) */
 .bottom-nav{display:none}

@@ -49,7 +49,7 @@
       <div class="lc-emblem">{% include 'components/_emblem.html' %}
         <b style="font-family:var(--font-serif)">Bozor Nazorat</b></div>
       <h1 style="margin-bottom:4px">Tizimga kirish</h1>
-      <p class="muted" style="margin-bottom:var(--sp-5)">{{ interface }} interfeysi</p>
+      <p class="muted" style="margin-bottom:var(--sp-5)">Login va parolni administrator beradi</p>
       {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
       <form method="post" action="{% url 'login' %}">
         {% csrf_token %}
