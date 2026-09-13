@@ -194,7 +194,25 @@ def stock_in(request):
     if shop is None:
         return redirect("seller:home")
     if request.method == "POST":
-        product = get_object_or_404(Product, pk=request.POST.get("product"), shop=shop)
+        price = int(request.POST.get("unit_price") or 0)
+        # 2 xil: mavjud mahsulotni tanlash YOKI qo'lda yangi nom yozish (yangi mahsulot yaratiladi)
+        product = Product.objects.filter(pk=request.POST.get("product") or 0, shop=shop).first()
+        if product is None:
+            name = request.POST.get("new_name", "").strip()
+            if not name:
+                messages.error(request, "Mahsulotni tanlang yoki yangi nom kiriting.")
+                return redirect("seller:stock_in")
+            # Nom bo'yicha bor bo'lsa — o'shani olamiz, aks holda yangi yaratamiz
+            product = Product.objects.filter(shop=shop, name__iexact=name).first()
+            if product is None:
+                product = Product.objects.create(
+                    shop=shop,
+                    name=name[:200],
+                    unit=request.POST.get("unit", Unit.PIECE),
+                    barcode=request.POST.get("barcode", "")[:64],
+                    buy_price=price,
+                    sell_price=int(request.POST.get("sell_price") or 0),
+                )
         qty = _dec(request.POST.get("quantity"))
         in_packs = bool(request.POST.get("in_packs"))
         real_qty = qty * product.pack_coeff if in_packs else qty
@@ -204,10 +222,10 @@ def stock_in(request):
             seller=request.user,
             quantity=qty,
             in_packs=in_packs,
-            unit_price=int(request.POST.get("unit_price") or 0),
+            unit_price=price,
         )
         Product.objects.filter(pk=product.pk).update(stock=F("stock") + real_qty)
-        messages.success(request, f"Kirim qo'shildi: {product.name} +{real_qty}")
+        messages.success(request, f"Kirim qo'shildi: {product.name} +{real_qty:g}")
         return redirect("seller:stock_in")
     return render(
         request,
@@ -215,6 +233,7 @@ def stock_in(request):
         {
             "shop": shop,
             "products": Product.objects.filter(shop=shop, is_active=True),
+            "units": Unit.choices,
             "recent": StockIn.objects.filter(shop=shop).select_related("product")[:10],
         },
     )
@@ -301,18 +320,33 @@ def returns(request):
     if shop is None:
         return redirect("seller:home")
     if request.method == "POST":
+        product = Product.objects.filter(pk=request.POST.get("product") or 0, shop=shop).first()
+        qty = _dec(request.POST.get("quantity"))
+        # Summa: kiritilgan bo'lsa o'sha, aks holda mahsulot narxi × miqdor
+        amount = int(request.POST.get("amount") or 0)
+        if not amount and product:
+            amount = int(qty * product.sell_price)
         SaleReturn.objects.create(
             shop=shop,
             seller=request.user,
-            amount=int(request.POST.get("amount") or 0),
+            product=product,
+            quantity=qty,
+            amount=amount,
             reason=request.POST.get("reason", "")[:200],
         )
-        messages.success(request, "Qaytarish qayd etildi.")
+        # Qoldiqni kamaytiramiz (qaytarilgan/yaroqsiz mahsulot ombordan chiqadi)
+        if product and qty > 0:
+            Product.objects.filter(pk=product.pk).update(stock=F("stock") - qty)
+        messages.success(request, "Qaytarish qayd etildi. Qoldiq yangilandi.")
         return redirect("seller:returns")
     return render(
         request,
         "seller/returns.html",
-        {"shop": shop, "recent": SaleReturn.objects.filter(shop=shop)[:10]},
+        {
+            "shop": shop,
+            "products": Product.objects.filter(shop=shop, is_active=True).order_by("name"),
+            "recent": SaleReturn.objects.filter(shop=shop).select_related("product")[:10],
+        },
     )
 
 

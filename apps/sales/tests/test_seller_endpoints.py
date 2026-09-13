@@ -29,6 +29,46 @@ def test_return_recorded(sclient, shop):
 
 
 @pytest.mark.django_db
+def test_return_reduces_stock(sclient, shop, product):
+    # 285 kg anordan 200 kg achib qaytarildi → 85 kg qoladi
+    from decimal import Decimal
+
+    product.stock = Decimal("285")
+    product.sell_price = 15000
+    product.save()
+    r = sclient.post(
+        "/qaytarish/",
+        {"product": str(product.pk), "quantity": "200", "reason": "achigan"},
+        HTTP_HOST=SELLER_HOST,
+    )
+    assert r.status_code == 302
+    product.refresh_from_db()
+    assert product.stock == Decimal("85")
+    ret = SaleReturn.objects.get(shop=shop, product=product)
+    assert ret.quantity == Decimal("200")
+    # Summa bo'sh berildi → narx × miqdor = 15000 × 200
+    assert ret.amount == 200 * 15000
+
+
+@pytest.mark.django_db
+def test_stock_in_manual_creates_product(sclient, shop):
+    from decimal import Decimal
+
+    from apps.catalog.models import Product
+
+    r = sclient.post(
+        "/kirim/",
+        {"new_name": "Yangi Anor", "unit": "kg", "sell_price": "18000",
+         "quantity": "50", "unit_price": "12000"},
+        HTTP_HOST=SELLER_HOST,
+    )
+    assert r.status_code == 302
+    p = Product.objects.get(shop=shop, name="Yangi Anor")
+    assert p.stock == Decimal("50")
+    assert p.sell_price == 18000
+
+
+@pytest.mark.django_db
 def test_writeoff_requires_photo(sclient, shop):
     # Fotosiz — yozilmaydi
     sclient.post(

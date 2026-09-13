@@ -5,26 +5,27 @@ from types import SimpleNamespace
 from apps.sales.services import pricing
 
 SETTINGS = SimpleNamespace(
-    discount_tiers=[
-        [50_000, [2_000, 5_000, 10_000]],
-        [200_000, [5_000, 10_000, 20_000]],
-        [1_000_000, [10_000, 20_000, 50_000]],
-        [3_000_000, [50_000, 100_000, 200_000]],
-        [None, [100_000, 200_000, 300_000]],
-    ],
+    discount_percents=[5, 10, 15],
     max_discount_no_cost_pct=30,
     rounding_max=1000,
 )
 
 
-def test_discount_buttons_by_tier():
-    assert pricing.discount_buttons(40_000, SETTINGS.discount_tiers) == [2_000, 5_000, 10_000]
-    assert pricing.discount_buttons(150_000, SETTINGS.discount_tiers) == [5_000, 10_000, 20_000]
-    assert pricing.discount_buttons(9_000_000, SETTINGS.discount_tiers) == [
-        100_000,
-        200_000,
-        300_000,
-    ]
+def test_discount_buttons_percent_based():
+    # Uzbek savdolashish: chegirma chek summasining foizi (yaxlitlangan)
+    # 20 000 (step 500): 5%→1000, 10%→2000, 15%→3000
+    assert pricing.discount_buttons(20_000, [5, 10, 15], 6_000) == [1_000, 2_000, 3_000]
+    # 200 000 (step 1000): 5%→10000, 10%→20000, 15%→30000
+    assert pricing.discount_buttons(200_000, [5, 10, 15], 60_000) == [10_000, 20_000, 30_000]
+
+
+def test_discount_buttons_capped():
+    # cap past bo'lsa tugmalar cap dan oshmaydi va takror bo'lmaydi
+    assert pricing.discount_buttons(200_000, [5, 10, 15], 12_000) == [10_000, 12_000]
+
+
+def test_discount_buttons_empty_when_zero():
+    assert pricing.discount_buttons(0, [5, 10, 15], 0) == []
 
 
 def test_max_discount_with_known_cost():

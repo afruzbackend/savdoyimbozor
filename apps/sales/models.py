@@ -100,6 +100,10 @@ class SaleReturn(TimeStampedModel):
         Sale, null=True, blank=True, on_delete=models.SET_NULL, related_name="returns"
     )
     seller = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
+    product = models.ForeignKey(
+        "catalog.Product", null=True, blank=True, on_delete=models.SET_NULL, related_name="returns"
+    )
+    quantity = models.DecimalField(_("Miqdor"), max_digits=12, decimal_places=3, default=0)
     amount = models.BigIntegerField(_("Summa (so'm)"), default=0)
     reason = models.CharField(_("Sabab"), max_length=200, blank=True)
 

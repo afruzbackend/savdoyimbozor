@@ -4,27 +4,47 @@
 {% block heading %}Kirim (mahsulot kelishi){% endblock %}
 {% block content %}
 <div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
-  <div class="card" x-data="{scanMsg:'', matchBarcode(v){
+  <div class="card" x-data="{mode:'select', scanMsg:'', matchBarcode(v){
         const sel=$refs.prod;
         const opt=[...sel.options].find(o=>o.dataset.barcode && o.dataset.barcode===String(v).trim());
         if(opt){sel.value=opt.value; this.scanMsg='✓ '+opt.textContent;}
-        else{this.scanMsg='Topilmadi — ro\'yxatdan tanlang';}
+        else{this.scanMsg='Ro\'yxatda yo\'q — \"Qo\'lda\" rejimida yangi qo\'shing';}
       }}">
+    <div class="segmented" style="margin-bottom:var(--sp-3)">
+      <button type="button" :aria-selected="mode==='select'" @click="mode='select'">Ro'yxatdan</button>
+      <button type="button" :aria-selected="mode==='manual'" @click="mode='manual'">Qo'lda (yangi)</button>
+    </div>
     <form method="post">{% csrf_token %}
       <div class="field"><label class="label">Barkod</label>
         <div class="row gap-2">
-          <input class="input grow" x-ref="bc" placeholder="Barkodni skanerlang yoki yozing"
-                 @keydown.enter.prevent="matchBarcode($event.target.value); $event.target.value=''">
+          <input class="input grow" x-ref="bc" name="barcode" placeholder="Barkodni skanerlang yoki yozing"
+                 @keydown.enter.prevent="if(mode==='select'){matchBarcode($event.target.value)}">
           <button type="button" class="scan-btn" title="Kamerani ochish"
-                  @click="window.openBarcodeScanner(c=>{ $refs.bc.value=c; matchBarcode(c); })">
+                  @click="window.openBarcodeScanner(c=>{ $refs.bc.value=c; if(mode==='select') matchBarcode(c); })">
             <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg></button>
         </div>
         <div class="hint" x-text="scanMsg" x-show="scanMsg" x-cloak></div>
       </div>
-      <div class="field"><label class="label">Mahsulot</label>
-        <select class="select-native" name="product" x-ref="prod" required>
-          {% for p in products %}<option value="{{ p.pk }}" data-barcode="{{ p.barcode }}">{{ p.name }} ({{ p.stock }} {{ p.unit }})</option>{% endfor %}</select></div>
-      <div class="field"><label class="label">Miqdor</label><input class="input num" type="number" step="0.1" name="quantity" required></div>
+
+      {# Rejim 1: mavjud mahsulotni tanlash #}
+      <div x-show="mode==='select'">
+        <div class="field"><label class="label">Mahsulot</label>
+          <select class="select-native" name="product" x-ref="prod" :required="mode==='select'">
+            {% for p in products %}<option value="{{ p.pk }}" data-barcode="{{ p.barcode }}">{{ p.name }} ({{ p.stock }} {{ p.unit }})</option>{% endfor %}</select></div>
+      </div>
+
+      {# Rejim 2: qo'lda yangi mahsulot (oldindan yaratish shart emas) #}
+      <div x-show="mode==='manual'" x-cloak>
+        <div class="field"><label class="label">Yangi mahsulot nomi</label>
+          <input class="input" name="new_name" placeholder="masalan: Anor" :required="mode==='manual'"></div>
+        <div class="grid grid-2">
+          <div class="field"><label class="label">Birlik</label>
+            <select class="select-native" name="unit">{% for v,l in units %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+          <div class="field"><label class="label">Sotish narxi</label><input class="input num" type="number" name="sell_price" value="0"></div>
+        </div>
+      </div>
+
+      <div class="field"><label class="label">Miqdor</label><input class="input num" type="number" step="0.001" name="quantity" required></div>
       <label class="switch-row" style="margin-bottom:var(--sp-2)">
         <span><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg> Qop/quti hisobida keldi</span>
         <input type="checkbox" name="in_packs"></label>

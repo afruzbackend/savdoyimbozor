@@ -5,19 +5,34 @@
 {% block content %}
 <div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
   <div class="card">
+    <p class="hint">Qaytarilgan yoki yaroqsiz mahsulotni tanlang — miqdor qoldiqdan chiqariladi.</p>
     <form method="post">{% csrf_token %}
-      <div class="field"><label class="label">Summa (so'm)</label><input class="input num" type="number" name="amount" required></div>
-      <div class="field"><label class="label">Sabab</label><input class="input" name="reason" placeholder="masalan: mahsulot yaroqsiz"></div>
+      <div class="field"><label class="label">Mahsulot</label>
+        <select class="select-native" name="product" required>
+          <option value="" disabled selected>Mahsulotni tanlang</option>
+          {% for p in products %}<option value="{{ p.pk }}">{{ p.name }} ({{ p.stock }} {{ p.unit }})</option>{% endfor %}
+        </select></div>
+      <div class="field"><label class="label">Miqdor</label>
+        <input class="input num" type="number" step="0.001" name="quantity" required></div>
+      <div class="field"><label class="label">Summa (so'm, ixtiyoriy)</label>
+        <input class="input num" type="number" name="amount" placeholder="Bo'sh — narx × miqdor"></div>
+      <div class="field"><label class="label">Sabab</label>
+        <input class="input" name="reason" placeholder="masalan: achigan / yaroqsiz"></div>
       <button class="btn btn-block" type="submit">Qaytarishni qayd etish</button>
     </form>
   </div>
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">So'nggi qaytarishlar</div>
     <div class="table-wrap"><table class="data">
-      <thead><tr><th>Sana</th><th>Sabab</th><th class="num">Summa</th></tr></thead>
+      <thead><tr><th>Sana</th><th>Mahsulot</th><th class="num">Miqdor</th><th>Sabab</th><th class="num">Summa</th></tr></thead>
       <tbody>
-      {% for r in recent %}<tr><td class="num">{{ r.created_at|date:"d.m H:i" }}</td><td>{{ r.reason|default:"—" }}</td><td class="num">{{ r.amount|intcomma }}</td></tr>
-      {% empty %}<tr><td colspan="3" class="muted">Qaytarish yo'q.</td></tr>{% endfor %}
+      {% for r in recent %}<tr>
+        <td class="num">{{ r.created_at|date:"d.m H:i" }}</td>
+        <td>{{ r.product.name|default:"—" }}</td>
+        <td class="num">{% if r.quantity %}{{ r.quantity|floatformat:"-3" }}{% else %}—{% endif %}</td>
+        <td>{{ r.reason|default:"—" }}</td>
+        <td class="num">{{ r.amount|intcomma }}</td></tr>
+      {% empty %}<tr><td colspan="5" class="muted">Qaytarish yo'q.</td></tr>{% endfor %}
       </tbody></table></div>
   </div>
 </div>
