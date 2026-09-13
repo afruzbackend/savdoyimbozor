@@ -53,10 +53,39 @@
 .input:focus,.textarea:focus,.select-native:focus{
   outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--ring)}
 .input::placeholder{color:var(--ink-faint)}
-/* Brauzer default raqam spinner o'qlarini olib tashlash (barcha raqam maydonlari) */
+/* ===== Brauzer default elementlarini olib tashlash (dizayn toza bo'lsin) ===== */
+/* Raqam maydoni spinner o'qlari */
 input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;appearance:none;margin:0}
+/* Textarea: faqat vertikal cho'zilsin (gorizontal layoutni buzmasin) */
+.textarea{resize:vertical;min-height:76px}
+/* Fayl tanlash: native tugma o'rniga bizning uslub */
+input[type="file"]{cursor:pointer}
+input[type="file"]::-webkit-file-upload-button,
+input[type="file"]::file-selector-button{
+  font:inherit;cursor:pointer;margin:-2px 12px -2px -2px;padding:8px 14px;
+  border:1px solid var(--border-strong);border-radius:var(--r-sm);
+  background:var(--surface-2);color:var(--ink);transition:background var(--dur)}
+input[type="file"]::-webkit-file-upload-button:hover,
+input[type="file"]::file-selector-button:hover{background:var(--surface-sunken)}
+/* Parol/qidiruv: Edge default ko'z va tozalash (X) tugmalari */
+input::-ms-reveal,input::-ms-clear{display:none}
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+/* Sana/vaqt: native kalendar/soat ikonkasi (custom tanlagichdan foydalanamiz) */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator{opacity:0;display:none}
+/* details/summary: default uchburchak marker */
+details>summary{list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details>summary::marker{content:""}
+/* Autofill: brauzer sariq foni o'rniga bizning yuza */
+input:-webkit-autofill,input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,.textarea:-webkit-autofill{
+  -webkit-text-fill-color:var(--ink);
+  -webkit-box-shadow:0 0 0 1000px var(--surface) inset;
+  caret-color:var(--ink)}
 .input-lg{font-size:var(--t-3);padding:16px 18px;font-variant-numeric:tabular-nums}
 .hint{font-size:var(--t--1);color:var(--ink-faint);margin-top:5px}
 .field-error .input{border-color:var(--bad)}
