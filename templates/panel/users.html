@@ -13,11 +13,23 @@
 <div class="card">
   <div class="table-wrap">
     <table class="data">
-      <thead><tr><th>Login</th><th>F.I.O.</th><th>Rol</th><th>Do'kon</th><th>Holat</th><th></th></tr></thead>
+      <thead><tr><th>Login</th><th>Parol</th><th>F.I.O.</th><th>Rol</th><th>Do'kon</th><th>Holat</th><th></th></tr></thead>
       <tbody>
       {% for u in users %}
       <tr>
         <td class="num">{{ u.username }}</td>
+        <td data-noloc>
+          {% if u.visible_password %}
+          <span class="pw-cell" x-data="{show:false}">
+            <b class="num" x-show="show" x-cloak>{{ u.visible_password }}</b>
+            <span class="num muted" x-show="!show">••••••••</span>
+            <button type="button" class="btn-icon" title="Ko'rsatish/yashirish" @click="show=!show">
+              <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-eye"></use></svg></button>
+            <button type="button" class="btn-ghost" style="padding:2px 8px;font-size:var(--t--1)" title="Nusxa olish"
+                    @click="navigator.clipboard.writeText('{{ u.visible_password }}');window.toast&&window.toast('Parol nusxalandi','ok')">Nusxa</button>
+          </span>
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
         <td>{{ u.get_full_name|default:"—" }}</td>
         <td>{{ u.get_role_display }}</td>
         <td>{% if u.shop %}№{{ u.shop.number }}{% else %}—{% endif %}</td>
@@ -30,7 +42,7 @@
             <button class="btn btn-ghost" style="padding:6px 10px">{% if u.is_active %}Bloklash{% else %}Faollashtirish{% endif %}</button></form>
         </td>
       </tr>
-      {% empty %}<tr><td colspan="6" class="muted">Foydalanuvchi yo'q.</td></tr>{% endfor %}
+      {% empty %}<tr><td colspan="7" class="muted">Foydalanuvchi yo'q.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>

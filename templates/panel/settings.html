@@ -1,9 +1,14 @@
 {% extends 'panel/base.html' %}
+{% load static %}
 {% block title %}Sozlamalar{% endblock %}
 {% block heading %}Tizim sozlamalari{% endblock %}
+{% block topbar_actions %}<a class="btn btn-ghost" href="{% url 'panel:home' %}">
+  <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-arrow-left"></use></svg> Orqaga</a>{% endblock %}
 {% block content %}
 <form method="post" class="stack gap-4" style="max-width:720px">
   {% csrf_token %}
+  <a class="btn btn-ghost" href="{% url 'panel:home' %}" style="align-self:flex-start">
+    <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-arrow-left"></use></svg> Boshqaruv paneliga qaytish</a>
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Rostlik ranglari (%)</div>
     <div class="grid grid-2">

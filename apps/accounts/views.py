@@ -69,9 +69,11 @@ def password_change(request):
         elif p1 != p2:
             messages.error(request, "Parollar mos kelmadi.")
         else:
-            request.user.set_password(p1)
+            request.user.set_password_visible(p1)
             request.user.must_change_password = False
-            request.user.save(update_fields=["password", "must_change_password"])
+            request.user.save(
+                update_fields=["password", "visible_password", "must_change_password"]
+            )
             update_session_auth_hash(request, request.user)
             messages.success(request, "Parol yangilandi.")
             return redirect(_home_url_for(request))

@@ -59,6 +59,10 @@ class User(AbstractUser):
     must_change_password = models.BooleanField(_("Parolni almashtirsin"), default=True)
     failed_attempts = models.PositiveSmallIntegerField(default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
+    # Admin ko'rishi uchun joriy parol (ochiq matn). Login/parolni admin beradi,
+    # o'zgargan bo'lsa ham admin ko'rib turishi kerak (davlat kredensial modeli).
+    # ESLATMA: bu odatdagi xavfsizlik amaliyoti emas; faqat admin panelida ko'rinadi.
+    visible_password = models.CharField(_("Joriy parol"), max_length=128, blank=True, default="")
 
     class Meta:
         verbose_name = _("Foydalanuvchi")
@@ -95,6 +99,11 @@ class User(AbstractUser):
         if self.is_seller and self.shop_id:
             return Shop.objects.filter(pk=self.shop_id)
         return Shop.objects.none()
+
+    def set_password_visible(self, raw_password):
+        """Parolni o'rnatadi va admin ko'rishi uchun ochiq matnini ham saqlaydi."""
+        self.set_password(raw_password)
+        self.visible_password = raw_password or ""
 
     def register_failed_login(self, max_attempts: int, lock_minutes: int):
         self.failed_attempts += 1

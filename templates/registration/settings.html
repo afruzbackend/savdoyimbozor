@@ -2,8 +2,12 @@
 {% load static %}
 {% block title %}Sozlamalar{% endblock %}
 {% block heading %}Sozlamalar{% endblock %}
+{% block topbar_actions %}<a class="btn btn-ghost" href="{% url 'profile' %}">
+  <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-arrow-left"></use></svg> Orqaga</a>{% endblock %}
 {% block content %}
 <div class="stack gap-4" style="max-width:560px">
+  <a class="btn btn-ghost" href="{% url 'profile' %}" style="align-self:flex-start">
+    <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-arrow-left"></use></svg> Profilga qaytish</a>
   {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
 
   <form method="post" class="card">{% csrf_token %}

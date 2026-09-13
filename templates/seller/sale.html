@@ -49,9 +49,15 @@
       </template>
       <button class="btn btn-ghost" style="font-size:var(--t-2);padding:18px 0" @click="press('000')">000</button>
       <button class="btn btn-ghost" style="font-size:var(--t-2);padding:18px 0" @click="press('0')">0</button>
-      <button class="btn btn-ghost" style="font-size:var(--t-2);padding:18px 0" @click="back()" aria-label="O'chirish">
+      {# Bittalab o'chirish (orqaga) #}
+      <button class="btn btn-ghost" style="font-size:var(--t-2);padding:18px 0" @click="back()" aria-label="Bittalab o'chirish" data-tip="Bittalab o'chirish">
         <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg></button>
     </div>
+    {# Birdan hammasini o'chirish (adashib yozilsa) #}
+    <button class="btn btn-ghost btn-block" style="margin-top:var(--sp-2);color:var(--bad)"
+            @click="clearAll()" x-show="amount>0" x-cloak>
+      <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-trash-2"></use></svg> Hammasini o'chirish
+    </button>
   </div>
 
   {# To'lov turi + ulgurji #}
@@ -101,6 +107,7 @@
       fmtK(n) { return n >= 1000 ? (n/1000) + 'k' : n; },
       press(d) { this.amount = parseInt(String(this.amount) + d, 10) || 0; },
       back() { this.amount = Math.floor(this.amount / 10); },
+      clearAll() { this.amount = 0; this.discount = 0; this.rounding = 0; },
       addDiscount(b) {
         // Tugmani tanlash/bekor qilish (tugma qiymati allaqachon cheklangan)
         this.discount = (this.discount === b) ? 0 : Math.min(b, this.cap);

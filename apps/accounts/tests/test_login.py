@@ -63,3 +63,29 @@ def test_must_change_password_redirects(shop):
     )
     assert r.status_code == 302
     assert reverse("password_change") in r.url
+
+
+@pytest.mark.django_db
+def test_admin_sees_current_password(shop):
+    """Admin joriy parolni ko'radi: yaratishda, reset'da va self-almashtirishdan keyin."""
+    from apps.accounts.services import create_seller, reset_password
+
+    cred = create_seller(shop, full_name="Sardor")
+    u = cred["user"]
+    # 1) Yaratilganda ochiq parol saqlanadi
+    assert u.visible_password == cred["password"]
+    # 2) Admin reset qilganda yangilanadi
+    newpw = reset_password(u)
+    u.refresh_from_db()
+    assert u.visible_password == newpw
+    # 3) Sotuvchi o'zi almashtirsa ham admin joriy parolni ko'radi
+    c = Client()
+    c.force_login(u)
+    c.post(
+        reverse("password_change"),
+        {"password1": "YangiParol9", "password2": "YangiParol9"},
+        HTTP_HOST=SELLER_HOST,
+    )
+    u.refresh_from_db()
+    assert u.visible_password == "YangiParol9"
+    assert u.check_password("YangiParol9")  # haqiqiy parol ham o'zgargan

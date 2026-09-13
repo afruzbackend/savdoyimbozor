@@ -370,7 +370,7 @@ class Command(BaseCommand):
         u.shop = shop
         u.is_shop_owner = is_owner
         u.must_change_password = False
-        u.set_password(PW)
+        u.set_password_visible(PW)  # admin panelida parol ko'rinsin
         u.save()
         return u
 

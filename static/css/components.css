@@ -361,6 +361,13 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .modal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);
   padding:var(--sp-5);max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4)}
 
+/* Login "pill" — profil va admin ro'yxatida loginni ajratib ko'rsatish */
+.login-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
+  border:1px solid var(--border-strong);border-radius:var(--r-full);
+  background:var(--surface-2);color:var(--ink)}
+.login-pill .icon-sm{color:var(--primary)}
+.pw-cell{display:inline-flex;align-items:center;gap:6px}
+
 /* Mobil pastki navigatsiya (sotuvchi/inspektor telefonda) */
 .bottom-nav{display:none}
 .menu-btn{display:none;align-items:center;justify-content:center;border:1px solid var(--border-strong);

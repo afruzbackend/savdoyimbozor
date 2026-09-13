@@ -8,6 +8,11 @@
     <div class="avatar-lg">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</div>
     <div class="card-title" style="margin-top:var(--sp-3)">{{ user.get_full_name|default:user.username }}</div>
     <span class="badge badge-neutral" style="margin-top:6px">{{ user.get_role_display }}</span>
+    <div class="login-pill" style="margin-top:var(--sp-3)" data-noloc>
+      <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg>
+      <span class="muted" style="font-size:var(--t--1)">Login:</span>
+      <b class="num" style="letter-spacing:.02em">{{ user.username }}</b>
+    </div>
   </div>
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Ma'lumotlar</div>

@@ -41,7 +41,7 @@ def create_seller(shop, *, full_name="", phone="", is_owner=True) -> dict:
         phone=phone or shop.owner_phone,
         must_change_password=True,
     )
-    user.set_password(password)
+    user.set_password_visible(password)
     user.save()
     return {
         "user": user,
@@ -72,7 +72,7 @@ def create_inspector(full_name, markets, *, phone="", username=None) -> dict:
         phone=phone,
         must_change_password=True,
     )
-    user.set_password(password)
+    user.set_password_visible(password)
     user.save()
     if markets:
         user.assigned_markets.set(markets)
@@ -88,7 +88,7 @@ def create_inspector(full_name, markets, *, phone="", username=None) -> dict:
 def reset_password(user) -> str:
     """Yangi vaqtinchalik parol o'rnatadi, birinchi kirishda almashtiriladi."""
     password = generate_password()
-    user.set_password(password)
+    user.set_password_visible(password)
     user.must_change_password = True
     user.reset_lockout()
     user.save()
