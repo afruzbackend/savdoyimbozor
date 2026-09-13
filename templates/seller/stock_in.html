@@ -8,7 +8,7 @@
         const sel=$refs.prod;
         const opt=[...sel.options].find(o=>o.dataset.barcode && o.dataset.barcode===String(v).trim());
         if(opt){sel.value=opt.value; this.scanMsg='✓ '+opt.textContent;}
-        else{this.scanMsg='Ro\'yxatda yo\'q — \"Qo\'lda\" rejimida yangi qo\'shing';}
+        else{this.scanMsg='Ro\'yxatda yo\'q — «Qo\'lda» rejimida yangi qo\'shing';}
       }}">
     <div class="segmented" style="margin-bottom:var(--sp-3)">
       <button type="button" :aria-selected="mode==='select'" @click="mode='select'">Ro'yxatdan</button>
