@@ -68,13 +68,13 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
-    # Host bo'yicha (sotuvchi./nazorat./panel.) ROOT_URLCONF tanlaydi:
+    # Foydalanuvchi ROLIga qarab ROOT_URLCONF tanlaydi (bitta host):
     "apps.core.middleware.HostRoutingMiddleware",
     # Muhim amallarni audit jurnaliga yozadi:
     "apps.core.middleware.AuditMiddleware",
 ]
 
-# Standart urlconf (host mos kelmasa). Host routing buni almashtiradi.
+# Standart urlconf (kirmagan foydalanuvchi uchun — login shu yerda). Rol routing buni almashtiradi.
 ROOT_URLCONF = "config.urls_inspector"
 
 TEMPLATES = [
@@ -180,15 +180,9 @@ VISITOR_MIN_DWELL_SECONDS = env.int("VISITOR_MIN_DWELL_SECONDS", default=5)
 # Qizil signal chiqqanda biriktirilgan inspektorga xabar. Bo'sh bo'lsa — jim o'tadi.
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
 
-# --- Interfeys hostlari (host routing) ---
+# --- Interfeys → urlconf (ROL bo'yicha tanlanadi; bitta host) ---
 HOST_URLCONF = {
     "seller": "config.urls_seller",
     "inspector": "config.urls_inspector",
     "panel": "config.urls_panel",
-}
-# Host prefiksi → interfeys nomi
-HOST_PREFIX_MAP = {
-    "sotuvchi": "seller",
-    "nazorat": "inspector",
-    "panel": "panel",
 }

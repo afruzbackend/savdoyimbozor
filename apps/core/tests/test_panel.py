@@ -40,7 +40,10 @@ def test_admin_page_renders(aclient):
 
 @pytest.mark.django_db
 def test_inspector_cannot_open_panel(market):
-    """Tekshiruvchi panel hostiga kirsa — o'z hostiga yo'naltiriladi (403 emas, redirect)."""
+    """Tekshiruvchi panel sahifalariga kira olmaydi — urlconf'ida yo'q (404).
+
+    Bosh sahifasida o'z (nazorat) dashboardini ko'radi.
+    """
     cred = create_inspector("Nodir", [market])
     u = cred["user"]
     u.set_password(PW)
@@ -48,14 +51,13 @@ def test_inspector_cannot_open_panel(market):
     u.save()
     c = Client()
     c.force_login(u)
-    r = c.get("/", HTTP_HOST=PANEL_HOST)
-    assert r.status_code == 302
-    assert "nazorat." in r.url  # o'z interfeysiga
-    assert "panel." not in r.url
+    assert c.get("/").status_code == 200  # o'z dashboardi
+    assert c.get("/foydalanuvchilar/").status_code == 404  # panel sahifasi — yo'q
+    assert c.get("/hisob/yangi/").status_code == 404
 
 
 @pytest.mark.django_db
 def test_seller_blocked_from_panel(sclient):
-    r = sclient.get("/", HTTP_HOST=PANEL_HOST)
-    assert r.status_code == 302
-    assert "sotuvchi." in r.url
+    """Sotuvchi panel sahifalariga kira olmaydi (404), bosh sahifasida o'z sahifasi."""
+    assert sclient.get("/").status_code == 200
+    assert sclient.get("/foydalanuvchilar/").status_code == 404

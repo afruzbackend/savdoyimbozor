@@ -1,12 +1,11 @@
-"""Host-based routing va audit middleware."""
+"""Rol-based routing va audit middleware."""
 
 from __future__ import annotations
 
 from django.conf import settings
-from django.shortcuts import redirect
 from django.utils.deprecation import MiddlewareMixin
 
-# Rol → o'ziga tegishli interfeys (host prefiksi teskarisi orqali yo'naltirish uchun)
+# Rol → o'ziga tegishli interfeys (urlconf tanlash uchun)
 ROLE_INTERFACE = {
     "superadmin": "panel",
     "inspector": "inspector",
@@ -15,58 +14,26 @@ ROLE_INTERFACE = {
 
 
 class HostRoutingMiddleware(MiddlewareMixin):
-    """Hostga qarab (sotuvchi./nazorat./panel.) ROOT_URLCONF tanlaydi va ROLNI tekshiradi.
+    """BITTA host — foydalanuvchi ROLIga qarab ROOT_URLCONF tanlaydi.
 
-    Dev: `sotuvchi.localhost:8000` → seller. Host mos kelmasa — standart (inspector).
-    request.interface ga interfeys nomi yoziladi (audit va shablonlar uchun).
+    Sotuvchi, nazoratchi va admin hammasi bitta manzilda (localhost). Kim
+    kirsa — o'z roli interfeysini ko'radi. Ro'yxatdan o'tish yo'q: loginni
+    admin beradi. Kirmaganlar login sahifasini ko'radi (standart urlconf).
 
-    XAVFSIZLIK: foydalanuvchi roli interfeysga mos kelmasa (masalan sotuvchi
-    nazorat hostiga kirsa), u o'z interfeysiga yo'naltiriladi. Super admin
-    hamma interfeysga kira oladi.
+    XAVFSIZLIK: har rol faqat o'z urlconf'iga ega bo'lgani uchun boshqa rol
+    sahifalariga URL yo'q — ruxsat cheklovi avtomatik (masalan sotuvchi
+    nazorat dashboardiga hech qanday yo'l bilan kira olmaydi → 404).
     """
 
     def process_request(self, request):
-        host = request.get_host().split(":")[0]  # portsiz
-        prefix = host.split(".")[0]
-        interface = settings.HOST_PREFIX_MAP.get(prefix)
-        if interface:
-            request.urlconf = settings.HOST_URLCONF[interface]
-            request.interface = interface
-        else:
-            request.interface = "inspector"  # standart
-            interface = "inspector"
-
-        return self._enforce_role(request, interface)
-
-    def _enforce_role(self, request, interface):
         user = getattr(request, "user", None)
-        if not user or not user.is_authenticated:
-            return None  # kirmaganlar login sahifasига o'tadi
-        if getattr(user, "is_superadmin", False):
-            return None  # super admin hamma joyга kira oladi
-        # Login/chiqish sahifalarini bloklamaymiz (noto'g'ri roldagi ham chiqa olsin)
-        if request.path in ("/login/", "/logout/"):
-            return None
-        own = ROLE_INTERFACE.get(getattr(user, "role", ""))
-        if not own or own == interface:
-            return None
-        # Foydalanuvchini o'z interfeysining hostiga yo'naltiramiz
-        reverse_map = {v: k for k, v in settings.HOST_PREFIX_MAP.items()}
-        new_prefix = reverse_map.get(own)
-        if not new_prefix:
-            return None
-        hostname, _, port = request.get_host().partition(":")
-        labels = hostname.split(".")
-        if labels and labels[0] in settings.HOST_PREFIX_MAP:
-            # Ma'lum prefiksli host (nazorat.* → sotuvchi.*): birinchi bo'lakni almashtiramiz
-            labels[0] = new_prefix
-            target = ".".join(labels)
-        else:
-            # IP (127.0.0.1) / bare host: buzuq host yasamaymiz — dev *.localhost manzili
-            target = f"{new_prefix}.localhost"
-        if port:
-            target += f":{port}"
-        return redirect(f"{request.scheme}://{target}/")
+        # Standart: inspector urlconf (login/logout/api shu yerda ham bor).
+        interface = "inspector"
+        if user is not None and user.is_authenticated:
+            interface = ROLE_INTERFACE.get(getattr(user, "role", ""), "inspector")
+        request.urlconf = settings.HOST_URLCONF[interface]
+        request.interface = interface
+        return None
 
 
 class AuditMiddleware(MiddlewareMixin):

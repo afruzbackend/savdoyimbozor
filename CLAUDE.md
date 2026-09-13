@@ -27,10 +27,13 @@ solishtirib rostlik darajasi beradigan va yashiruvchini signal beradigan Django 
   `scoring/services.py` (rostlik dvigateli); inspector_views; Celery `tasks.py`.
 - `api` — DRF router + endpointlarni yig'adi.
 
-## Host routing
-`config/settings/base.py`: HOST_PREFIX_MAP (sotuvchi→seller, nazorat→inspector, panel→panel).
-`core/middleware.HostRoutingMiddleware` hostga qarab ROOT_URLCONF tanlaydi
-(`config/urls_seller|inspector|panel.py`). Dev'da `*.localhost`.
+## Routing (bitta host, rol bo'yicha)
+`core/middleware.HostRoutingMiddleware` foydalanuvchi ROLIga qarab ROOT_URLCONF
+tanlaydi (`HOST_URLCONF`: seller→urls_seller, inspector→urls_inspector,
+panel→urls_panel). Sotuvchi/nazoratchi/admin hammasi **bitta** manzilda (localhost):
+kim kirsa o'z roli interfeysini ko'radi. Kirmaganlar login sahifasini (standart
+urlconf). Har rol faqat o'z urlconf'iga ega — boshqa rol sahifalariga URL yo'q (404),
+ruxsat cheklovi avtomatik. Ro'yxatdan o'tish yo'q — loginni admin beradi.
 
 ## Rostlik formulasi — `apps/analytics/scoring/services.py`
 ```

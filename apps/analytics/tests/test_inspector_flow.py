@@ -53,43 +53,41 @@ def test_statistics_shows_seller_row(iclient, shop, seller):
 
 
 @pytest.mark.django_db
-def test_seller_redirected_off_inspector_host(sclient):
-    """Sotuvchi nazorat hostiga kirsa — o'z (sotuvchi) hostiga yo'naltiriladi."""
+def test_seller_sees_own_home_regardless_of_host(sclient):
+    """BITTA host: sotuvchi qaysi host bilan kirsa ham o'z (sotuvchi) bosh sahifasi.
+
+    Endi routing HOST emas, ROL bo'yicha — subdomain ahamiyatsiz.
+    """
     r = sclient.get("/", HTTP_HOST=INSPECTOR_HOST)
-    assert r.status_code == 302
-    assert "sotuvchi." in r.url  # o'z interfeysiga qaytariladi
-    assert "nazorat." not in r.url
+    assert r.status_code == 200  # sotuvchi bosh sahifasi (redirect yo'q)
 
 
 @pytest.mark.django_db
-def test_seller_dashboard_not_leaked_on_inspector_host(sclient):
-    """Nazorat dashboard mazmuni sotuvchiga sizib chiqmasligi kerak."""
-    r = sclient.get("/", HTTP_HOST=INSPECTOR_HOST)
-    # Redirect bo'ladi — nazorat mazmuni umuman render qilinmaydi
-    assert r.status_code == 302
+def test_seller_cannot_reach_inspector_urls(sclient, shop):
+    """Sotuvchining urlconf'ida nazorat sahifalari yo'q → 404 (ruxsat avtomatik).
+
+    Nazorat dashboard/xarita/do'kon mazmuni sotuvchiga umuman ko'rinmaydi.
+    """
+    assert sclient.get("/xarita/").status_code == 404
+    assert sclient.get(f"/dokon/{shop.pk}/").status_code == 404
+    assert sclient.get("/statistika/").status_code == 404
 
 
 @pytest.mark.django_db
-def test_inspector_stays_on_inspector_host(iclient):
-    """Tekshiruvchi o'z hostида qoladi (yo'naltirilmaydi)."""
-    r = iclient.get("/", HTTP_HOST=INSPECTOR_HOST)
+def test_inspector_home_renders(iclient):
+    """Tekshiruvchi bosh sahifasi ochiladi."""
+    assert iclient.get("/").status_code == 200
+
+
+@pytest.mark.django_db
+def test_ip_host_works_no_redirect(sclient):
+    """127.0.0.1 (IP host)da ham sotuvchi o'z sahifasini ko'radi — redirect/loop yo'q."""
+    r = sclient.get("/", HTTP_HOST="127.0.0.1:8000")
     assert r.status_code == 200
 
 
 @pytest.mark.django_db
-def test_ip_host_redirects_to_valid_localhost_not_broken_host(sclient):
-    """127.0.0.1 (IP host)da rol mos kelmasa — buzuq host emas, to'g'ri *.localhost.
-
-    Regressiya: ilgari '127.0.0.1' → 'sotuvchi.0.0.1' (ERR_INVALID_REDIRECT/loop).
-    """
-    r = sclient.get("/", HTTP_HOST="127.0.0.1:8000")
-    assert r.status_code == 302
-    assert "sotuvchi.localhost" in r.url  # to'g'ri dev manzili
-    assert "0.0.1" not in r.url  # buzuq host yasalmaydi
-
-
-@pytest.mark.django_db
-def test_ip_host_login_page_not_redirected(client):
-    """127.0.0.1/login/ — loop bo'lmasin (login sahifasi ochilaveradi)."""
+def test_login_page_opens(client):
+    """Kirmagan foydalanuvchi login sahifasini ko'radi (istalgan host)."""
     r = client.get("/login/", HTTP_HOST="127.0.0.1:8000")
     assert r.status_code == 200
