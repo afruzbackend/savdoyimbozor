@@ -32,9 +32,12 @@
       </div>
       <div class="row gap-2">
         <a class="grow user-chip" href="{% url 'profile' %}" style="min-width:0" data-tip="Profil">
-          <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-            {{ user.get_full_name|default:user.username }}</div>
-          <small class="muted">{{ user.get_role_display }}</small>
+          <span class="user-chip-avatar" aria-hidden="true">
+            <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg></span>
+          <span class="user-chip-info" style="min-width:0">
+            <span class="user-chip-name">{{ user.get_full_name|default:user.username }}</span>
+            <small class="muted">{{ user.get_role_display }}</small>
+          </span>
         </a>
         <button type="button" class="btn-logout btn-icon" data-tip="Chiqish"
                 onclick="document.getElementById('logout-confirm').hidden=false">

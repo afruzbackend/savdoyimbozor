@@ -251,8 +251,12 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .flag-pair .flag{width:13px;height:12px}
 
 /* Foydalanuvchi chipi + qizil chiqish */
-.user-chip{display:block;text-decoration:none;color:inherit;border-radius:var(--r-2);padding:4px 6px}
+.user-chip{display:flex;align-items:center;gap:8px;text-decoration:none;color:inherit;border-radius:var(--r-2);padding:4px 6px}
 .user-chip:hover{background:var(--surface-sunken)}
+.user-chip-avatar{flex:none;display:inline-flex;align-items:center;justify-content:center;
+  width:32px;height:32px;border-radius:var(--r-full);background:var(--primary);color:var(--primary-ink)}
+.user-chip-info{display:flex;flex-direction:column;line-height:1.15;overflow:hidden}
+.user-chip-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .btn-logout{display:inline-flex;align-items:center;justify-content:center;flex:none;
   border:1px solid transparent;background:color-mix(in srgb,var(--bad) 14%,transparent);
   color:var(--bad);border-radius:var(--r-2);padding:8px;cursor:pointer}
