@@ -53,6 +53,10 @@
 .input:focus,.textarea:focus,.select-native:focus{
   outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--ring)}
 .input::placeholder{color:var(--ink-faint)}
+/* Brauzer default raqam spinner o'qlarini olib tashlash (barcha raqam maydonlari) */
+input[type="number"]{-moz-appearance:textfield;appearance:textfield}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;appearance:none;margin:0}
 .input-lg{font-size:var(--t-3);padding:16px 18px;font-variant-numeric:tabular-nums}
 .hint{font-size:var(--t--1);color:var(--ink-faint);margin-top:5px}
 .field-error .input{border-color:var(--bad)}
