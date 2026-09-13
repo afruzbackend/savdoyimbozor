@@ -20,15 +20,23 @@ class PricedSale:
     total: int
 
 
-def discount_buttons(subtotal: int, tiers: list) -> list[int]:
-    """Chek summasiga qarab 3 ta chegirma tugmasi (so'm). `tiers`: SystemSettings dan.
+def discount_buttons(subtotal: int, percents: list, cap: int) -> list[int]:
+    """O'zbekcha savdolashish tugmalari: chek summasining foizi, yaxlitlanган, cheklangан.
 
-    tiers format: [[chegara|None, [t1,t2,t3]], ...] — birinchi mos chegara olinadi.
+    Har tugma = subtotal × foiz, pastga yaxlitlanadi (katta chekда 1000, kichikда 500 gacha),
+    va `cap` (ruxsat etilgan maks chegirma)дан oshmaydi. Shu bois "20 000 chekка 20 000
+    chegirma" kabi bema'nilik bo'lmaydi — tugma qancha ko'rsatsa, shuncha qo'llanadi.
     """
-    for limit, buttons in tiers:
-        if limit is None or subtotal <= limit:
-            return list(buttons)
-    return list(tiers[-1][1]) if tiers else []
+    if subtotal <= 0:
+        return []
+    step = 1000 if subtotal >= 100_000 else 500
+    out = []
+    for p in percents or [5, 10, 15]:
+        amt = (subtotal * int(p) // 100 // step) * step
+        amt = min(amt, cap)
+        if amt > 0 and amt not in out:
+            out.append(amt)
+    return out
 
 
 def max_discount(subtotal: int, items_cost: int | None, no_cost_pct: int) -> int:
@@ -76,7 +84,7 @@ def price_sale(
 def frontend_config(settings) -> dict:
     """Frontend uchun qoidalar (Alpine shu bilan tugma va cheklovlarni ko'rsatadi)."""
     return {
-        "discount_tiers": settings.discount_tiers,
+        "discount_percents": settings.discount_percents or [5, 10, 15],
         "max_discount_no_cost_pct": settings.max_discount_no_cost_pct,
         "rounding_max": settings.rounding_max,
     }

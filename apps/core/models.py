@@ -55,6 +55,11 @@ class SystemSettings(models.Model):
     discount_tiers = models.JSONField(
         _("Chegirma jadvali"), default=list, help_text=_("[[chegara, [t1,t2,t3]], ...] — so'mda")
     )
+    # O'zbekcha savdolashish: chegirma tugmalari chek summasining foizi sifatida
+    # hisoblanadi (yaxlitlanadi) — chek qanchaligidan qat'i nazar mantiqli chiqadi.
+    discount_percents = models.JSONField(
+        _("Chegirma foizlari"), default=list, help_text=_("[5, 10, 15] — chek summasidan %")
+    )
     max_discount_no_cost_pct = models.PositiveSmallIntegerField(
         _("Tannarx noma'lum bo'lsa maks chegirma (%)"), default=30
     )
@@ -94,9 +99,15 @@ class SystemSettings(models.Model):
         [None, [50_000, 100_000, 200_000]],
     ]
 
+    # O'zbekcha savdolashish foizlari (chek summasidan): kichik, mantiqli
+    DEFAULT_DISCOUNT_PERCENTS = [5, 10, 15]
+
     @staticmethod
     def _defaults():
-        return {"discount_tiers": SystemSettings.DEFAULT_DISCOUNT_TIERS}
+        return {
+            "discount_tiers": SystemSettings.DEFAULT_DISCOUNT_TIERS,
+            "discount_percents": SystemSettings.DEFAULT_DISCOUNT_PERCENTS,
+        }
 
 
 class AuditLog(TimeStampedModel):

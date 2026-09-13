@@ -29,7 +29,7 @@
   <div class="row gap-2 wrap-flex" style="margin:var(--sp-4) 0" x-show="subtotal>0" x-cloak>
     <span class="muted" style="align-self:center;font-size:var(--t--1)">Chegirma:</span>
     <template x-for="b in discountButtons" :key="b">
-      <button class="chip" @click="addDiscount(b)" :aria-pressed="false">−<span x-text="fmtK(b)"></span></button>
+      <button class="chip" @click="addDiscount(b)" :aria-pressed="discount===b">−<span x-text="fmtK(b)"></span></button>
     </template>
     <button class="chip" @click="customOpen=!customOpen">Boshqa summa</button>
     <button class="chip" @click="discount=0;rounding=0" x-show="discount>0||rounding>0">Bekor</button>
@@ -84,20 +84,26 @@
       init() { this.syncQueue(); window.addEventListener('online', () => this.syncQueue()); },
       get subtotal() { return this.amount; },
       get total() { return Math.max(0, this.subtotal - this.discount - this.rounding); },
+      get cap() { return Math.floor(this.subtotal * this.cfg.max_discount_no_cost_pct / 100); },
       get discountButtons() {
-        for (const [limit, btns] of this.cfg.discount_tiers) {
-          if (limit === null || this.subtotal <= limit) return btns;
+        // O'zbekcha savdolashish: chek summasining foizi, yaxlitlangan, cheklangan
+        if (this.subtotal <= 0) return [];
+        const step = this.subtotal >= 100000 ? 1000 : 500;
+        const out = [];
+        for (const p of (this.cfg.discount_percents || [5,10,15])) {
+          let amt = Math.floor(this.subtotal * p / 100 / step) * step;
+          amt = Math.min(amt, this.cap);
+          if (amt > 0 && !out.includes(amt)) out.push(amt);
         }
-        return [];
+        return out;
       },
       fmt(n) { return window.BN.fmt(n) + ' so\'m'; },
       fmtK(n) { return n >= 1000 ? (n/1000) + 'k' : n; },
       press(d) { this.amount = parseInt(String(this.amount) + d, 10) || 0; },
       back() { this.amount = Math.floor(this.amount / 10); },
       addDiscount(b) {
-        // Cheklov: tannarx noma'lum → subtotal ning %; server baribir tekshiradi
-        const cap = Math.floor(this.subtotal * this.cfg.max_discount_no_cost_pct / 100);
-        this.discount = Math.min(this.discount + b, cap);
+        // Tugmani tanlash/bekor qilish (tugma qiymati allaqachon cheklangan)
+        this.discount = (this.discount === b) ? 0 : Math.min(b, this.cap);
       },
       setCustom() {
         const cap = Math.floor(this.subtotal * this.cfg.max_discount_no_cost_pct / 100);

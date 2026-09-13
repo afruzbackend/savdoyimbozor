@@ -67,7 +67,13 @@
       fmtK(n){ return n>=1000 ? (n/1000)+'k' : n; },
       get subtotal(){ return Math.round(this.cart.reduce((s,i)=>s+i.price*i.qty,0)); },
       get total(){ return Math.max(0, this.subtotal - this.discount); },
-      get discountButtons(){ for(const [l,b] of this.cfg.discount_tiers){ if(l===null||this.subtotal<=l) return b; } return []; },
+      get cap(){ return Math.floor(this.subtotal*this.cfg.max_discount_no_cost_pct/100); },
+      get discountButtons(){ if(this.subtotal<=0) return [];
+        const step=this.subtotal>=100000?1000:500; const out=[];
+        for(const p of (this.cfg.discount_percents||[5,10,15])){
+          let a=Math.floor(this.subtotal*p/100/step)*step; a=Math.min(a,this.cap);
+          if(a>0&&!out.includes(a)) out.push(a); }
+        return out; },
       async search(){ if(!this.q){ this.results=[]; return; }
         const r = await fetch('/api/products/lookup/?q='+encodeURIComponent(this.q));
         this.results = r.ok ? await r.json() : []; },
@@ -75,7 +81,7 @@
       add(r){ const e=this.cart.find(c=>c.id===r.id); if(e) e.qty++; else this.cart.push({id:r.id,name:r.name,price:r.price,qty:1});
         this.q=''; this.results=[]; this.$refs.scan.focus(); },
       async quickAdd(){ await this.search(); if(this.results.length) this.add(this.results[0]); },
-      addDiscount(b){ const cap=Math.floor(this.subtotal*this.cfg.max_discount_no_cost_pct/100); this.discount=Math.min(this.discount+b,cap); },
+      addDiscount(b){ this.discount=(this.discount===b)?0:Math.min(b,this.cap); },
       async submit(){ if(this.total<=0) return; this.saving=true;
         const body={ items:this.cart.map(i=>({product_id:i.id,name:i.name,qty:i.qty,unit_price:i.price})),
           discount:this.discount, rounding:0, payment_type:this.pay, mode:'scan', client_ts:new Date().toISOString() };

@@ -194,6 +194,7 @@ class Command(BaseCommand):
 
         st = SystemSettings.get_solo()
         st.discount_tiers = SystemSettings.DEFAULT_DISCOUNT_TIERS
+        st.discount_percents = SystemSettings.DEFAULT_DISCOUNT_PERCENTS
         st.save()
 
         # Yashiruvchilar: kassa / narx / qoldiq
