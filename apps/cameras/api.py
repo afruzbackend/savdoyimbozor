@@ -88,7 +88,14 @@ def ingest_events(request):
         if etype not in dict(CameraEvent.Type.choices):
             continue
         ts = parse_datetime(ev["timestamp"]) if ev.get("timestamp") else timezone.now()
-        shop = Shop.objects.filter(pk=ev["shop_id"]).first() if ev.get("shop_id") else None
+        # XAVFSIZLIK: hodisa do'koni kamera bozoriga/do'koniga bog'liq bo'lishi shart —
+        # valid tokenli kamera boshqa do'kon uchun soxta hodisa yubora olmasin.
+        if camera.shop_id:
+            shop = camera.shop  # kameraga biriktirilgan do'kon (yuborilgan shop_id e'tiborsiz)
+        elif ev.get("shop_id"):
+            shop = Shop.objects.filter(pk=ev["shop_id"], market_id=camera.market_id).first()
+        else:
+            shop = None
         payload = ev.get("payload") or {}
         if etype == CameraEvent.Type.HEARTBEAT:
             continue  # heartbeat faqat last_seen ni yangilaydi (pastda)

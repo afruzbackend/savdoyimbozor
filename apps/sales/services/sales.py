@@ -42,9 +42,26 @@ def create_sale(
     settings_obj = SystemSettings.get_solo()
     # Miqdor — hamma joyda Decimal (float yaxlitlash xatosi bo'lmasin). Pul = butun so'm.
     # lines: [(qty, unit_price, product_id, name), ...]
-    lines = [
+    raw_lines = [
         (Decimal(str(i["qty"])), int(i["unit_price"]), i.get("product_id"), i.get("name", ""))
         for i in items
+    ]
+
+    # XAVFSIZLIK (IDOR): product_id faqat SHU do'konga tegishli bo'lsa qabul qilinadi.
+    # Boshqa do'kon mahsuloti yuborilsa — uni oddiy nomli qator sifatida yozamiz
+    # (begona do'kon qoldig'iga TEGMAYMIZ). RACE himoyasi: select_for_update bilan qulflaymiz.
+    candidate_pids = {pid for _q, _up, pid, _n in raw_lines if pid}
+    prods = {}
+    if candidate_pids:
+        prods = {
+            p.pk: p
+            for p in Product.objects.select_for_update().filter(
+                pk__in=candidate_pids, shop=shop
+            )
+        }
+    # Normalizatsiya: shu do'konga tegishli bo'lmagan pid -> None (nomli qator)
+    lines = [
+        (q, up, pid if pid in prods else None, n) for q, up, pid, n in raw_lines
     ]
     subtotal = sum(int((q * up).quantize(Decimal("1"))) for q, up, _pid, _n in lines)
 
@@ -53,11 +70,6 @@ def create_sale(
     for q, _up, pid, _n in lines:
         if pid:
             need[pid] = need.get(pid, Decimal("0")) + q
-
-    # RACE himoyasi: qoldiq qatorlarini select_for_update bilan QULFLAB o'qiymiz —
-    # ikki sotuv bir vaqtda kelsa, ikkinchisi birinchisining commit'ini kutadi va
-    # yangilangan qoldiqni ko'radi (manfiy qoldiq bo'lmaydi).
-    prods = {p.pk: p for p in Product.objects.select_for_update().filter(pk__in=need)}
     for pid, qty in need.items():
         p = prods.get(pid)
         if p and qty > p.stock:
