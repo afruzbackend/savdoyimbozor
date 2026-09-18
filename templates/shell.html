@@ -5,13 +5,14 @@
 {% block body %}
 <div class="app" x-data="themeCtl">
   <aside class="sidebar">
-    <a class="brand" href="/" data-tip="Bosh sahifa / yangilash" title="Bosh sahifa / yangilash">
-      <span class="brand-emblem">{% include 'components/_emblem.html' %}</span>
+    <div class="brand">
+      <a class="brand-emblem" href="/" data-tip="Bosh sahifa / yangilash" title="Bosh sahifa / yangilash">
+        {% include 'components/_emblem.html' %}</a>
       <div class="brand-text">
         <div class="brand-name">Bozor Nazorat</div>
         <div class="brand-sub">Soliq qo'mitasi</div>
       </div>
-    </a>
+    </div>
     <nav>
       {% block nav %}{% endblock %}
     </nav>
