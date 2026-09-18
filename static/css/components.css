@@ -257,6 +257,17 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
   width:32px;height:32px;border-radius:var(--r-full);background:var(--primary);color:var(--primary-ink)}
 .user-chip-info{display:flex;flex-direction:column;line-height:1.15;overflow:hidden}
 .user-chip-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Profil/Sozlamalar/Chiqish — ochiq ko'rinadigan havolalar (topish oson) */
+.user-actions{display:flex;gap:4px;margin-top:6px}
+.user-action{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:7px 6px;border-radius:var(--r-2);border:1px solid var(--border);
+  background:var(--surface-2);color:var(--ink);text-decoration:none;cursor:pointer;
+  font-size:var(--t--2);font-weight:500;white-space:nowrap}
+.user-action:hover{background:var(--surface-sunken);border-color:var(--border-strong)}
+.user-action .icon-sm{width:15px;height:15px;color:var(--ink-muted)}
+.user-action-danger{color:var(--bad)}
+.user-action-danger:hover{background:var(--bad);border-color:var(--bad);color:#fff}
+.user-action-danger:hover .icon-sm{color:#fff}
 .btn-logout{display:inline-flex;align-items:center;justify-content:center;flex:none;
   border:1px solid transparent;background:color-mix(in srgb,var(--bad) 14%,transparent);
   color:var(--bad);border-radius:var(--r-2);padding:8px;cursor:pointer}
@@ -442,6 +453,25 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
   background:#fff;border-radius:11px;padding:2px;box-sizing:border-box;box-shadow:var(--shadow-sm)}
 .brand-emblem .emblem{width:100%;height:100%;display:block}
 img.emblem{object-fit:contain;border-radius:9px}
+/* Logo tema bo'yicha: light = rangli, dark = oq siluet */
+.emblem-dark{display:none}
+:root[data-theme="dark"] .emblem-light{display:none}
+:root[data-theme="dark"] .emblem-dark{display:block}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .emblem-light{display:none}
+  :root:not([data-theme="light"]) .emblem-dark{display:block}
+}
+/* Dark rejimda logo badge'i shaffof (oq blok bo'lmasin — oq siluet fonga qo'shiladi) */
+:root[data-theme="dark"] .brand-emblem,
+:root[data-theme="dark"] .gov-banner .emblem,
+:root[data-theme="dark"] .login-brand .b-mark .emblem{
+  background:transparent;box-shadow:none;padding:0}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .brand-emblem,
+  :root:not([data-theme="light"]) .gov-banner .emblem,
+  :root:not([data-theme="light"]) .login-brand .b-mark .emblem{
+    background:transparent;box-shadow:none;padding:0}
+}
 .brand-text{position:relative;z-index:1;line-height:1.15}
 .brand-name{font-family:var(--font-serif);font-weight:700;font-size:var(--t-1);color:#fff}
 .brand-sub{font-size:var(--t--1);color:rgba(255,255,255,.72);letter-spacing:.02em}

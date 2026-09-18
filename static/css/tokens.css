@@ -59,6 +59,8 @@
   --primary-ink:#ffffff;
   --accent:var(--clay-500);
   --ring:rgba(36,80,187,.35);
+  /* Ma'lumot/urg'u kartasi foni — tema'ga mos (qora rejimda oq bo'lmasin) */
+  --accent-soft:#eaf1fd; --accent-soft-border:var(--brand-200);
   --shadow-sm:0 1px 2px rgba(31,28,23,.06),0 1px 3px rgba(31,28,23,.05);
   --shadow-md:0 4px 12px rgba(31,28,23,.08),0 2px 4px rgba(31,28,23,.05);
   --shadow-lg:0 12px 32px rgba(31,28,23,.12);
@@ -95,6 +97,7 @@
   --primary-ink:#12100c;
   --accent:var(--clay-400);
   --ring:rgba(147,163,215,.45);
+  --accent-soft:#182238; --accent-soft-border:#2a3a63;
   /* Dark'da soya deyarli ko'rinmaydi — elevatsiya border bilan */
   --shadow-sm:0 0 0 1px rgba(255,255,255,.02);
   --shadow-md:0 8px 24px rgba(0,0,0,.4);
@@ -114,6 +117,7 @@
     --ink:#ede8de; --ink-muted:#a89f8e; --ink-faint:#7d7565;
     --primary:var(--brand-400); --primary-hover:var(--brand-300); --primary-ink:#12100c;
     --accent:var(--clay-400); --ring:rgba(147,163,215,.45);
+    --accent-soft:#182238; --accent-soft-border:#2a3a63;
     --shadow-sm:0 0 0 1px rgba(255,255,255,.02);
     --shadow-md:0 8px 24px rgba(0,0,0,.4); --shadow-lg:0 16px 40px rgba(0,0,0,.5);
     --ok:#3fbd83; --ok-bg:#12362a; --ok-ink:#8fe3bd;

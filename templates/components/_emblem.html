@@ -1,4 +1,6 @@
-{% comment %}Soliq qo'mitasining haqiqiy logosi (gov.uz). Barcha interfeyslarda ishlatiladi.{% endcomment %}
+{% comment %}Soliq qo'mitasi logosi. Light: rangli (oq badge). Dark: oq siluet (badge shaffof).{% endcomment %}
 {% load static %}
-<img class="emblem" src="{% static 'img/soliq_logo.jpg' %}?v={{ asset_v }}"
+<img class="emblem emblem-light" src="{% static 'img/soliq_logo.jpg' %}?v={{ asset_v }}"
      alt="O'zbekiston Respublikasi Soliq qo'mitasi" width="225" height="225">
+<img class="emblem emblem-dark" src="{% static 'img/soliq_logo_white.png' %}?v={{ asset_v }}"
+     alt="" aria-hidden="true" width="225" height="225">
