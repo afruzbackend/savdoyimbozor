@@ -349,8 +349,12 @@ def recompute_for_date(day) -> int:
 
         # Yashirilgan savdo (soliqdan): haqiqiy savdo bahosi − deklaratsiya (kassa).
         # Haqiqiy savdo = yozilgan/kamera/qoldiq eng kattasi (eng ishonchli quyi chegara).
+        # MUHIM: deklaratsiya YOZUVI bor bo'lsa (0 bo'lsa ham) hisoblanadi — nolga
+        # deklaratsiya qilgan do'kon eng shubhali. Yozuv umuman yo'q bo'lsa (ma'lumot
+        # kelmagan) — 0 (noto'g'ri ayblamaslik uchun). cash_by'da 0-summa ham bor.
         real_estimate = max(int(entered), int(cam or 0), int(stock_val or 0))
-        hidden = max(0, real_estimate - int(cash)) if cash else 0
+        has_declaration = shop.id in cash_by
+        hidden = max(0, real_estimate - int(cash)) if has_declaration else 0
 
         DailyScore.objects.update_or_create(
             shop=shop,
