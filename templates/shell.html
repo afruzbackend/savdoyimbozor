@@ -39,13 +39,10 @@
         </span>
       </a>
       <div class="user-actions">
-        <a class="user-action" href="{% url 'profile' %}">
-          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg> Profil</a>
-        <a class="user-action" href="{% url 'account_settings' %}">
-          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-settings"></use></svg> Sozlamalar</a>
-        <button type="button" class="user-action user-action-danger" data-tip="Chiqish"
-                onclick="document.getElementById('logout-confirm').hidden=false">
-          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-log-out"></use></svg> Chiqish</button>
+        <a class="user-action" href="{% url 'profile' %}">Profil</a>
+        <a class="user-action" href="{% url 'account_settings' %}">Sozlamalar</a>
+        <button type="button" class="user-action user-action-danger"
+                onclick="document.getElementById('logout-confirm').hidden=false">Chiqish</button>
       </div>
     </div>
   </aside>

@@ -257,17 +257,15 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
   width:32px;height:32px;border-radius:var(--r-full);background:var(--primary);color:var(--primary-ink)}
 .user-chip-info{display:flex;flex-direction:column;line-height:1.15;overflow:hidden}
 .user-chip-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* Profil/Sozlamalar/Chiqish — ochiq ko'rinadigan havolalar (topish oson) */
-.user-actions{display:flex;gap:4px;margin-top:6px}
-.user-action{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;
-  padding:7px 6px;border-radius:var(--r-2);border:1px solid var(--border);
+/* Profil/Sozlamalar/Chiqish — toza matnli havolalar (ikonkasiz) */
+.user-actions{display:flex;gap:6px;margin-top:8px}
+.user-action{flex:1;display:inline-flex;align-items:center;justify-content:center;
+  padding:8px 6px;border-radius:var(--r-2);border:1px solid var(--border);
   background:var(--surface-2);color:var(--ink);text-decoration:none;cursor:pointer;
-  font-size:var(--t--2);font-weight:500;white-space:nowrap}
+  font-size:var(--t--1);font-weight:500;white-space:nowrap}
 .user-action:hover{background:var(--surface-sunken);border-color:var(--border-strong)}
-.user-action .icon-sm{width:15px;height:15px;color:var(--ink-muted)}
 .user-action-danger{color:var(--bad)}
 .user-action-danger:hover{background:var(--bad);border-color:var(--bad);color:#fff}
-.user-action-danger:hover .icon-sm{color:#fff}
 .btn-logout{display:inline-flex;align-items:center;justify-content:center;flex:none;
   border:1px solid transparent;background:color-mix(in srgb,var(--bad) 14%,transparent);
   color:var(--bad);border-radius:var(--r-2);padding:8px;cursor:pointer}
