@@ -261,8 +261,16 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .user-chip-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .user-gear{flex:none;margin-left:auto;display:inline-flex;align-items:center;justify-content:center;
   width:34px;height:34px;border:1px solid var(--border);background:var(--surface-2);color:var(--ink-muted);
-  border-radius:var(--r-2);cursor:pointer;transition:background .12s,color .12s,transform .3s}
-.user-gear:hover{background:var(--surface-sunken);color:var(--primary);transform:rotate(45deg)}
+  border-radius:var(--r-2);cursor:pointer;transition:background .12s,color .12s}
+.user-gear:hover{background:var(--surface-sunken);color:var(--primary)}
+/* Faqat GAYKA (ikonka) aylanadi — butun tugma emas */
+.user-gear svg{transition:transform .4s ease}
+.user-gear:hover svg{transform:rotate(90deg)}
+.user-gear.spin svg{animation:gearSpin .6s ease}
+@keyframes gearSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){
+  .user-gear svg,.user-gear:hover svg{transition:none}
+  .user-gear.spin svg{animation:none}}
 /* Sozlamalar oynasi (modal) — hammasi ichida hal bo'ladi */
 .settings-card{max-width:440px;width:100%;padding:0;overflow:hidden;text-align:left}
 .settings-head{display:flex;align-items:center;justify-content:space-between;
