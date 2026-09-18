@@ -251,21 +251,28 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .flag-pair .flag{width:13px;height:12px}
 
 /* Foydalanuvchi chipi + qizil chiqish */
-.user-chip{display:flex;align-items:center;gap:8px;text-decoration:none;color:inherit;border-radius:var(--r-2);padding:4px 6px}
-.user-chip:hover{background:var(--surface-sunken)}
+/* Foydalanuvchi menyusi — ism + gayka; gayka bosilsa Profil/Sozlamalar/Parol/Chiqish ochiladi */
+.user-menu{position:relative}
+.user-chip{display:flex;align-items:center;gap:8px;color:inherit;border-radius:var(--r-2);padding:4px 6px}
 .user-chip-avatar{flex:none;display:inline-flex;align-items:center;justify-content:center;
-  width:32px;height:32px;border-radius:var(--r-full);background:var(--primary);color:var(--primary-ink)}
+  width:32px;height:32px;border-radius:var(--r-full);background:var(--primary);color:var(--primary-ink);
+  font-weight:700;font-size:var(--t--1)}
 .user-chip-info{display:flex;flex-direction:column;line-height:1.15;overflow:hidden}
 .user-chip-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* Profil/Sozlamalar/Chiqish — toza matnli havolalar (ikonkasiz) */
-.user-actions{display:flex;gap:6px;margin-top:8px}
-.user-action{flex:1;display:inline-flex;align-items:center;justify-content:center;
-  padding:8px 6px;border-radius:var(--r-2);border:1px solid var(--border);
-  background:var(--surface-2);color:var(--ink);text-decoration:none;cursor:pointer;
-  font-size:var(--t--1);font-weight:500;white-space:nowrap}
-.user-action:hover{background:var(--surface-sunken);border-color:var(--border-strong)}
-.user-action-danger{color:var(--bad)}
-.user-action-danger:hover{background:var(--bad);border-color:var(--bad);color:#fff}
+.user-gear{flex:none;margin-left:auto;display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border:1px solid var(--border);background:var(--surface-2);color:var(--ink-muted);
+  border-radius:var(--r-2);cursor:pointer;transition:background .12s,color .12s,transform .3s}
+.user-gear:hover{background:var(--surface-sunken);color:var(--primary);transform:rotate(45deg)}
+.user-gear[aria-expanded="true"]{color:var(--primary);border-color:var(--primary)}
+.user-menu-pop{position:absolute;bottom:calc(100% + 6px);left:0;right:0;z-index:60;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);
+  box-shadow:var(--shadow-lg);padding:6px;display:flex;flex-direction:column}
+.user-menu-pop a,.user-menu-pop button{display:block;width:100%;text-align:left;padding:9px 12px;
+  border:none;background:transparent;color:var(--ink);text-decoration:none;cursor:pointer;
+  border-radius:6px;font:inherit;font-size:var(--t--1)}
+.user-menu-pop a:hover,.user-menu-pop button:hover{background:var(--surface-sunken)}
+.user-menu-pop .danger{color:var(--bad)}
+.user-menu-pop .danger:hover{background:var(--bad);color:#fff}
 .btn-logout{display:inline-flex;align-items:center;justify-content:center;flex:none;
   border:1px solid transparent;background:color-mix(in srgb,var(--bad) 14%,transparent);
   color:var(--bad);border-radius:var(--r-2);padding:8px;cursor:pointer}
