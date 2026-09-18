@@ -1,14 +1,36 @@
-{% comment %}Milliy emblem — Humo (feniks) qushi, soliq.uz uslubida. currentColor bilan (ko'k/oq).{% endcomment %}
-<svg class="emblem" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
-     fill="currentColor">
-  {# Chap qanot — ikki qatlam patlar #}
-  <path d="M23 19 C16 12.5 8.5 13.5 3.5 20 C9.5 18.6 14.8 20 19 24
-           C13.5 22.4 8 23.6 5 28 C11 26.6 16.8 28 21.6 32 L23 19 Z"/>
-  {# O'ng qanot — oyna aksi #}
-  <path d="M25 19 C32 12.5 39.5 13.5 44.5 20 C38.5 18.6 33.2 20 29 24
-           C34.5 22.4 40 23.6 43 28 C37 26.6 31.2 28 26.4 32 L25 19 Z"/>
-  {# Bosh + toj #}
-  <path d="M24 6 C22 9 22 13 24 16 C26 13 26 9 24 6 Z"/>
-  {# Gavda va uch patli dum #}
-  <path d="M21.4 18 L26.6 18 L25.4 34 L28 41 L24 37.5 L20 41 L22.6 34 Z"/>
+{% comment %}Soliq uslubidagi emblem — qalqon + doppi tasma + Humo (feniks). Ko'p rangli (navy/tan/oq).{% endcomment %}
+<svg class="emblem" viewBox="0 0 200 210" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  {# Doppi/koshin tasma (bej) — yuqori, pastki cheti botiq #}
+  <path d="M18 10 Q18 8 20 8 H180 Q182 8 182 10 V44 C150 62 116 68 100 68 C84 68 50 62 18 44 Z" fill="#d9b493"/>
+  {# Tasma bezaklari: 2 nuqta + markazda yulduz + 2 nuqta #}
+  <circle cx="66" cy="32" r="3.2" fill="#fff"/>
+  <circle cx="82" cy="34" r="3.2" fill="#fff"/>
+  <path d="M100 24 l2.4 6.2 6.6 .3 -5.2 4.1 1.9 6.4 -5.7-3.8 -5.7 3.8 1.9-6.4 -5.2-4.1 6.6-.3 Z" fill="#fff"/>
+  <circle cx="118" cy="34" r="3.2" fill="#fff"/>
+  <circle cx="134" cy="32" r="3.2" fill="#fff"/>
+
+  {# Qanotlar (navy) — o'ng qanot; chap = oyna aksi #}
+  <g fill="#16205a">
+    <path id="wingR" d="M 100 100 L 159.5 72.5 Q 149.2 97.2 175.7 100.2 Q 156.6 118.9 179.8 132.1 Q 154.8 141.7 170.9 163.1 Q 144.2 162 150.6 188 Q 126.4 176.5 122.1 202.9 L 100 196 Z"/>
+    <use href="#wingR" transform="matrix(-1 0 0 1 200 0)"/>
+  </g>
+  {# Pat ajratkichlari (oq, ingichka) — o'ng, so'ng chap #}
+  <g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity="0.95">
+    <g id="sepR">
+      <path d="M100 108 Q128.8 107.9 160 93"/>
+      <path d="M100 112 Q133.6 120.8 170 119"/>
+      <path d="M100 118 Q132.9 134.4 166 147"/>
+      <path d="M100 126 Q127 146.7 151 171"/>
+      <path d="M100 136 Q116.6 155.7 130 188"/>
+    </g>
+    <use href="#sepR" transform="matrix(-1 0 0 1 200 0)"/>
+  </g>
+
+  {# Markaziy oq doira #}
+  <circle cx="100" cy="120" r="25" fill="#fff"/>
+  {# Feniks (navy) doira ichida — bosh, tumshuq, bo'yin egri #}
+  <path d="M103 101 C92 101 84 110 86 121 C87 130 95 135 103 132
+           C98 137 89 135 87 128 C87 139 103 144 111 133
+           C119 122 115 103 103 101 Z" fill="#16205a"/>
+  <path d="M88 114 l-6 -2 6 -3 Z" fill="#16205a"/>
 </svg>
