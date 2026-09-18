@@ -263,16 +263,25 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
   width:34px;height:34px;border:1px solid var(--border);background:var(--surface-2);color:var(--ink-muted);
   border-radius:var(--r-2);cursor:pointer;transition:background .12s,color .12s,transform .3s}
 .user-gear:hover{background:var(--surface-sunken);color:var(--primary);transform:rotate(45deg)}
-.user-gear[aria-expanded="true"]{color:var(--primary);border-color:var(--primary)}
-.user-menu-pop{position:absolute;bottom:calc(100% + 6px);left:0;right:0;z-index:60;
-  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);
-  box-shadow:var(--shadow-lg);padding:6px;display:flex;flex-direction:column}
-.user-menu-pop a,.user-menu-pop button{display:block;width:100%;text-align:left;padding:9px 12px;
-  border:none;background:transparent;color:var(--ink);text-decoration:none;cursor:pointer;
-  border-radius:6px;font:inherit;font-size:var(--t--1)}
-.user-menu-pop a:hover,.user-menu-pop button:hover{background:var(--surface-sunken)}
-.user-menu-pop .danger{color:var(--bad)}
-.user-menu-pop .danger:hover{background:var(--bad);color:#fff}
+/* Sozlamalar oynasi (modal) — hammasi ichida hal bo'ladi */
+.settings-card{max-width:440px;width:100%;padding:0;overflow:hidden;text-align:left}
+.settings-head{display:flex;align-items:center;justify-content:space-between;
+  padding:var(--sp-4) var(--sp-5);border-bottom:1px solid var(--border)}
+.settings-title{font-family:var(--font-serif);font-weight:700;font-size:var(--t-2)}
+.settings-x{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+  border:none;background:transparent;color:var(--ink-muted);border-radius:var(--r-2);cursor:pointer}
+.settings-x:hover{background:var(--surface-sunken);color:var(--ink)}
+.settings-user{display:flex;align-items:center;gap:12px;padding:var(--sp-4) var(--sp-5);
+  background:var(--surface-2);border-bottom:1px solid var(--border)}
+.settings-avatar{flex:none;display:inline-flex;align-items:center;justify-content:center;
+  width:46px;height:46px;border-radius:var(--r-full);background:var(--primary);color:var(--primary-ink);
+  font-weight:700;font-size:var(--t-1)}
+.settings-tabs{display:flex;gap:4px;padding:var(--sp-3) var(--sp-5) 0}
+.settings-tabs button{flex:1;padding:9px 6px;border:none;background:transparent;color:var(--ink-muted);
+  font:inherit;font-weight:600;cursor:pointer;border-bottom:2px solid transparent}
+.settings-tabs button.active{color:var(--primary);border-bottom-color:var(--primary)}
+.settings-body{padding:var(--sp-4) var(--sp-5)}
+.settings-foot{padding:0 var(--sp-5) var(--sp-5)}
 .btn-logout{display:inline-flex;align-items:center;justify-content:center;flex:none;
   border:1px solid transparent;background:color-mix(in srgb,var(--bad) 14%,transparent);
   color:var(--bad);border-radius:var(--r-2);padding:8px;cursor:pointer}

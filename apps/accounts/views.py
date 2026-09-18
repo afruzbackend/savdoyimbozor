@@ -15,6 +15,16 @@ def _home_url_for(request):
     return "/"
 
 
+def _safe_next(request, fallback):
+    """POST'dagi `next` faqat xavfsiz ichki (nisbiy) yo'l bo'lsa qaytariladi."""
+    from django.utils.http import url_has_allowed_host_and_scheme
+
+    nxt = request.POST.get("next") or request.GET.get("next")
+    if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
+        return nxt
+    return fallback
+
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect(_home_url_for(request))
@@ -76,7 +86,10 @@ def password_change(request):
             )
             update_session_auth_hash(request, request.user)
             messages.success(request, "Parol yangilandi.")
-            return redirect(_home_url_for(request))
+            return redirect(_safe_next(request, _home_url_for(request)))
+        # Xato bo'lsa — kelgan sahifaga qaytamiz (modal shu yerda)
+        if request.POST.get("next"):
+            return redirect(_safe_next(request, _home_url_for(request)))
     return render(
         request, "registration/password_change.html", {"forced": request.user.must_change_password}
     )
@@ -110,7 +123,7 @@ def account_settings(request):
         from django.contrib import messages
 
         messages.success(request, "Sozlamalar saqlandi.")
-        return redirect("account_settings")
+        return redirect(_safe_next(request, "account_settings"))
     return render(
         request,
         "registration/settings.html",
