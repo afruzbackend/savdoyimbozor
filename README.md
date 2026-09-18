@@ -1,70 +1,89 @@
 # Bozor Nazorat — bozor savdosini shaffof nazorat qilish tizimi
 
-Bozordagi do'konlar savdosini uch manbadan (sotuvchi kiritgan, kassa/deklaratsiya,
-kamera+AI) solishtirib, har do'konga **rostlik darajasi (%)** beradi va mos kelmasa
-tekshiruvchiga **signal** yuboradi. Muhim tamoyil: natija — tekshiruvga signal,
-jarima uchun dalil emas; yakuniy qarorni inspektor joyida qabul qiladi.
+Bozordagi do'konlar savdosini bir necha manbadan (sotuvchi kiritgan savdo,
+kassa/deklaratsiya va — keyinchalik — kamera+AI) solishtirib, har do'konga
+**rostlik darajasi (%)** beradi va mos kelmasa tekshiruvchiga **signal** yuboradi.
 
-Uch interfeys, bitta backend (host bo'yicha ajraladi):
-- **sotuvchi.** — sotuvchi (telefon): tez/skaner sotuv, kirim, kun yakuni, nasiya, hisobot
-- **nazorat.** — tekshiruvchi (kompyuter): dashboard, bozor xaritasi, do'kon sahifasi, signallar
-- **panel.** — super admin: hisob ochish, Excel import, sozlamalar, audit
+> **Muhim tamoyil:** natija — tekshiruvga **signal**, jarima uchun avtomatik dalil
+> **emas**. Barcha pul raqamlari "taxminiy"; yakuniy qarorni inspektor joyida qabul qiladi.
+
+## Bitta manzil, uch rol
+Hammasi **bitta host**da (masalan `localhost:8000`). Kim kirsa — roliga qarab o'z
+interfeysini ko'radi. Ro'yxatdan o'tish yo'q: **loginni admin beradi**.
+- **Sotuvchi** — telefon: tez/skaner sotuv, kirim, qaytarish, kun yakuni, kassa (Z-hisobot), nasiya, hisobot
+- **Tekshiruvchi (nazorat)** — dashboard (yashirilgan savdo + potensial soliq), bozor sxemasi, do'kon sahifasi, signallar, dalil to'plami
+- **Super admin (panel)** — hisob ochish (login varaqasi), Excel import, tizim sozlamalari, audit
 
 ## Texnologiya
-Django + DRF (API-first) · PostgreSQL · Celery + Redis · HTMX + Alpine.js · Chart.js ·
-custom dizayn tizimi (light/dark). Barcha aktivlar **lokal** (shrift/ikonka/JS — CDN yo'q),
-demo internetsiz ishlaydi.
-
-## Ishga tushirish — Docker (tavsiya)
-```bash
-cp .env.example .env          # SECRET_KEY, DB_PASSWORD ni to'ldiring
-docker compose up --build     # web, db, redis, celery, beat, nginx
-docker compose exec web python manage.py seed_demo --reset
-docker compose exec web python manage.py simulate_camera   # ixtiyoriy (jonli demo)
-```
-So'ng brauzerda: `http://nazorat.localhost/`, `http://sotuvchi.localhost/`, `http://panel.localhost/`
-(nginx 80-portda; Chrome `*.localhost`ni 127.0.0.1'ga yechadi).
+Django 5.1 + DRF (API-first) · PostgreSQL · Celery + Redis · HTMX + Alpine.js · Chart.js ·
+custom dizayn tizimi (light/dark, o'zbek lotin/kirill). Barcha aktivlar **lokal**
+(shrift/ikonka/JS/logo — CDN yo'q) — demo internetsiz ishlaydi.
 
 ## Ishga tushirish — lokal (Docker'siz)
-Lokal PostgreSQL kerak (18 ham bo'ladi). Baza va rol oching:
+Lokal PostgreSQL kerak. Baza va rol oching (nomlar `.env` bilan mos bo'lsin):
 ```bash
 psql -U postgres -c "CREATE ROLE bozor LOGIN PASSWORD 'bozor';" -c "CREATE DATABASE bozor OWNER bozor;"
 pip install -r requirements.txt
-cp .env.example .env
+cp .env.example .env          # SECRET_KEY, DATABASE_URL ni to'ldiring (DEBUG=False)
 python manage.py migrate
 python manage.py seed_demo --reset
 python manage.py runserver
 ```
-`http://nazorat.localhost:8000/` · `http://sotuvchi.localhost:8000/` · `http://panel.localhost:8000/`
+So'ng brauzerda: **http://localhost:8000/** (yoki `http://127.0.0.1:8000/`).
+Kim login qilsa, o'sha odam roli interfeysiga tushadi.
 
-## Demo loginlar (parol: `demo1234`)
-| Login | Rol | Interfeys |
-|-------|-----|-----------|
-| `nazorat` | Tekshiruvchi | nazorat.localhost |
-| `sotuvchi` | Sotuvchi | sotuvchi.localhost |
-| `admin` | Super admin | panel.localhost |
+## Ishga tushirish — Docker
+```bash
+cp .env.example .env
+docker compose up --build     # web, db, redis, celery, beat, nginx
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py seed_demo --reset
+```
+So'ng: **http://localhost/** (nginx 80-portda).
+
+## Demo loginlar (bitta manzil, parol: `demo1234`)
+| Login | Rol |
+|-------|-----|
+| `sotuvchi` | Sotuvchi |
+| `nazorat` | Tekshiruvchi |
+| `admin` | Super admin |
+
+Uchalasi ham **bir xil manzildan** kiradi. Admin foydalanuvchilar ro'yxatida
+har hisobning joriy **login va parolini** ko'ra oladi (davlat kredensial modeli).
 
 ## Demo ssenariysi
-1. **nazorat** bilan kiring → dashboard va **bozor xaritasi**: yashiruvchi do'konlar qizil
-   (kassa yashiradi yoki narx past). Do'kon sahifasida rostlik tarkibi va grafik.
-2. **a sinash
-Sotuvchi interfeysi telefon uchun. Bir tarmoqda kompyuter IP'sini oching
-(`http://<IP>:8000/`) yoki nginx bilan `sotuvchi.<domen>`. Internet uzilsa sotuv
-telefonda saqlanib, tiklanganda avtomatik yuboriladi (offline navbat).
+1. **nazorat** bilan kiring → dashboard'da **yashirilgan savdo** va **potensial qo'shimcha soliq**
+   (taxminiy) ko'rinadi; **bozor sxemasi**da yashiruvchi do'konlar qizil. Do'kon sahifasida
+   rostlik tarkibi, grafik va **"Dalil to'plami"** (chop etsa bo'ladi).
+2. **sotuvchi** bilan kiring (telefon rejimida) → **tez sotuv** (klaviatura + o'zbekcha
+   savdolashish chegirmasi) yoki **skaner**; kirim (ro'yxatdan/qo'lda), qaytarish, kun yakuni;
+   hisobotда rostlik va "qanday oshiraman" maslahati. Internet uzilsa sotuv telefonda
+   saqlanib, tiklanganda avtomatik yuboriladi (offline navbat).
+3. **admin** bilan kiring → hisob ochish → chop etiladigan login varaqasi; foydalanuvchilar
+   (login/parol ko'rinadi); tizim sozlamalari (rostlik chegaralari, soliq foizi); audit jurnali.
 
 ## Kunlik hisob-kitob
-```bashsotuvchi** bilan kiring (telefon rejimida) → tez sotuv (klaviatura + chegirma) va
-   skan
-## Telefond
-python manage.py recompute            # bugungi rostlik + signal
-python manage.py recompute -e 2-dat026-09-01
+```bash
+python manage.py recompute                 # bugungi rostlik + signal
+python manage.py recompute --days 7        # oxirgi 7 kun
+python manage.py recompute --date 2026-09-01
+python manage.py simulate_camera           # kamerasiz jonli demo uchun soxta tashriflar
 ```
-Production'da Celeer sotuv; hisobotда rostlik va "qanday oshiraman" maslahati.
-3. **admin** bilan kiring → hisob ochish → chop etiladigan login varaqasi; sozlamalar; audit.
-ry beat buni har 5 daqiqa / har kecha avtomatik bajaradi.
+Production'da Celery beat buni avtomatik bajaradi (har 5 daqiqa / har kecha);
+Redis bo'lmasa dev'da sinxron ishlaydi (`CELERY_TASK_ALWAYS_EAGER`).
+
+## Rostlik formulasi (qisqacha)
+`match(a,b)=min/max×100` — kam ham, ko'p ham yozsa tushadi. Qismlar: kassa
+(deklaratsiya↔kiritilgan), kamera (tashrif×ulush×o'rtacha chek), qoldiq (kun yakuni),
+narx (bozor medianasi). Og'irlikli o'rtacha; eng zaif qism sariq chegaradan past bo'lsa
+umumiy ball cheklanadi. Barcha chegaralar `SystemSettings`'da (panelда) sozlanadi.
+Yashirilgan savdo = max(kiritilgan, kamera, qoldiq) − deklaratsiya.
 
 ## Kamera keyin qo'shiladi
-Backend kontrakti tayyor (`/api/cameras/config/`, `/api/events/`, heartbeat).
-Batafsil: [`CLAUDE.md`](CLAUDE.md) va [`ai_worker/worker.py`](ai_worker/worker.py).
+Backend kontrakti tayyor (`GET /api/cameras/config/`, `POST /api/events/`, heartbeat;
+har kamera `token` bilan). AI worker skeleti: [`ai_worker/worker.py`](ai_worker/worker.py)
+(RT-DETR/YOLOX + ByteTrack — Apache-2.0; Ultralytics YOLO va yuz tanish YO'Q).
 
-To'liq talablar: [`docs/SPEC.md`](docs/SPEC.md).
+## Sifat
+`pytest` (105 test) · `ruff check` · `python manage.py check`. Loyiha xaritasi:
+[`CLAUDE.md`](CLAUDE.md). To'liq talablar: [`docs/SPEC.md`](docs/SPEC.md).
