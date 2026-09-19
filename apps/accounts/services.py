@@ -20,15 +20,21 @@ def generate_password(length: int = 8) -> str:
     return "".join(secrets.choice(_ALPHABET) for _ in range(length))
 
 
-@transaction.atomic
-def create_seller(shop, *, full_name="", phone="", is_owner=True) -> dict:
-    """Do'konga sotuvchi hisobi ochadi. Qaytadi: {user, login, password}."""
-    username = shop.login_username()
-    base = username
+def _unique_numeric_username(base) -> str:
+    """FAQAT raqamli, betakror login. Band bo'lsa oxiriga raqam qo'shiladi (baribir raqam)."""
+    base = "".join(c for c in str(base) if c.isdigit()) or "1"
+    username = base
     i = 1
     while User.objects.filter(username=username).exists():
         i += 1
-        username = f"{base}-{i}"
+        username = f"{base}{i}"
+    return username
+
+
+@transaction.atomic
+def create_seller(shop, *, full_name="", phone="", is_owner=True) -> dict:
+    """Do'konga sotuvchi hisobi ochadi. Login FAQAT raqam. Qaytadi: {user, login, password}."""
+    username = _unique_numeric_username(shop.login_username())
     password = generate_password()
     parts = full_name.split()
     user = User.objects.create(
@@ -56,12 +62,9 @@ def create_seller(shop, *, full_name="", phone="", is_owner=True) -> dict:
 def create_inspector(full_name, markets, *, phone="", username=None) -> dict:
     """Tekshiruvchi hisobi ochadi."""
     if not username:
-        base = "insp"
+        # Inspektor logini FAQAT raqam. 70-prefiks STIR asosidagi seller loginlaridan ajratadi.
         n = User.objects.filter(role=Role.INSPECTOR).count() + 1
-        username = f"{base}{n:03d}"
-        while User.objects.filter(username=username).exists():
-            n += 1
-            username = f"{base}{n:03d}"
+        username = _unique_numeric_username(f"70{n:04d}")
     password = generate_password()
     parts = full_name.split()
     user = User.objects.create(

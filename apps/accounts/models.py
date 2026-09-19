@@ -1,4 +1,4 @@
-"""Foydalanuvchi va rollar. Login = STIR-SHOPNO (superadmin ochadi)."""
+"""Foydalanuvchi va rollar. Login = FAQAT raqam (superadmin ochadi: STIR+do'kon / inspektor 70xxxx)."""
 
 from __future__ import annotations
 

@@ -60,8 +60,10 @@ class Shop(TimeStampedModel):
         return [int(x) for x in self.closed_weekdays.split(",") if x.strip().isdigit()]
 
     def login_username(self):
-        """Login formati: STIR-DO'KONRAQAMI."""
-        return f"{self.stir}-{self.number}" if self.stir else f"shop-{self.number}"
+        """Login FAQAT raqamdan iborat: STIR raqamlari + do'kon raqami."""
+        stir = "".join(c for c in (self.stir or "") if c.isdigit())
+        num = "".join(c for c in str(self.number or "") if c.isdigit())
+        return (stir + num) or "0"
 
     def similar_shops(self):
         """O'xshash do'konlar: bir bozor + bir toifa (nazorat solishtiruvi)."""

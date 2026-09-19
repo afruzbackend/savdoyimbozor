@@ -66,6 +66,33 @@ def test_must_change_password_redirects(shop):
 
 
 @pytest.mark.django_db
+def test_issued_login_is_numeric_only(shop, market):
+    """Admin bergan login FAQAT raqamdan iborat (seller + inspector)."""
+    from apps.accounts.services import create_inspector, create_seller
+
+    s = create_seller(shop, full_name="Ali Vali")
+    assert s["login"].isdigit(), s["login"]
+    i = create_inspector("Nodir Inspektor", [market])
+    assert i["login"].isdigit(), i["login"]
+
+
+@pytest.mark.django_db
+def test_issued_login_unique_and_numeric_on_collision(shop, market):
+    """Bir xil STIR+raqam (boshqa bozorda) bo'lsa ham login betakror va baribir raqamli."""
+    from apps.accounts.services import create_seller
+    from apps.geo.models import Market, Region
+    from apps.shops.models import Shop
+
+    a = create_seller(shop, full_name="Bir")
+    # Boshqa bozor, lekin bir xil STIR va do'kon raqami -> login_username() bir xil chiqadi
+    m2 = Market.objects.create(region=Region.objects.first() or market.region, name="Ikkinchi bozor")
+    shop2 = Shop.objects.create(market=m2, number=shop.number, stir=shop.stir)
+    b = create_seller(shop2, full_name="Ikki")
+    assert a["login"] != b["login"]
+    assert a["login"].isdigit() and b["login"].isdigit()
+
+
+@pytest.mark.django_db
 def test_admin_sees_current_password(shop):
     """Admin joriy parolni ko'radi: yaratishda, reset'da va self-almashtirishdan keyin."""
     from apps.accounts.services import create_seller, reset_password

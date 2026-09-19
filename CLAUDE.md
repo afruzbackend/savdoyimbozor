@@ -18,7 +18,7 @@ solishtirib rostlik darajasi beradigan va yashiruvchini signal beradigan Django 
 
 ## Applar (`apps/`)
 - `core` — SystemSettings (barcha chegaralar), AuditLog, TimeStampedModel, HostRouting + Audit middleware, panel (super admin) views.
-- `accounts` — User(Role: superadmin/inspector/seller), blokli login, `visible_shops()` (ruxsat markazi), `services.py` (hisob ochish, login = STIR-do'kon raqami).
+- `accounts` — User(Role: superadmin/inspector/seller), blokli login, `visible_shops()` (ruxsat markazi), `services.py` (hisob ochish, login = FAQAT raqam: STIR+do'kon raqami; inspektor 70xxxx).
 - `geo` — Region → Market → Row. `catalog` — ShopCategory, ProductCategory (bozor narxi uchun), Product. `shops` — Shop.
 - `sales` — Sale/SaleItem, StockIn, SaleReturn, WriteOff, DailyClose, Debt; `services/pricing.py` (chegirma/yaxlitlash BITTA MANBA), `services/sales.py`; seller_views + api.
 - `cash` — CashRecord (deklaratsiya; source: excel/tax_api/kassa).
