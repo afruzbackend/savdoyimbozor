@@ -101,6 +101,14 @@ def home(request):
         if shop
         else []
     )
+    # Savdo yo'nalishi (meva/kiyim/...) bo'yicha tayyor katalog — dashboardда ko'rinsin
+    trade_catalog, product_count = [], 0
+    if shop is not None:
+        product_count = Product.objects.filter(shop=shop, is_active=True).count()
+        cat_qs = ProductCategory.objects.all()
+        if shop.category_id:
+            cat_qs = cat_qs.filter(shop_category=shop.category)
+        trade_catalog = list(cat_qs.order_by("name")[:12])
     return render(
         request,
         "seller/home.html",
@@ -110,6 +118,8 @@ def home(request):
             "today_count": agg["n"] or 0,
             "recent": sales.order_by("-created_at")[:8],
             "low_stock": low_stock,
+            "trade_catalog": trade_catalog,   # shop yo'nalishiga mos mahsulot turlari
+            "product_count": product_count,
         },
     )
 

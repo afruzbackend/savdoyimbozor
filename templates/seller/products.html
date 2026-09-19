@@ -68,6 +68,12 @@
     Alpine.data('prodForm', () => ({
       items: JSON.parse(document.getElementById('catalog-data').textContent),
       q: '', open: false, picked: null,
+      init(){
+        // Dashboarddan ?add=<id> bilan kelsa — o'sha mahsulotni oldindan tanlaymiz
+        const id = new URLSearchParams(location.search).get('add');
+        if(id){ const c = this.items.find(x=>String(x.id)===String(id)); if(c){ this.pick(c);
+          this.$nextTick(()=>{ this.$root.scrollIntoView({behavior:'smooth',block:'center'}); }); } }
+      },
       get filtered(){ const s=this.q.toLowerCase();
         return this.items.filter(i=>i.name.toLowerCase().includes(s)); },
       pick(c){ this.picked=c; this.open=false; this.q='';

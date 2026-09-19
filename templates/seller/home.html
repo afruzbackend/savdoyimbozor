@@ -19,6 +19,23 @@
   </div>
 </div>
 
+{% if trade_catalog %}
+<div class="card card-national" style="margin-bottom:var(--sp-4)">
+  <div class="row" style="justify-content:space-between;align-items:flex-start;gap:var(--sp-3);margin-bottom:var(--sp-3)">
+    <div>
+      <div class="card-title">Savdo yo'nalishi{% if shop.category %}: <b>{{ shop.category.name }}</b>{% endif %}</div>
+      <small class="muted">{% if product_count %}{{ product_count }} ta mahsulot qo'shilgan · yo'nalishingizga mos tayyor ro'yxat{% else %}Yo'nalishingizga mos tayyor mahsulotlar — bosib qo'shing{% endif %}</small>
+    </div>
+    <a class="btn btn-ghost" href="{% url 'seller:products' %}" style="flex:none">Mahsulotlar →</a>
+  </div>
+  <div class="row" style="flex-wrap:wrap;gap:var(--sp-2)">
+    {% for c in trade_catalog %}
+      <a class="chip" href="{% url 'seller:products' %}?add={{ c.pk }}">{{ c.name }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 {% if low_stock %}
 <div class="card" style="margin-bottom:var(--sp-4);border-left:3px solid var(--warn)">
   <div class="card-title" style="margin-bottom:var(--sp-2)">Kam qolgan mahsulotlar</div>
