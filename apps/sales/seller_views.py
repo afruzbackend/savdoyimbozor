@@ -165,7 +165,7 @@ def products(request):
         if not name:
             messages.error(request, "Mahsulotni ro'yxatdan tanlang.")
             return redirect("seller:products")
-        Product.objects.create(
+        p = Product.objects.create(
             shop=shop,
             name=name[:200],
             category=cat,
@@ -175,6 +175,10 @@ def products(request):
             sell_price=int(request.POST.get("sell_price") or 0),
             low_stock_threshold=_dec(request.POST.get("low_stock_threshold")),
         )
+        if not p.barcode:  # barkod berilmagan bo'lsa — avtomatik EAN-13
+            from apps.catalog.barcodes import ensure_barcode
+
+            ensure_barcode(p)
         messages.success(request, "Mahsulot qo'shildi.")
         return redirect("seller:products")
     catalog_json = [
@@ -196,6 +200,22 @@ def products(request):
             "units": Unit.choices,
         },
     )
+
+
+@login_required
+def product_labels(request):
+    """Barkod yorliqlari — chop etib mahsulotga yopishtirish (meva/kiyim/hammasi).
+
+    Barkodsiz mahsulotlarga avtomatik EAN-13 beriladi.
+    """
+    shop = _shop(request)
+    if shop is None:
+        return redirect("seller:home")
+    from apps.catalog.barcodes import ensure_barcodes_for_shop
+
+    ensure_barcodes_for_shop(shop)
+    products = Product.objects.filter(shop=shop, is_active=True).exclude(barcode="").order_by("name")
+    return render(request, "seller/labels.html", {"shop": shop, "products": products})
 
 
 @login_required
@@ -223,6 +243,10 @@ def stock_in(request):
                     buy_price=price,
                     sell_price=int(request.POST.get("sell_price") or 0),
                 )
+                if not product.barcode:
+                    from apps.catalog.barcodes import ensure_barcode
+
+                    ensure_barcode(product)
         qty = _dec(request.POST.get("quantity"))
         in_packs = bool(request.POST.get("in_packs"))
         real_qty = qty * product.pack_coeff if in_packs else qty

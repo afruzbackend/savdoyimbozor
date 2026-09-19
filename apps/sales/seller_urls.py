@@ -9,6 +9,7 @@ urlpatterns = [
     path("sotuv/", v.sale_screen, name="sale"),
     path("skaner/", v.scan_screen, name="scan"),
     path("mahsulotlar/", v.products, name="products"),
+    path("mahsulotlar/barkodlar/", v.product_labels, name="product_labels"),
     path("kirim/", v.stock_in, name="stock_in"),
     path("kassa/", v.register, name="register"),
     path("kun-yakuni/", v.daily_close, name="daily_close"),

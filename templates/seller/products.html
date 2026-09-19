@@ -2,6 +2,10 @@
 {% load humanize static %}
 {% block title %}Mahsulotlar{% endblock %}
 {% block heading %}Mahsulotlar{% endblock %}
+{% block topbar_actions %}
+<a class="btn btn-ghost" href="{% url 'seller:product_labels' %}">
+  <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Barkod yorliqlari</a>
+{% endblock %}
 {% block content %}
 <div class="grid" style="grid-template-columns:1fr 340px;gap:var(--sp-4);align-items:start">
   <div class="card">

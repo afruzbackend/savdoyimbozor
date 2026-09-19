@@ -1,0 +1,59 @@
+{% extends 'seller/base.html' %}
+{% load static humanize %}
+{% block title %}Barkod yorliqlari{% endblock %}
+{% block heading %}Barkod yorliqlari{% endblock %}
+{% block topbar_actions %}
+<a class="btn btn-ghost" href="{% url 'seller:products' %}">← Mahsulotlar</a>
+<button class="btn" type="button" onclick="window.print()">Chop etish</button>
+{% endblock %}
+{% block content %}
+<p class="hint no-print" style="margin-bottom:var(--sp-3)">
+  Har mahsulotга barkod berildi. Chop etib, mahsulotга (meva qutisi, kiyim yorlig'i va h.k.)
+  yopishtiring — sotuvда skanerда o'qiladi.</p>
+
+{% if products %}
+<div class="label-sheet">
+  {% for p in products %}
+  <div class="label">
+    <div class="label-name">{{ p.name }}</div>
+    <div class="label-price">{{ p.sell_price|intcomma }} so'm</div>
+    <svg class="label-bc" data-code="{{ p.barcode }}"></svg>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <img class="emoji-xl" src="{% static 'emoji/seedling.svg' %}" alt="">
+  <h3>Mahsulot yo'q</h3>
+  <p class="muted">Avval mahsulot qo'shing — barkod avtomatik beriladi.</p>
+  <a class="btn" href="{% url 'seller:products' %}" style="margin-top:var(--sp-2)">Mahsulotlar</a>
+</div>
+{% endif %}
+
+<style>
+  .label-sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+  .label{border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:8px 10px;
+    background:#fff;color:#111;text-align:center;break-inside:avoid;display:flex;
+    flex-direction:column;align-items:center;gap:2px}
+  .label-name{font-weight:600;font-size:13px;line-height:1.2;max-width:100%;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .label-price{font-size:12px;color:#444}
+  .label-bc{max-width:100%;height:52px}
+  @media print{
+    .sidebar,.topbar,.bottom-nav,.page-ornament,.no-print,.menu-backdrop{display:none!important}
+    .app,.main,.content{display:block!important;padding:0!important;margin:0!important;background:#fff!important}
+    .label-sheet{grid-template-columns:repeat(4,1fr);gap:6px}
+    .label{border-color:#999}
+  }
+</style>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/jsbarcode.min.js' %}?v={{ asset_v }}"></script>
+<script>
+  document.querySelectorAll('.label-bc').forEach(function(el){
+    var code = el.dataset.code || '';
+    try { JsBarcode(el, code, {format:'EAN13', width:1.7, height:46, fontSize:13, margin:2, background:'#ffffff'}); }
+    catch(e){ try { JsBarcode(el, code, {format:'CODE128', width:1.4, height:46, fontSize:13, margin:2, background:'#ffffff'}); } catch(e2){} }
+  });
+</script>
+{% endblock %}
