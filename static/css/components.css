@@ -259,10 +259,11 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
   font-weight:700;font-size:var(--t--1)}
 .user-chip-info{display:flex;flex-direction:column;line-height:1.15;overflow:hidden}
 .user-chip-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Yalang'och gayka — ramka/fon yo'q, faqat ikonka aylanadi (orqasida quti yo'q) */
 .user-gear{flex:none;margin-left:auto;display:inline-flex;align-items:center;justify-content:center;
-  width:34px;height:34px;border:1px solid var(--border);background:var(--surface-2);color:var(--ink-muted);
-  border-radius:var(--r-2);cursor:pointer;transition:background .12s,color .12s}
-.user-gear:hover{background:var(--surface-sunken);color:var(--primary)}
+  width:34px;height:34px;border:none;background:transparent;color:var(--ink-muted);
+  cursor:pointer;transition:color .12s}
+.user-gear:hover{color:var(--primary)}
 /* Faqat GAYKANING O'ZI aylanadi — tugma ramkasi joyida qimir etmay turadi */
 .user-gear svg{transform-origin:50% 50%}
 .user-gear:hover svg{animation:gearSpin 2s linear infinite}   /* hover — uzluksiz aylanadi */
