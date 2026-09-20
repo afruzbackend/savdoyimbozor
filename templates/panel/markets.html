@@ -1,0 +1,59 @@
+{% extends 'panel/base.html' %}
+{% block title %}Bozorlar{% endblock %}
+{% block heading %}Bozorlar va viloyatlar{% endblock %}
+{% block content %}
+<div class="grid" style="grid-template-columns:360px 1fr;gap:var(--sp-4);align-items:start"
+     x-data="{edit:null, set(m){this.edit=m; window.scrollTo({top:0,behavior:'smooth'});}, reset(){this.edit=null;}}">
+
+  {# Bozor qo'shish / tahrirlash #}
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)" x-text="edit ? 'Bozorni tahrirlash' : 'Yangi bozor'"></div>
+    <form method="post" class="stack gap-3">{% csrf_token %}
+      <input type="hidden" name="action" value="save_market">
+      <input type="hidden" name="market_id" :value="edit ? edit.id : ''">
+      <div class="field"><label class="label">Viloyat</label>
+        <select class="select-native" name="region" x-ref="region" required>
+          {% for r in regions %}<option value="{{ r.pk }}">{{ r.name }}</option>{% endfor %}
+        </select></div>
+      <div class="field"><label class="label">Bozor nomi</label>
+        <input class="input" name="name" x-ref="name" placeholder="masalan: Chorsu bozori" required></div>
+      <div class="field"><label class="label">Manzil (ixtiyoriy)</label>
+        <input class="input" name="address" x-ref="address" placeholder="Ko'cha, mo'ljal"></div>
+      <div class="grid grid-2">
+        <div class="field"><label class="label">Kenglik (lat)</label><input class="input num" name="latitude" x-ref="lat" placeholder="41.311"></div>
+        <div class="field"><label class="label">Uzunlik (lng)</label><input class="input num" name="longitude" x-ref="lng" placeholder="69.279"></div>
+      </div>
+      <div class="row gap-2">
+        <button class="btn grow" type="submit" x-text="edit ? 'Saqlash' : 'Qo\'shish'"></button>
+        <button class="btn btn-ghost" type="button" x-show="edit" @click="reset()">Bekor</button>
+      </div>
+    </form>
+
+    <div class="card-title" style="margin:var(--sp-4) 0 var(--sp-2);font-size:var(--t-0)">Viloyat qo'shish</div>
+    <form method="post" class="row gap-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add_region">
+      <input class="input grow" name="region_name" placeholder="Viloyat nomi">
+      <button class="btn btn-ghost" type="submit">+</button>
+    </form>
+  </div>
+
+  {# Bozorlar ro'yxati #}
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Bozorlar</div>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Bozor</th><th>Viloyat</th><th class="num">Do'konlar</th><th></th></tr></thead>
+      <tbody>
+      {% for m in markets %}
+        <tr>
+          <td>{{ m.name }}</td><td class="muted">{{ m.region.name }}</td>
+          <td class="num">{{ m.nshops }}</td>
+          <td class="num"><button type="button" class="btn-ghost" style="padding:4px 10px"
+            data-m='{"id":{{ m.pk }},"region":{{ m.region_id }},"name":"{{ m.name|escapejs }}","address":"{{ m.address|escapejs }}","lat":"{{ m.latitude|default:"" }}","lng":"{{ m.longitude|default:"" }}"}'
+            @click='var d=JSON.parse($el.dataset.m); edit=d; $refs.region.value=d.region; $refs.name.value=d.name; $refs.address.value=d.address; $refs.lat.value=d.lat; $refs.lng.value=d.lng; window.scrollTo({top:0,behavior:"smooth"})'>Tahrirlash</button></td>
+        </tr>
+      {% empty %}<tr><td colspan="4" class="muted">Bozor yo'q.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endblock %}

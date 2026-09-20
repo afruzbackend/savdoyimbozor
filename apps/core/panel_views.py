@@ -294,3 +294,124 @@ def audit_log(request):
         "panel/audit.html",
         {"logs": logs[:400], "action": action or "", "actions": AuditLog.Action.choices},
     )
+
+
+def _f(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+@superadmin_required
+def markets(request):
+    """Bozorlar va viloyatlar boshqaruvi — qo'shish/tahrirlash (django-adminsiz)."""
+    if request.method == "POST":
+        act = request.POST.get("action")
+        if act == "add_region":
+            name = request.POST.get("region_name", "").strip()[:120]
+            if name:
+                Region.objects.get_or_create(name=name)
+                messages.success(request, "Viloyat qo'shildi.")
+        elif act == "save_market":
+            region = Region.objects.filter(pk=request.POST.get("region") or 0).first()
+            name = request.POST.get("name", "").strip()[:150]
+            if not (region and name):
+                messages.error(request, "Viloyat va nom kerak.")
+                return redirect("panel:markets")
+            data = {
+                "region": region,
+                "name": name,
+                "address": request.POST.get("address", "").strip()[:300],
+                "latitude": _f(request.POST.get("latitude")),
+                "longitude": _f(request.POST.get("longitude")),
+            }
+            mid = request.POST.get("market_id")
+            if mid:
+                Market.objects.filter(pk=mid).update(**data)
+                messages.success(request, "Bozor yangilandi.")
+            else:
+                Market.objects.create(**data)
+                messages.success(request, "Bozor qo'shildi.")
+        return redirect("panel:markets")
+    from django.db.models import Count
+
+    return render(
+        request,
+        "panel/markets.html",
+        {
+            "regions": Region.objects.all(),
+            "markets": Market.objects.select_related("region").annotate(
+                nshops=Count("shops")
+            ),
+        },
+    )
+
+
+@superadmin_required
+def categories(request):
+    """Savdo turlari (ShopCategory) — qo'shish/o'chirish."""
+    if request.method == "POST":
+        act = request.POST.get("action")
+        if act == "add":
+            name = request.POST.get("name", "").strip()[:120]
+            if name:
+                ShopCategory.objects.get_or_create(name=name)
+                messages.success(request, "Savdo turi qo'shildi.")
+        elif act == "delete":
+            ShopCategory.objects.filter(pk=request.POST.get("id") or 0).delete()
+            messages.success(request, "O'chirildi.")
+        return redirect("panel:categories")
+    from django.db.models import Count
+
+    return render(
+        request,
+        "panel/categories.html",
+        {"categories": ShopCategory.objects.annotate(
+            nshops=Count("shops", distinct=True),
+            nprod=Count("product_categories", distinct=True))},
+    )
+
+
+@superadmin_required
+def cameras(request):
+    """Kameralar boshqaruvi — qo'shish, token ko'rish (django-adminsiz)."""
+    from apps.cameras.models import Camera
+
+    if request.method == "POST":
+        act = request.POST.get("action")
+        if act == "add":
+            market = Market.objects.filter(pk=request.POST.get("market") or 0).first()
+            if not market:
+                messages.error(request, "Bozorni tanlang.")
+                return redirect("panel:cameras")
+            shop = Shop.objects.filter(pk=request.POST.get("shop") or 0).first()
+            Camera.objects.create(
+                name=request.POST.get("name", "").strip()[:120] or "Kamera",
+                market=market,
+                shop=shop,
+                kind=request.POST.get("kind", "counter"),
+                rtsp_sub=request.POST.get("rtsp_sub", "").strip()[:500],
+            )
+            messages.success(request, "Kamera qo'shildi. Token ro'yxatda ko'rinadi.")
+        elif act == "toggle":
+            cam = Camera.objects.filter(pk=request.POST.get("id") or 0).first()
+            if cam:
+                cam.is_active = not cam.is_active
+                cam.save(update_fields=["is_active"])
+        elif act == "delete":
+            Camera.objects.filter(pk=request.POST.get("id") or 0).delete()
+            messages.success(request, "Kamera o'chirildi.")
+        return redirect("panel:cameras")
+    from apps.cameras.models import Camera as Cam
+
+    return render(
+        request,
+        "panel/cameras.html",
+        {
+            "cameras": Cam.objects.select_related("market", "shop"),
+            "markets": Market.objects.all(),
+            "shops": Shop.objects.select_related("market").order_by("market__name", "number"),
+            "kinds": Cam.Kind.choices,
+        },
+    )

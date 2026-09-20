@@ -1,0 +1,33 @@
+{% extends 'panel/base.html' %}
+{% block title %}Savdo turlari{% endblock %}
+{% block heading %}Savdo turlari (do'kon toifalari){% endblock %}
+{% block content %}
+<div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Yangi savdo turi</div>
+    <form method="post" class="row gap-2">{% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <input class="input grow" name="name" placeholder="masalan: Gullar, Elektronika" required>
+      <button class="btn" type="submit">Qo'shish</button>
+    </form>
+    <p class="hint" style="margin-top:var(--sp-3)">Savdo turi do'kon ochishda tanlanadi va sotuvchiga
+      shu yo'nalishga mos tayyor mahsulot ro'yxatini beradi.</p>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Mavjud turlar</div>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Nomi</th><th class="num">Do'konlar</th><th class="num">Mahsulot turlari</th><th></th></tr></thead>
+      <tbody>
+      {% for c in categories %}
+        <tr><td>{{ c.name }}</td><td class="num">{{ c.nshops }}</td><td class="num">{{ c.nprod }}</td>
+          <td class="num">
+            <form method="post" style="display:inline" onsubmit="return confirm('O\'chirilsinmi?')">{% csrf_token %}
+              <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ c.pk }}">
+              <button class="btn-ghost" style="padding:4px 10px;color:var(--bad)">O'chirish</button></form></td>
+        </tr>
+      {% empty %}<tr><td colspan="4" class="muted">Savdo turi yo'q.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endblock %}

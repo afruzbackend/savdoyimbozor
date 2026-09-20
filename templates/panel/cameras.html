@@ -1,0 +1,63 @@
+{% extends 'panel/base.html' %}
+{% load static %}
+{% block title %}Kameralar{% endblock %}
+{% block heading %}Kameralar{% endblock %}
+{% block content %}
+<div class="grid" style="grid-template-columns:360px 1fr;gap:var(--sp-4);align-items:start">
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Kamera qo'shish</div>
+    <form method="post" class="stack gap-3">{% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <div class="field"><label class="label">Nomi</label>
+        <input class="input" name="name" placeholder="masalan: Kirish kamerasi"></div>
+      <div class="field"><label class="label">Bozor</label>
+        <select class="select-native" name="market" required>
+          {% for m in markets %}<option value="{{ m.pk }}">{{ m.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label class="label">Do'kon (ixtiyoriy)</label>
+        <select class="select-native" name="shop">
+          <option value="">— butun rasta —</option>
+          {% for s in shops %}<option value="{{ s.pk }}">№{{ s.number }} · {{ s.market.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label class="label">Turi</label>
+        <select class="select-native" name="kind">{% for v,l in kinds %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+      <div class="field"><label class="label">RTSP (substream)</label>
+        <input class="input" name="rtsp_sub" placeholder="rtsp://user:pass@ip:554/substream"></div>
+      <button class="btn btn-block" type="submit">Qo'shish → token beriladi</button>
+    </form>
+    <p class="hint" style="margin-top:var(--sp-3)">Token'ni <code>ai_worker/config.json</code> ga yozing.
+      Video bozordan chiqmaydi — serverga faqat tashrif soni boradi.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Kameralar ro'yxati</div>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Nomi</th><th>Bozor / do'kon</th><th>Holat</th><th>Token</th><th></th></tr></thead>
+      <tbody>
+      {% for c in cameras %}
+        <tr>
+          <td>{{ c.name }}<div class="muted" style="font-size:var(--t--2)">{{ c.get_kind_display }}</div></td>
+          <td>{{ c.market.name }}{% if c.shop %} · №{{ c.shop.number }}{% endif %}</td>
+          <td>{% if c.is_active %}<span class="badge badge-ok">Faol</span>{% else %}<span class="badge badge-bad">O'chiq</span>{% endif %}
+            {% if c.is_online %}<span class="badge badge-ok">Online</span>{% endif %}</td>
+          <td data-noloc><span class="pw-cell" x-data="{show:false}">
+            <b class="num" x-show="show" x-cloak style="font-size:var(--t--2)">{{ c.token }}</b>
+            <span class="num muted" x-show="!show">••••••</span>
+            <button type="button" class="btn-icon" @click="show=!show" title="Ko'rsatish">
+              <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-eye"></use></svg></button>
+            <button type="button" class="btn-ghost" style="padding:2px 8px;font-size:var(--t--1)"
+              @click="navigator.clipboard.writeText('{{ c.token }}');window.toast&&window.toast('Token nusxalandi','ok')">Nusxa</button>
+          </span></td>
+          <td class="num" style="white-space:nowrap">
+            <form method="post" style="display:inline">{% csrf_token %}
+              <input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="{{ c.pk }}">
+              <button class="btn-ghost" style="padding:4px 8px">{% if c.is_active %}O'chirish{% else %}Yoqish{% endif %}</button></form>
+            <form method="post" style="display:inline" onsubmit="return confirm('Kamera o\'chirilsinmi?')">{% csrf_token %}
+              <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ c.pk }}">
+              <button class="btn-ghost" style="padding:4px 8px;color:var(--bad)">×</button></form>
+          </td>
+        </tr>
+      {% empty %}<tr><td colspan="5" class="muted">Kamera yo'q.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endblock %}
