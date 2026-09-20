@@ -87,7 +87,8 @@
     <tbody>
     {% for i in inspections %}
       <tr><td class="num">{{ i.created_at|date:"d.m.Y" }}</td><td>{{ i.get_result_display }}</td>
-        <td class="num">{{ i.act_number|default:"—" }}</td><td class="num">{{ i.fine_amount|default:0|intcomma }}</td></tr>
+        <td class="num"><a href="{% url 'inspector:inspection_act' i.pk %}">{{ i.act_number|default:"Akt chiqarish" }}</a></td>
+        <td class="num">{{ i.fine_amount|default:0|intcomma }}</td></tr>
     {% empty %}<tr><td colspan="4" class="muted">Hali tekshiruv yo'q.</td></tr>{% endfor %}
     </tbody>
   </table>

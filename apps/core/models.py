@@ -41,6 +41,10 @@ class SystemSettings(models.Model):
     )
     # Soliq stavkasi — yashirilgan savdodan potensial qo'shimcha soliqni baholash uchun
     tax_rate_percent = models.PositiveSmallIntegerField(_("Soliq stavkasi (%)"), default=12)
+    # Jarima ustamasi — dalolatnomadagi taxminiy jarima = yashirilgan soliq × (1 + ustama%)
+    fine_penalty_percent = models.PositiveSmallIntegerField(
+        _("Jarima ustamasi (%)"), default=100
+    )
     # Anomaliya signali: kunlik savdo 30-kunlik o'rtachadan shu %dan ko'p tushsa
     anomaly_drop_pct = models.PositiveSmallIntegerField(
         _("Savdo tushishi chegarasi (%)"), default=60

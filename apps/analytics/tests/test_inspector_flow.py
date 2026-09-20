@@ -31,6 +31,29 @@ def test_evidence_page_renders(iclient, shop):
 
 
 @pytest.mark.django_db
+def test_inspection_act_auto_generates(iclient, shop, inspector):
+    """Jarima akti: act_number + jarima avtomatik to'ldiriladi, sahifa ochiladi."""
+    from apps.analytics.models import Inspection
+
+    insp = Inspection.objects.create(shop=shop, inspector=inspector, result="confirmed")
+    r = iclient.get(f"/tekshiruv/{insp.pk}/akt/", HTTP_HOST=INSPECTOR_HOST)
+    assert r.status_code == 200
+    assert "DALOLATNOMA" in r.content.decode()
+    insp.refresh_from_db()
+    assert insp.act_number  # avtomatik raqam berildi
+    assert insp.fine_amount is not None  # jarima avtomatik hisoblandi
+
+
+@pytest.mark.django_db
+def test_inspection_act_denied_for_other_market(sclient, shop):
+    """Sotuvchi (yoki begona) akt sahifasiga kira olmaydi (urlconf/ruxsat)."""
+    from apps.analytics.models import Inspection
+
+    insp = Inspection.objects.create(shop=shop, result="confirmed")
+    assert sclient.get(f"/tekshiruv/{insp.pk}/akt/").status_code == 404
+
+
+@pytest.mark.django_db
 def test_dashboard_shows_hidden_sales(iclient, shop):
     r = iclient.get("/", HTTP_HOST=INSPECTOR_HOST)
     assert r.status_code == 200

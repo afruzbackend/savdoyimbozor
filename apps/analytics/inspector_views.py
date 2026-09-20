@@ -338,6 +338,9 @@ def inspection_create(request):
         from django.contrib import messages
 
         messages.success(request, "Tekshiruv natijasi saqlandi.")
+        # Tasdiqlangan bo'lsa — to'g'ridan-to'g'ri jarima aktiga o'tamiz
+        if insp.result == Inspection.Result.CONFIRMED:
+            return redirect("inspector:inspection_act", pk=insp.pk)
         return redirect("inspector:alerts")
 
     return render(
@@ -348,6 +351,55 @@ def inspection_create(request):
             "alert": alert,
             "preselect": preselect,
             "results": Inspection.Result.choices,
+        },
+    )
+
+
+@login_required
+def inspection_act(request, pk):
+    """Jarima akti (dalolatnoma) — chop etiladigan rasmiy hujjat, avtomatik to'ldiriladi."""
+    from apps.core.models import SystemSettings
+
+    cfg = SystemSettings.get_solo()
+    shops = _visible_shops(request)
+    insp = get_object_or_404(
+        Inspection.objects.select_related("shop", "shop__market", "inspector"),
+        pk=pk,
+        shop__in=shops,
+    )
+    shop = insp.shop
+    today = timezone.localdate()
+    start = today - timedelta(days=29)
+    scores = list(DailyScore.objects.filter(shop=shop, date__range=(start, today)))
+    hidden = sum(s.hidden_sales for s in scores)
+    evaded_tax = int(hidden * cfg.tax_rate_percent / 100)
+    suggested_fine = int(evaded_tax * (1 + cfg.fine_penalty_percent / 100))
+
+    changed = []
+    if not insp.act_number:  # dalolatnoma raqami — avtomatik
+        insp.act_number = f"BN-{today.year}-{insp.pk:05d}"
+        changed.append("act_number")
+    if insp.fine_amount in (None, 0):  # jarima bo'sh bo'lsa — taxminiy to'ldiramiz
+        insp.fine_amount = suggested_fine
+        changed.append("fine_amount")
+    if changed:
+        insp.save(update_fields=changed)
+
+    return render(
+        request,
+        "inspector/inspection_act.html",
+        {
+            "insp": insp,
+            "shop": shop,
+            "start": start,
+            "today": today,
+            "hidden_sales": hidden,
+            "evaded_tax": evaded_tax,
+            "suggested_fine": suggested_fine,
+            "tax_rate": cfg.tax_rate_percent,
+            "penalty_pct": cfg.fine_penalty_percent,
+            "now": timezone.now(),
+            "inspector": insp.inspector or request.user,
         },
     )
 
