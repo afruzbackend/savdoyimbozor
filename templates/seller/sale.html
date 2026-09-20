@@ -58,6 +58,8 @@
             @click="clearAll()" x-show="amount>0" x-cloak>
       <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-trash-2"></use></svg> Hammasini o'chirish
     </button>
+    <p class="faint" style="margin:var(--sp-2) 0 0;font-size:var(--t--2);text-align:center">
+      Kompyuterда klaviaturada ham yozish mumkin: raqamlar · Backspace · Enter (sotildi) · Esc (tozalash)</p>
   </div>
 
   {# To'lov turi + ulgurji #}
@@ -87,7 +89,21 @@
       cfg: window.__PRICING__,
       amount: 0, discount: 0, rounding: 0, pay: 'cash', wholesale: false,
       saving: false, pending: 0, customOpen: false, customVal: '',
-      init() { this.syncQueue(); window.addEventListener('online', () => this.syncQueue()); },
+      init() {
+        this.syncQueue();
+        window.addEventListener('online', () => this.syncQueue());
+        // Kompyuterda jismoniy klaviatura bilan yozish: raqamlar, Backspace, Enter, Esc.
+        // Eski tinglovchini olib tashlab qo'shamiz -> hech qachon ikki marta ulanmaydi.
+        if (window.__saleKeyHandler) window.removeEventListener('keydown', window.__saleKeyHandler);
+        window.__saleKeyHandler = (e) => {
+          if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+          if (e.key >= '0' && e.key <= '9') { this.press(e.key); e.preventDefault(); }
+          else if (e.key === 'Backspace') { this.back(); e.preventDefault(); }
+          else if (e.key === 'Enter') { this.submit(); e.preventDefault(); }
+          else if (e.key === 'Escape' || e.key.toLowerCase() === 'c') { this.clearAll(); e.preventDefault(); }
+        };
+        window.addEventListener('keydown', window.__saleKeyHandler);
+      },
       get subtotal() { return this.amount; },
       get total() { return Math.max(0, this.subtotal - this.discount - this.rounding); },
       get cap() { return Math.floor(this.subtotal * this.cfg.max_discount_no_cost_pct / 100); },
