@@ -1,9 +1,9 @@
-# AI worker (bozor serverida, alohida jarayon)
+# AI worker (bozor serverida/mini-PC'da, alohida jarayon) — hammasi lokal, internetsiz
 requests>=2.31
+opencv-python-headless>=4.9   # RTSP oqim o'qish + HOG odam detektori (BSD)
+numpy>=1.24
 
-# Kamera bosqichida qo'shiladi (hammasi lokal, internetsiz):
-# opencv-python-headless   # RTSP substream o'qish
-# numpy
-# onnxruntime              # RT-DETR / YOLOX ONNX modelini ishlatish (Apache-2.0)
-# Tracker: ByteTrack (Apache-2.0) — alohida modul sifatida
-# DIQQAT: Ultralytics YOLO ishlatilmaydi (AGPL-3.0). Yuzni tanish yo'q (biometrik).
+# Aniqroq detektor (ixtiyoriy) — model_path berilsa ishlatiladi:
+# onnxruntime>=1.17          # RT-DETR / YOLOX ONNX modelini ishlatish (Apache-2.0)
+# YOLOX ONNX modelini rasmiy YOLOX repo yoki OpenVINO model zoo'dan oling (Apache-2.0).
+# DIQQAT: Ultralytics YOLO ishlatilmaydi (AGPL-3.0). Yuz tanish yo'q (biometrik).

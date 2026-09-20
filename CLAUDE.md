@@ -77,7 +77,9 @@ yaxlitlash faqat pastga, statistikaga kirmaydi. Server tekshiradi, frontend shu 
 - runserver `--noreload` bilan bo'lsa, kod/shablon o'zgargach QAYTA ishga tushiring.
 
 ## Backlog (keyingi)
-- Kamera: ai_worker detektor/tracker (RT-DETR + ByteTrack), ANPR, tarozi OCR, VLM (Qwen2.5-VL).
+- Kamera: `ai_worker/worker.py` ISHLAYDI (RTSP + OpenCV HOG odam detektori + IOU tracker
+  + zona/dwell tashrif sanash + per-token yuborish; ixtiyoriy YOLOX/RT-DETR ONNX).
+  Keyin: ByteTrack, aniqroq ONNX model, ANPR, tarozi OCR, VLM (Qwen2.5-VL).
 - Telegram signal; Soliq API / virtual kassa / to'lov (Click/Payme) adapterlari.
 - Qoldiq (stock) rostlik qismini DailyClose asosida to'liq ulash.
 - Nazorat guruhi bilan pilot solishtiruvi (kamerali vs kamerasiz).
