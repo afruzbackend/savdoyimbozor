@@ -47,6 +47,13 @@ def create_sale_api(request):
         )
     except InsufficientStock as e:
         return Response({"detail": str(e)}, status=400)
+    # Real-time: sotuvdan keyin bugungi rostlikni yangilaymiz (throttled ~12s)
+    try:
+        from apps.analytics.scoring.services import refresh_today_if_stale
+
+        refresh_today_if_stale()
+    except Exception:  # noqa: BLE001 — sotuv javobi kechikmasin
+        pass
     return Response(
         {
             "id": sale.id,

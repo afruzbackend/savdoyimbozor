@@ -220,6 +220,12 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
   padding:var(--sp-4) var(--sp-5);background:var(--surface);border-bottom:1px solid var(--border);
   position:sticky;top:0;z-index:20}
 .topbar h1{font-size:var(--t-2);margin:0}
+/* Jonli (real-time) indikator — yashil pulslovchi nuqta */
+.live-dot{display:inline-block;width:9px;height:9px;margin-left:10px;border-radius:50%;
+  background:var(--ok);vertical-align:middle;animation:livePulse 1.6s ease-in-out infinite}
+@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 60%,transparent)}
+  50%{opacity:.6;box-shadow:0 0 0 6px transparent}}
+@media (prefers-reduced-motion:reduce){.live-dot{animation:none}}
 .main{position:relative}
 .content{padding:var(--sp-5);max-width:1180px;width:100%;margin:0 auto;position:relative;z-index:1}
 /* Milliy koshin rozetkasi — bo'sh joylarga nafis milliy suv belgisi */

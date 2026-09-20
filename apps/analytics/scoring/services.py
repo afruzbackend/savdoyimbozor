@@ -197,6 +197,35 @@ def _camera_estimate(shop, day, buyer_ratio, market_avg_check=0):
     return int(visits * float(buyer_ratio) * avg_check)
 
 
+def refresh_today_if_stale(seconds: int = 12) -> bool:
+    """Bugungi rostlik ballari eskirgan bo'lsa qayta hisoblaydi (throttled).
+
+    Sotuvdan keyin chaqiriladi — nazoratchi deyarli darhol yangi savdoni ko'radi.
+    Har `seconds` da ko'pi bilan bir marta ishlaydi (tez-tez sotuvda yuk oshmasin).
+    Qaytadi: recompute qilindimi (bool).
+    """
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.analytics.models import DailyScore
+
+    today = timezone.localdate()
+    newest = (
+        DailyScore.objects.filter(date=today)
+        .order_by("-updated_at")
+        .values_list("updated_at", flat=True)
+        .first()
+    )
+    if newest is not None and (timezone.now() - newest) < timedelta(seconds=seconds):
+        return False
+    try:
+        recompute_for_date(today)
+        return True
+    except Exception:  # noqa: BLE001 — sotuv baribir yozilsin
+        return False
+
+
 def recompute_for_date(day) -> int:
     """Berilgan kun uchun barcha faol do'kon rostlik ballarini qayta hisoblaydi.
 

@@ -18,6 +18,8 @@ def _visible_shops(request):
     return request.user.visible_shops().select_related("market", "row", "category")
 
 
+
+
 def _level(truth, cfg):
     if truth >= cfg.green_threshold:
         return "green"

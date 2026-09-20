@@ -87,3 +87,17 @@
   </div>
 </div>
 {% endblock %}
+{% block extra_js %}
+<script>
+  // Jonli: sahifa har 25s da avtomatik yangilanadi (ko'rinib turganда, oyna ochiq bo'lmasa)
+  (function(){
+    var h=document.querySelector('.topbar h1');
+    if(h){ var d=document.createElement('span'); d.className='live-dot'; d.title='Jonli — avtomatik yangilanadi'; h.appendChild(d); }
+    setInterval(function(){
+      if(document.hidden) return;
+      if(document.querySelector('.modal-backdrop:not([hidden])')) return;
+      location.reload();
+    }, 25000);
+  })();
+</script>
+{% endblock %}
