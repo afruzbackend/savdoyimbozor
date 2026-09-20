@@ -703,7 +703,6 @@ def register(request):
             "recent": Sale.objects.filter(shop=shop, created_at__date=today).order_by(
                 "-created_at"
             )[:12],
-            "history": RegisterClose.objects.filter(shop=shop).order_by("-date")[:14],
         },
     )
 

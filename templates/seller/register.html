@@ -71,24 +71,4 @@
   </div>
 </div>
 
-{% if history %}
-<div class="card" style="margin-top:var(--sp-4)">
-  <div class="card-title" style="margin-bottom:var(--sp-3)">Kassa tarixi (Z-hisobotlar)</div>
-  <div class="table-wrap"><table class="data">
-    <thead><tr><th>Sana</th><th class="num">Kutilgan naqd</th><th class="num">Sanalgan</th><th class="num">Farq</th><th class="num">Karta</th><th class="num">Cheklar</th></tr></thead>
-    <tbody>
-    {% for z in history %}
-      <tr class="{% if z.difference < 0 %}row-warn{% endif %}">
-        <td class="num">{{ z.date|date:"d.m.Y" }}</td>
-        <td class="num muted">{{ z.expected_cash|intcomma }}</td>
-        <td class="num">{{ z.counted_cash|intcomma }}</td>
-        <td class="num" style="{% if z.difference < 0 %}color:var(--bad){% elif z.difference > 0 %}color:var(--warn){% endif %}">
-          {% if z.difference > 0 %}+{% endif %}{{ z.difference|intcomma }}</td>
-        <td class="num muted">{{ z.card_total|intcomma }}</td>
-        <td class="num">{{ z.checks_count }}</td>
-      </tr>
-    {% endfor %}
-    </tbody></table></div>
-</div>
-{% endif %}
 {% endblock %}
