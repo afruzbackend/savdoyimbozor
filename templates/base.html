@@ -5,9 +5,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>{% block title %}Bozor Nazorat{% endblock %}</title>
-  <meta name="theme-color" content="#3a4e8c">
+  <meta name="theme-color" content="#2450bb">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}?v={{ asset_v }}">
+  <link rel="shortcut icon" href="{% static 'img/favicon.png' %}?v={{ asset_v }}">
   <link rel="manifest" href="{% static 'manifest.json' %}">
-  <link rel="apple-touch-icon" href="{% static 'icon-192.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/soliq_logo.jpg' %}?v={{ asset_v }}">
   <link rel="preload" as="font" type="font/woff2" crossorigin
         href="{% static 'fonts/inter-v20-cyrillic_latin-regular.woff2' %}">
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v={{ asset_v }}">
