@@ -130,7 +130,7 @@
 /* ============================ BAZA ============================ */
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-html,body{max-width:100%;overflow-x:hidden}  /* gorizontal chiqib ketmasin (ekranga sig'sin) */
+html,body{max-width:100%;overflow-x:hidden;overscroll-behavior:none}  /* gorizontal chiqib ketmasin + bounce yo'q */
 body{
   margin:0;background:var(--bg);color:var(--ink);
   font-family:var(--font-sans);font-size:var(--t-0);line-height:1.55;
