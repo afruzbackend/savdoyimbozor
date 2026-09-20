@@ -34,6 +34,15 @@
     </div>
   </div>
   <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Soliq va jarima</div>
+    <div class="grid grid-2">
+      <div class="field"><label class="label">Soliq stavkasi (%)</label><input class="input num" type="number" name="tax_rate_percent" value="{{ s.tax_rate_percent }}"></div>
+      <div class="field"><label class="label">Jarima ustamasi (%)</label><input class="input num" type="number" name="fine_penalty_percent" value="{{ s.fine_penalty_percent }}"></div>
+      <div class="field"><label class="label">Anomaliya tushish chegarasi (%)</label><input class="input num" type="number" name="anomaly_drop_pct" value="{{ s.anomaly_drop_pct }}"></div>
+      <div class="field"><label class="label">Kassa kamomadi chegarasi (%)</label><input class="input num" type="number" name="cash_shortage_pct" value="{{ s.cash_shortage_pct }}"></div>
+    </div>
+  </div>
+  <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Xavfsizlik</div>
     <div class="grid grid-2">
       <div class="field"><label class="label">Maks kirish urinishi</label><input class="input num" type="number" name="login_max_attempts" value="{{ s.login_max_attempts }}"></div>

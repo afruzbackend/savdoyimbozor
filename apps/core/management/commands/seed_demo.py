@@ -76,6 +76,38 @@ CATALOG = {
         ("Choy", Unit.PIECE, 15000),
         ("Tuz", Unit.KG, 3000),
     ],
+    "Go'sht-baliq": [
+        ("Mol go'shti", Unit.KG, 90000),
+        ("Qo'y go'shti", Unit.KG, 105000),
+        ("Tovuq", Unit.KG, 38000),
+        ("Baliq", Unit.KG, 45000),
+        ("Kolbasa", Unit.KG, 60000),
+    ],
+    "Non-shirinlik": [
+        ("Non", Unit.PIECE, 3000),
+        ("Kulcha", Unit.PIECE, 2500),
+        ("Pechenye", Unit.KG, 30000),
+        ("Konfet", Unit.KG, 45000),
+        ("Tort", Unit.PIECE, 120000),
+    ],
+    "Maishiy kimyo": [
+        ("Kir yuvish kukuni", Unit.PIECE, 35000),
+        ("Sovun", Unit.PIECE, 8000),
+        ("Shampun", Unit.PIECE, 40000),
+        ("Idish yuvish", Unit.PIECE, 22000),
+    ],
+    "Elektronika": [
+        ("Quloqchin", Unit.PIECE, 80000),
+        ("Zaryadlagich", Unit.PIECE, 60000),
+        ("USB kabel", Unit.PIECE, 25000),
+        ("Batareyka", Unit.PIECE, 8000),
+        ("Lampochka", Unit.PIECE, 15000),
+    ],
+    "Gullar": [
+        ("Atirgul", Unit.PIECE, 15000),
+        ("Guldasta", Unit.PIECE, 80000),
+        ("Tuvakli gul", Unit.PIECE, 45000),
+    ],
 }
 ROWS = ["Meva qatori", "Sabzavot qatori", "Kiyim qatori", "Oziq-ovqat qatori"]
 

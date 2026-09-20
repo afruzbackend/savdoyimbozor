@@ -63,16 +63,29 @@
     {% if insp.notes %}<tr><td>Tekshiruvchi izohi</td><td>{{ insp.notes }}</td></tr>{% endif %}
   </table>
 
-  <h2>3. Belgilangan jarima</h2>
+  <h2>3. Huquqiy tasnif</h2>
+  <table>
+    <tr><td>Daraja</td><td><b>{{ tier.label }}</b>{% if repeat %} <span style="color:var(--bad)">· takroriy (2×)</span>{% endif %}</td></tr>
+    <tr><td>Miqdor oralig'i (taxminiy)</td><td>{{ tier.range_text }}</td></tr>
+    <tr><td>Tavsiya etilgan chora</td><td>
+      {% if tier.warning_only %}Ogohlantirish (kichik miqdor — jarima o'rniga)
+      {% elif tier.is_criminal %}Jinoyat ishi materiallari + jarima
+      {% else %}Ma'muriy jarima{% endif %}</td></tr>
+  </table>
+  <p class="note">Miqyos (taxminiy): 6.6–11 mln — kam · 13.2–22 mln — ancha · 44–66 mln — jinoyat ·
+    132–264 mln — juda katta. Takroriy huquqbuzarlikda jarima 2 baravar.</p>
+
+  <h2>4. Belgilangan jarima</h2>
   <div class="fine-box">
-    <div class="k" style="color:var(--ink-muted);font-size:var(--t--1)">Jarima summasi (yashirilgan soliq + {{ penalty_pct }}% ustama)</div>
+    <div class="k" style="color:var(--ink-muted);font-size:var(--t--1)">Jarima summasi (yashirilgan soliq + {{ penalty_pct }}% ustama{% if repeat %} × 2 takroriy{% endif %})</div>
     <div class="v">{{ insp.fine_amount|intcomma }} so'm</div>
-    <div class="note">Eslatma: summa tizim baholovi asosida <b>taxminiy</b> hisoblangan.
-      Yakuniy jarima vakolatli organ tomonidan amaldagi qonunchilik asosida rasman belgilanadi.
+    {% if tier.warning_only %}<div class="k" style="color:var(--warn);font-weight:600;margin-top:4px">Kichik miqdor — jarima o'rniga OGOHLANTIRISH berish mumkin.</div>{% endif %}
+    <div class="note">Eslatma: summa va tasnif tizim baholovi asosida <b>taxminiy</b>.
+      Yakuniy jarima/chora vakolatli organ tomonidan amaldagi qonunchilik asosida rasman belgilanadi.
       Ushbu dalolatnoma tekshiruvга asos bo'lgan signal va hisob-kitob natijalarini aks ettiradi.</div>
   </div>
 
-  <h2>4. Imzolar</h2>
+  <h2>5. Imzolar</h2>
   <div class="signs">
     <div class="s">Tekshiruvchi: {{ inspector.get_full_name|default:inspector.username }}
       <div class="line">imzo / sana</div></div>

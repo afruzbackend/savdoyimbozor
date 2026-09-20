@@ -271,6 +271,10 @@ def settings_edit(request):
             "rounding_max",
             "login_max_attempts",
             "login_lock_minutes",
+            "tax_rate_percent",
+            "fine_penalty_percent",
+            "anomaly_drop_pct",
+            "cash_shortage_pct",
         ]
         for f in fields:
             val = request.POST.get(f)

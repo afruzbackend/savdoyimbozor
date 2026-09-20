@@ -373,7 +373,18 @@ def inspection_act(request, pk):
     scores = list(DailyScore.objects.filter(shop=shop, date__range=(start, today)))
     hidden = sum(s.hidden_sales for s in scores)
     evaded_tax = int(hidden * cfg.tax_rate_percent / 100)
+    # Takroriylik: shu do'konda ilgari tasdiqlangan tekshiruv bo'lganmi (shu aktdan tashqari)
+    repeat = (
+        Inspection.objects.filter(shop=shop, result=Inspection.Result.CONFIRMED)
+        .exclude(pk=insp.pk)
+        .exists()
+    )
+    from apps.analytics.fines import classify_hidden
+
+    tier = classify_hidden(hidden, repeat=repeat)
     suggested_fine = int(evaded_tax * (1 + cfg.fine_penalty_percent / 100))
+    if repeat:
+        suggested_fine *= 2  # takroriy — 2 baravar
 
     changed = []
     if not insp.act_number:  # dalolatnoma raqami — avtomatik
@@ -398,6 +409,8 @@ def inspection_act(request, pk):
             "suggested_fine": suggested_fine,
             "tax_rate": cfg.tax_rate_percent,
             "penalty_pct": cfg.fine_penalty_percent,
+            "tier": tier,
+            "repeat": repeat,
             "now": timezone.now(),
             "inspector": insp.inspector or request.user,
         },
