@@ -2,7 +2,6 @@
 {% load static %}
 {% block title %}Hisob ochish{% endblock %}
 {% block heading %}Hisob ochish{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'css/leaflet.css' %}?v={{ asset_v }}">{% endblock %}
 {% block content %}
 <div class="card" style="max-width:640px" x-data="{role:'seller', mode:'new'}">
   <form method="post">
@@ -40,12 +39,13 @@
               {% for c in categories %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
         </div>
         <div class="field"><label class="label">Manzil</label><input class="input" name="address" placeholder="Ko'cha, mo'ljal"></div>
-        <div class="field"><label class="label">Lokatsiya (xaritada bosing)</label>
-          <div id="loc-map" style="height:260px;border-radius:var(--r-2);overflow:hidden;border:1px solid var(--border)"></div>
-          <input type="hidden" name="latitude" x-ref="lat">
-          <input type="hidden" name="longitude" x-ref="lng">
-          <small class="faint">Do'kon joyini belgilash uchun xaritани bosing.</small>
+        <div class="grid grid-2">
+          <div class="field"><label class="label">Kenglik (lat, ixtiyoriy)</label>
+            <input class="input num" name="latitude" x-ref="lat" placeholder="41.311"></div>
+          <div class="field"><label class="label">Uzunlik (lng, ixtiyoriy)</label>
+            <input class="input num" name="longitude" x-ref="lng" placeholder="69.279"></div>
         </div>
+        <small class="faint">Koordinata ixtiyoriy — bo'sh qoldirsangiz bozor markazi olinadi.</small>
       </div>
 
       <div x-show="mode==='existing'" x-cloak>
@@ -54,7 +54,7 @@
             {% for s in shops %}<option value="{{ s.pk }}">№{{ s.number }} — {{ s.owner_name }} ({{ s.market.name }})</option>{% endfor %}
           </select></div>
       </div>
-      <div class="hint">Login avtomatik: STIR-do'kon raqami. Vaqtinchalik parol beriladi.</div>
+      <div class="hint">Login avtomatik (faqat raqam: STIR+do'kon raqami). Vaqtinchalik parol beriladi.</div>
     </div>
 
     <div x-show="role==='inspector'" x-cloak>
@@ -69,30 +69,18 @@
 </div>
 {% endblock %}
 {% block extra_js %}
-<script src="{% static 'js/leaflet.js' %}?v={{ asset_v }}"></script>
 <script>
+  // Bozor tanlanganda koordinata maydonlari o'sha bozor markazi bilan to'ldiriladi (offline).
   (function(){
-    function init(){
-      var el=document.getElementById('loc-map'); if(!el||!window.L) { setTimeout(init,200); return; }
-      var map=L.map(el).setView([41.311,69.2797],13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
-      var marker=null;
-      function setLoc(lat,lng){
-        if(marker) marker.setLatLng([lat,lng]); else marker=L.marker([lat,lng]).addTo(map);
-        var la=document.querySelector('[name=latitude]'), ln=document.querySelector('[name=longitude]');
-        if(la) la.value=lat.toFixed(6); if(ln) ln.value=lng.toFixed(6);
-      }
-      map.on('click', function(e){ setLoc(e.latlng.lat, e.latlng.lng); });
-      // Bozor tanlanganda markazga o'tish
-      window.__locMap=map; window.__locSet=setLoc;
-      var ms=document.querySelector('[name=market]');
-      if(ms){ ms.addEventListener('change', function(){
-        var o=ms.options[ms.selectedIndex]; var lat=parseFloat(o.dataset.lat), lng=parseFloat(o.dataset.lng);
-        if(!isNaN(lat)&&!isNaN(lng)) map.setView([lat,lng],15);
-      }); ms.dispatchEvent(new Event('change')); }
-      setTimeout(function(){ map.invalidateSize(); }, 300);
+    var ms=document.querySelector('[name=market]');
+    var la=document.querySelector('[name=latitude]'), ln=document.querySelector('[name=longitude]');
+    if(!ms) return;
+    function fill(){
+      var o=ms.options[ms.selectedIndex]; if(!o) return;
+      if(la && !la.value && o.dataset.lat) la.value=o.dataset.lat;
+      if(ln && !ln.value && o.dataset.lng) ln.value=o.dataset.lng;
     }
-    document.addEventListener('DOMContentLoaded', init);
+    ms.addEventListener('change', fill); fill();
   })();
 </script>
 {% endblock %}

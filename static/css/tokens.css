@@ -130,11 +130,18 @@
 /* ============================ BAZA ============================ */
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
+html,body{max-width:100%;overflow-x:hidden}  /* gorizontal chiqib ketmasin (ekranga sig'sin) */
 body{
   margin:0;background:var(--bg);color:var(--ink);
   font-family:var(--font-sans);font-size:var(--t-0);line-height:1.55;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
 }
+/* Interfeys elementlari sichqoncha bilan belgilanmasin/tortilmasin (professional his) */
+.sidebar,.topbar,.bottom-nav,.brand,.brand-text,.btn,.chip,.segmented,.theme-toggle,
+.lang-toggle,.user-chip,.user-gear,.pager,.nav-badge,.badge,.card-title,label.check,
+.settings-tabs,.dropdown-trigger,.stall,.tab,nav{
+  -webkit-user-select:none;user-select:none;-webkit-user-drag:none}
+img,svg{-webkit-user-drag:none;user-select:none}
 h1,h2,h3,h4{font-family:var(--font-serif);font-weight:600;line-height:1.2;margin:0 0 var(--sp-3)}
 h1{font-size:var(--t-4)} h2{font-size:var(--t-3)} h3{font-size:var(--t-2)} h4{font-size:var(--t-1)}
 p{margin:0 0 var(--sp-3)}
