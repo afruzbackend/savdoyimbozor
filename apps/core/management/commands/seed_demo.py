@@ -119,6 +119,12 @@ class Command(BaseCommand):
                 Region,
             ):
                 M.objects.all().delete()
+            # Yetim/eski foydalanuvchilarni tozalaymiz (demo loginlar va superuser saqlanadi)
+            from apps.accounts.models import User
+
+            User.objects.exclude(is_superuser=True).exclude(
+                username__in=["admin", "nazorat", "sotuvchi"]
+            ).delete()
             self.stdout.write("Eski ma'lumot tozalandi.")
 
         region, _ = Region.objects.get_or_create(name="Toshkent shahri", defaults={"code": "10"})
