@@ -12,6 +12,7 @@
         <button type="button" :aria-selected="role==='inspector'" @click="role='inspector'">Tekshiruvchi</button>
       </div>
       <input type="hidden" name="role" :value="role">
+      <input type="hidden" name="mode" :value="mode">
     </div>
     <div class="field"><label class="label">F.I.O.</label>
       <input class="input" name="full_name" placeholder="Ism Familiya"></div>
@@ -31,10 +32,10 @@
         </div>
         <div class="grid grid-2">
           <div class="field"><label class="label">Bozor</label>
-            <select class="select-native" name="market" x-ref="market">
+            <select class="select-native" name="market" x-ref="market" :disabled="!(role==='seller' && mode==='new')">
               {% for m in markets %}<option value="{{ m.pk }}" data-lat="{{ m.latitude|default:'' }}" data-lng="{{ m.longitude|default:'' }}">{{ m.name }}</option>{% endfor %}</select></div>
           <div class="field"><label class="label">Savdo turi</label>
-            <select class="select-native" name="category">
+            <select class="select-native" name="category" required :disabled="!(role==='seller' && mode==='new')">
               <option value="" disabled selected>Tanlang</option>
               {% for c in categories %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
         </div>
@@ -50,7 +51,7 @@
 
       <div x-show="mode==='existing'" x-cloak>
         <div class="field"><label class="label">Do'kon (sotuvchisiz)</label>
-          <select class="select-native" name="shop">
+          <select class="select-native" name="shop" :disabled="!(role==='seller' && mode==='existing')">
             {% for s in shops %}<option value="{{ s.pk }}">№{{ s.number }} — {{ s.owner_name }} ({{ s.market.name }})</option>{% endfor %}
           </select></div>
       </div>

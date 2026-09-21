@@ -104,3 +104,89 @@ def test_cannot_block_last_superadmin(aclient, admin_user):
     r = c2.post(f"/foydalanuvchilar/{other.pk}/holat/", HTTP_HOST=PANEL_HOST)
     other.refresh_from_db()
     assert other.is_active is True
+
+
+@pytest.mark.django_db
+def test_new_shop_increases_market_count(aclient, market):
+    """Yangi do'kon (mode=new) ochilganda bozordagi do'kon soni ko'payadi —
+    yashirin 'shop' select qiymati e'tiborga olinmasligi kerak."""
+    from apps.catalog.models import ShopCategory
+
+    cat = ShopCategory.objects.create(name="Kiyim")
+    before = market.shops.count()
+    r = aclient.post(
+        "/hisob/yangi/",
+        {
+            "role": "seller", "mode": "new", "full_name": "Yangi Do'kon Egasi",
+            "phone": "+998900000000", "number": "", "stir": "999888777",
+            "market": market.pk, "category": cat.pk, "address": "1-qator",
+        },
+        HTTP_HOST=PANEL_HOST,
+    )
+    assert r.status_code == 302
+    assert market.shops.count() == before + 1
+
+
+@pytest.mark.django_db
+def test_new_shop_ignores_stray_shop_value(aclient, market, shop):
+    """mode=new bo'lsa, POST'dagi 'shop' qiymati (yashirin select) e'tiborsiz —
+    mavjud do'konga biriktirmасdan yangi do'kon yaratadi."""
+    from apps.catalog.models import ShopCategory
+
+    cat = ShopCategory.objects.create(name="Kiyim")
+    before = market.shops.count()
+    r = aclient.post(
+        "/hisob/yangi/",
+        {
+            "role": "seller", "mode": "new", "shop": shop.pk,  # <- yashirin, e'tiborsiz
+            "full_name": "Boshqa Egasi", "phone": "+998900000001",
+            "number": "", "stir": "111222333", "market": market.pk, "category": cat.pk,
+        },
+        HTTP_HOST=PANEL_HOST,
+    )
+    assert r.status_code == 302
+    assert market.shops.count() == before + 1  # yangi do'kon yaratildi
+
+
+@pytest.mark.django_db
+def test_new_shop_requires_category(aclient, market):
+    """Savdo turi tanlanmasa yangi do'kon yaratilmaydi."""
+    before = market.shops.count()
+    r = aclient.post(
+        "/hisob/yangi/",
+        {
+            "role": "seller", "mode": "new", "full_name": "Egasi",
+            "number": "", "stir": "444555666", "market": market.pk, "category": "",
+        },
+        HTTP_HOST=PANEL_HOST,
+    )
+    assert r.status_code == 302  # xato bilan qaytariladi
+    assert market.shops.count() == before  # yaratilmadi
+
+
+@pytest.mark.django_db
+def test_cannot_delete_category_in_use(aclient, shop):
+    """Do'kon ishlatayotgan savdo turini o'chirib bo'lmaydi (jimgina null bo'lib ketmasin)."""
+    from apps.catalog.models import ShopCategory
+
+    cat = shop.category
+    r = aclient.post(
+        "/toifalar/", {"action": "delete", "id": cat.pk}, HTTP_HOST=PANEL_HOST
+    )
+    assert r.status_code == 302
+    assert ShopCategory.objects.filter(pk=cat.pk).exists()  # o'chirilmadi
+    shop.refresh_from_db()
+    assert shop.category_id == cat.pk  # do'kon turi saqlanib qoldi
+
+
+@pytest.mark.django_db
+def test_can_delete_unused_category(aclient):
+    """Ishlatilmayotgan savdo turini o'chirish mumkin."""
+    from apps.catalog.models import ShopCategory
+
+    cat = ShopCategory.objects.create(name="Bo'sh tur")
+    r = aclient.post(
+        "/toifalar/", {"action": "delete", "id": cat.pk}, HTTP_HOST=PANEL_HOST
+    )
+    assert r.status_code == 302
+    assert not ShopCategory.objects.filter(pk=cat.pk).exists()

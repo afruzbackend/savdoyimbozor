@@ -120,13 +120,22 @@ def account_create(request):
     if request.method == "POST":
         role = request.POST.get("role")
         if role == Role.SELLER:
-            existing = request.POST.get("shop")
+            # "mode" formadan: mavjud do'kon faqat existing rejimda ishlatiladi
+            # (yangi rejimda yashirin shop select qiymati e'tiborga olinmaydi).
+            mode = request.POST.get("mode", "new")
+            existing = request.POST.get("shop") if mode == "existing" else None
+            if mode == "existing" and not existing:
+                messages.error(request, "Mavjud do'konni tanlang.")
+                return redirect("panel:account_create")
             if existing:
                 shop = get_object_or_404(Shop, pk=existing)
             else:
                 # Yangi do'kon: STIR, bozor, savdo turi, manzil, lokatsiya (xaritadan)
                 market = get_object_or_404(Market, pk=request.POST.get("market"))
                 category = ShopCategory.objects.filter(pk=request.POST.get("category") or 0).first()
+                if category is None:
+                    messages.error(request, "Savdo turini tanlang.")
+                    return redirect("panel:account_create")
 
                 # Do'kon raqami UNIKAL: bo'sh yoki band bo'lsa — keyingi bo'sh raqam
                 number = request.POST.get("number", "").strip()[:20]
@@ -409,8 +418,19 @@ def categories(request):
                 ShopCategory.objects.get_or_create(name=name)
                 messages.success(request, "Savdo turi qo'shildi.")
         elif act == "delete":
-            ShopCategory.objects.filter(pk=request.POST.get("id") or 0).delete()
-            messages.success(request, "O'chirildi.")
+            cat = ShopCategory.objects.filter(pk=request.POST.get("id") or 0).first()
+            if cat is None:
+                messages.error(request, "Savdo turi topilmadi.")
+            elif cat.shops.exists() or cat.product_categories.exists():
+                # Ishlatilayotgan turni o'chirsa, do'konlar turi jimgina yo'qoladi.
+                messages.error(
+                    request,
+                    f"“{cat.name}” ishlatilmoqda "
+                    f"({cat.shops.count()} do'kon) — avval bo'shatib oling.",
+                )
+            else:
+                cat.delete()
+                messages.success(request, "O'chirildi.")
         return redirect("panel:categories")
     from django.db.models import Count
 
