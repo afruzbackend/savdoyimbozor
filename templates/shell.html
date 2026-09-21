@@ -110,7 +110,7 @@
       </div>
 
       {# TAB: aloqa va bildirishnoma #}
-      <form method="post" action="{% url 'account_settings' %}" id="spane-aloqa" class="settings-body">
+      <form method="post" action="{% url 'account_settings' %}" id="spane-aloqa" class="settings-body dirty-guard">
         {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
         <div class="field"><label class="label">Telefon</label>
           <input class="input" name="phone" value="{{ user.phone }}" placeholder="+998..."></div>
@@ -150,5 +150,36 @@
       if (tab) tab.classList.toggle('active', k === name);
     }
   };
+
+  // Dirty-guard: `.dirty-guard` formadagi Saqlash tugmasi faqat biror maydon
+  // o'zgargandagina yoqiladi. Hech nima o'zgarmasa bekorga saqlanmaydi.
+  (function () {
+    function snap(form) {
+      return new URLSearchParams(new FormData(form)).toString();
+    }
+    function wire(form) {
+      var btns = form.querySelectorAll('button[type=submit], input[type=submit]');
+      if (!btns.length) return;
+      var initial = snap(form);
+      var sync = function () {
+        var dirty = snap(form) !== initial;
+        btns.forEach(function (b) {
+          b.disabled = !dirty;
+          b.classList.toggle('is-clean', !dirty);
+        });
+      };
+      form.addEventListener('input', sync);
+      form.addEventListener('change', sync);
+      // Saqlangach yangi holat "toza" bo'ladi
+      form.addEventListener('submit', function () { initial = snap(form); });
+      sync();
+    }
+    function init() {
+      document.querySelectorAll('form.dirty-guard').forEach(wire);
+    }
+    if (document.readyState === 'loading')
+      document.addEventListener('DOMContentLoaded', init);
+    else init();
+  })();
 </script>
 {% endblock %}

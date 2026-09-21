@@ -365,6 +365,22 @@ def markets(request):
 
 
 @superadmin_required
+def market_detail(request, pk):
+    """Bozordagi do'konlar + har do'kon sotuvchisi login/paroli."""
+    market = get_object_or_404(Market.objects.select_related("region"), pk=pk)
+    shops = list(
+        market.shops.select_related("category", "row").prefetch_related("staff")
+    )
+    # Raqamli tartib: "2" "10" dan oldin (satr tartibi emas)
+    shops.sort(key=lambda s: (0, int(s.number)) if s.number.isdigit() else (1, s.number))
+    rows = []
+    for s in shops:
+        seller = s.staff.first()  # do'kon sotuvchisi (odatda bitta)
+        rows.append({"shop": s, "seller": seller})
+    return render(request, "panel/market_detail.html", {"market": market, "rows": rows})
+
+
+@superadmin_required
 def categories(request):
     """Savdo turlari (ShopCategory) — qo'shish/o'chirish."""
     if request.method == "POST":

@@ -10,7 +10,7 @@
     <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-arrow-left"></use></svg> Profilga qaytish</a>
   {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
 
-  <form method="post" class="card">{% csrf_token %}
+  <form method="post" class="card dirty-guard">{% csrf_token %}
     <div class="card-title" style="margin-bottom:var(--sp-3)">Aloqa va bildirishnoma</div>
     <div class="field"><label class="label">Telefon</label>
       <input class="input" name="phone" value="{{ user.phone }}" placeholder="+998..."></div>

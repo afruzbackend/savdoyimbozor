@@ -45,8 +45,8 @@
       <tbody>
       {% for m in markets %}
         <tr>
-          <td>{{ m.name }}</td><td class="muted">{{ m.region.name }}</td>
-          <td class="num">{{ m.nshops }}</td>
+          <td><a href="{% url 'panel:market_detail' m.pk %}">{{ m.name }}</a></td><td class="muted">{{ m.region.name }}</td>
+          <td class="num"><a href="{% url 'panel:market_detail' m.pk %}">{{ m.nshops }}</a></td>
           <td class="num"><button type="button" class="btn-ghost" style="padding:4px 10px"
             data-m='{"id":{{ m.pk }},"region":{{ m.region_id }},"name":"{{ m.name|escapejs }}","address":"{{ m.address|escapejs }}","lat":"{{ m.latitude|default:"" }}","lng":"{{ m.longitude|default:"" }}"}'
             @click='var d=JSON.parse($el.dataset.m); edit=d; $refs.region.value=d.region; $refs.name.value=d.name; $refs.address.value=d.address; $refs.lat.value=d.lat; $refs.lng.value=d.lng; window.scrollTo({top:0,behavior:"smooth"})'>Tahrirlash</button></td>

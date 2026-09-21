@@ -11,6 +11,7 @@ urlpatterns = [
     path("foydalanuvchilar/<int:pk>/holat/", v.user_toggle, name="user_toggle"),
     path("hisob/yangi/", v.account_create, name="account_create"),
     path("bozorlar/", v.markets, name="markets"),
+    path("bozorlar/<int:pk>/", v.market_detail, name="market_detail"),
     path("toifalar/", v.categories, name="categories"),
     path("kameralar/", v.cameras, name="cameras"),
     path("import/dokonlar/", v.import_shops, name="import_shops"),
