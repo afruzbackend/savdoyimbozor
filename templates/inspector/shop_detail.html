@@ -15,12 +15,18 @@
   {# Chap: rostlik + do'kon ma'lumoti #}
   <div class="stack gap-4">
     <div class="card center">
-      {% if latest %}
+      {% if latest and latest.has_data %}
       <div class="truth-ring lvl-{{ level }}" style="--v:{{ latest.truth_pct }};margin:0 auto var(--sp-3)">
         <span class="val num">{{ latest.truth_pct }}</span>
       </div>
       <div class="card-title">Rostlik darajasi</div>
       <small class="muted">Bugungi baho · {{ latest.date }}</small>
+      {% elif latest %}
+      <div class="truth-ring lvl-none" style="--v:0;margin:0 auto var(--sp-3)">
+        <span class="val">—</span>
+      </div>
+      <div class="card-title">Ma'lumot yetarli emas</div>
+      <small class="muted">Solishtirish uchun kassa, kamera yoki narx ma'lumoti kerak</small>
       {% else %}<p class="muted">Bugun uchun ball yo'q.</p>{% endif %}
     </div>
 

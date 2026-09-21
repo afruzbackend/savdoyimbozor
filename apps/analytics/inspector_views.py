@@ -95,8 +95,10 @@ def market_map(request, pk=None):
         return render(request, "inspector/market_map.html", {"markets": markets, "market": None})
 
     today = timezone.localdate()
+    # Ma'lumotsiz (solishtiruvsiz) do'kon 0% qizil emas — "none" (kulrang) bo'lsin
     scores = {
-        s.shop_id: s.truth_pct for s in DailyScore.objects.filter(shop__market=market, date=today)
+        s.shop_id: (s.truth_pct if s.has_data else None)
+        for s in DailyScore.objects.filter(shop__market=market, date=today)
     }
 
     # Bozor sxemasi: do'konlar QATOR bo'yicha guruhlanadi, har rasta rangli % belgi.

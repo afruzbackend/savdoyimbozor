@@ -6,8 +6,8 @@
 <div class="grid grid-3" style="margin-bottom:var(--sp-4)">
   <div class="card center">
     <small class="muted">Rostlik darajasi</small>
-    {% if latest %}<div class="truth-big" style="color:var({% if latest.truth_pct >= 80 %}--ok{% elif latest.truth_pct >= 50 %}--warn{% else %}--bad{% endif %})">{{ latest.truth_pct }}%</div>
-    {% else %}<div class="truth-big">—</div>{% endif %}
+    {% if latest and latest.has_data %}<div class="truth-big" style="color:var({% if latest.truth_pct >= 80 %}--ok{% elif latest.truth_pct >= 50 %}--warn{% else %}--bad{% endif %})">{{ latest.truth_pct }}%</div>
+    {% else %}<div class="truth-big">—</div><small class="muted">ma'lumot yig'ilmoqda</small>{% endif %}
   </div>
   <div class="card center"><small class="muted">Bugungi savdo</small><div class="truth-big num" style="font-size:var(--t-3)">{{ metrics.today|intcomma }}</div><small class="muted">so'm</small></div>
   <div class="card center"><small class="muted">Taxminiy foyda (14 kun)</small><div class="truth-big num" style="font-size:var(--t-3);color:var(--ok)">{{ profit|intcomma }}</div><small class="muted">so'm</small></div>

@@ -47,6 +47,15 @@ class DailyScore(TimeStampedModel):
             models.Index(fields=["date", "truth_pct"]),
         ]
 
+    @property
+    def has_data(self) -> bool:
+        """Solishtirish uchun biror manba (kassa/kamera/qoldiq/narx) bormi.
+
+        Hech biri bo'lmasa rostlik O'LCHANMAYDI — 0% (yashiruvchi) EMAS,
+        balki "ma'lumot yetarli emas" holati. Xarita/hisobotда kulrang ko'rsatiladi.
+        """
+        return any(v is not None for v in (self.parts or {}).values())
+
 
 class Alert(TimeStampedModel):
     class Level(models.TextChoices):

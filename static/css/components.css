@@ -110,6 +110,7 @@ input:-webkit-autofill:focus,.textarea:-webkit-autofill{
 .truth-ring .val{position:relative;font-family:var(--font-serif);font-weight:700;
   font-size:var(--t-3);font-variant-numeric:tabular-nums;color:var(--ink)}
 .truth-ring.lvl-green{--c:var(--ok)}.truth-ring.lvl-yellow{--c:var(--warn)}.truth-ring.lvl-red{--c:var(--bad)}
+.truth-ring.lvl-none{--c:var(--border-strong)}.truth-ring.lvl-none .val{color:var(--ink-faint)}
 .truth-big{font-family:var(--font-serif);font-weight:700;font-size:var(--t-6);
   line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 

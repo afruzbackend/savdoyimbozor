@@ -1,5 +1,7 @@
 """Rostlik dvigateli sof funksiyalari testlari (bazasiz)."""
 
+import pytest
+
 from apps.analytics.scoring import services as s
 
 
@@ -45,3 +47,21 @@ def test_median():
     assert s._median([10, 20, 30]) == 20
     assert s._median([10, 20, 30, 40]) == 25
     assert s._median([]) == 0
+
+
+@pytest.mark.django_db
+def test_no_data_shop_is_none_not_red(shop):
+    """Solishtirish ma'lumoti yo'q do'kon (faqat savdo bor) — 0% qizil EMAS,
+    balki has_data=False (xaritada kulrang 'none')."""
+    from datetime import date
+
+    from apps.analytics.models import DailyScore
+    from apps.analytics.scoring.services import recompute_for_date
+    from apps.sales.models import Sale
+
+    Sale.objects.create(shop=shop, seller=None, subtotal=5000, total=5000, payment_type="cash")
+    recompute_for_date(date.today())
+    sc = DailyScore.objects.get(shop=shop, date=date.today())
+    # Kassa/kamera/qoldiq/narx — hech biri yo'q
+    assert sc.has_data is False
+    assert all(v is None for v in sc.parts.values())
