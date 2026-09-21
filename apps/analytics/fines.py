@@ -32,9 +32,11 @@ def classify_hidden(amount: int, repeat: bool = False) -> dict:
     if repeat and idx < len(TIERS) - 1:
         idx += 1  # takroriy — bir pog'ona yuqori
     lo, hi, code, label, is_crime = TIERS[idx]
+    from apps.core.format import som
+
     range_text = (
-        f"{lo:,} so'mdan yuqori" if hi is None else f"{lo:,}–{hi:,} so'm"
-    ) if lo else f"{hi:,} so'mgacha"
+        f"{som(lo)} so'mdan yuqori" if hi is None else f"{som(lo)}–{som(hi)} so'm"
+    ) if lo else f"{som(hi)} so'mgacha"
     return {
         "code": code,
         "label": label + (" (takroriy)" if repeat else ""),

@@ -7,6 +7,8 @@ Funksiyalar sof (I/O yo'q) — test qilish oson va sudda tushuntirish mumkin.
 
 from __future__ import annotations
 
+from apps.core.format import som
+
 
 def match(a: float, b: float) -> float | None:
     """Ikki qiymat mosligi (%). Kam ham, ko'p ham yozsa tushadi.
@@ -479,8 +481,8 @@ def _anomaly_from(shop, day, entered, prior, cfg, inspector):
         kind=Alert.Kind.ANOMALY,
         level=lvl,
         reason=(
-            f"Savdo keskin tushdi: bugun {int(entered):,} so'm, "
-            f"odatda ~{int(avg):,} so'm ({drop_pct}% kam)"
+            f"Savdo keskin tushdi: bugun {som(entered)} so'm, "
+            f"odatda ~{som(avg)} so'm ({drop_pct}% kam)"
         ),
         assigned_to=inspector,
     )
@@ -524,14 +526,14 @@ def _generate_cash_mismatch_alerts(day, cfg, existing_alerts=None, insp_by_marke
             # Ortiqcha — yozilmagan savdo belgisi, past chegaradayoq jiddiy
             lvl = "red" if pct >= threshold else "yellow"
             reason = (
-                f"Kassa ortiqchasi: sandiqda {int(z.counted_cash):,} / "
-                f"yozilgan {int(z.expected_cash):,} so'm ({pct}% ko'p) — "
+                f"Kassa ortiqchasi: sandiqda {som(z.counted_cash)} / "
+                f"yozilgan {som(z.expected_cash)} so'm ({pct}% ko'p) — "
                 f"yozilmagan naqd savdo belgisi"
             )
         else:
             reason = (
-                f"Kassa kamomadi: sandiqda {int(z.counted_cash):,} / "
-                f"kutilgan {int(z.expected_cash):,} so'm ({pct}% kam)"
+                f"Kassa kamomadi: sandiqda {som(z.counted_cash)} / "
+                f"kutilgan {som(z.expected_cash)} so'm ({pct}% kam)"
             )
         inspector = insp_by_market.get(z.shop.market_id)
         if inspector is None and z.shop.market_id not in insp_by_market:
@@ -557,7 +559,7 @@ def _alert_reason(result, parts, entered, cash):
     weakest = result.get("weakest")
     if weakest == "cash" and entered:
         pct = round((1 - (cash / entered)) * 100) if entered else 0
-        return f"Deklaratsiya kiritilgandan {pct}% past (kassa {int(cash):,} / savdo {int(entered):,} so'm)"
+        return f"Deklaratsiya kiritilgandan {pct}% past (kassa {som(cash)} / savdo {som(entered)} so'm)"
     if weakest == "price":
         return "Narx bozor medianasidan sezilarli past"
     if weakest == "camera":

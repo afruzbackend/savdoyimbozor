@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from apps.catalog.models import Product, ProductCategory, Unit
+from apps.core.format import som
 from apps.core.models import Notification, SystemSettings, notify
 
 from .models import (
@@ -51,7 +52,7 @@ def _gen_debt_notifications(user, shop):
             user,
             Notification.Kind.DEBT_DUE,
             f"Nasiya qaytarish: {d.customer_name or 'xaridor'}",
-            body=f"{d.amount:,} so'm — {when}",
+            body=f"{som(d.amount)} so'm — {when}",
             url="/nasiya/",
             key=f"debt:{d.id}:{d.due_date}",
         )
@@ -324,12 +325,12 @@ def daily_close(request):
         diff = counted - t["cash"]
         note = ""
         if diff > 0:
-            note = f" · Kassada ortiqcha: {diff:,} so'm"
+            note = f" · Kassada ortiqcha: {som(diff)} so'm"
         elif diff < 0:
-            note = f" · Kassada kamomad: {-diff:,} so'm"
+            note = f" · Kassada kamomad: {som(-diff)} so'm"
         messages.success(
             request,
-            f"Kun yakunlandi. Hisoblangan: {computed:,} · Kiritilgan: {entered:,} so'm{note}",
+            f"Kun yakunlandi. Hisoblangan: {som(computed)} · Kiritilgan: {som(entered)} so'm{note}",
         )
         return redirect("seller:daily_close")
     existing = DailyClose.objects.filter(shop=shop, date=today).first()
@@ -688,9 +689,9 @@ def register(request):
         if diff == 0:
             messages.success(request, "Kassa yopildi. Naqd to'liq mos keldi.")
         elif diff < 0:
-            messages.warning(request, f"Kassa yopildi. Kamomad: {-diff:,} so'm.")
+            messages.warning(request, f"Kassa yopildi. Kamomad: {som(-diff)} so'm.")
         else:
-            messages.warning(request, f"Kassa yopildi. Ortiqcha: {diff:,} so'm.")
+            messages.warning(request, f"Kassa yopildi. Ortiqcha: {som(diff)} so'm.")
         return redirect("seller:register")
 
     return render(
@@ -804,7 +805,7 @@ def appeals(request):
 
 
 def _advice(latest):
-    if not latest:
+    if not latest or not latest.has_data:
         return "Savdolarni muntazam kiriting — rostlik darajasi shundan hisoblanadi."
     weak = latest.weakest
     tips = {
