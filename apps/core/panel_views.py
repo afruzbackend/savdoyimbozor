@@ -80,6 +80,24 @@ def user_reset(request, pk):
 @require_POST
 def user_toggle(request, pk):
     user = get_object_or_404(User, pk=pk)
+    # Himoya: o'zini yoki oxirgi faol superadminni bloklash mumkin emas
+    # (aks holda tizimga hech kim kira olmay qoladi).
+    if user.is_active:
+        if user.pk == request.user.pk:
+            messages.error(request, "O'zingizni bloklay olmaysiz.")
+            return redirect("panel:users")
+        if user.is_superadmin:
+            from django.db.models import Q
+
+            others = (
+                User.objects.filter(is_active=True)
+                .filter(Q(role=Role.SUPERADMIN) | Q(is_superuser=True))
+                .exclude(pk=user.pk)
+                .exists()
+            )
+            if not others:
+                messages.error(request, "Oxirgi faol super adminни bloklab bo'lmaydi.")
+                return redirect("panel:users")
     user.is_active = not user.is_active
     user.save(update_fields=["is_active"])
     messages.success(request, f"{user.username}: {'faol' if user.is_active else 'bloklandi'}")

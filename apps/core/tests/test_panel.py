@@ -61,3 +61,46 @@ def test_seller_blocked_from_panel(sclient):
     """Sotuvchi panel sahifalariga kira olmaydi (404), bosh sahifasida o'z sahifasi."""
     assert sclient.get("/").status_code == 200
     assert sclient.get("/foydalanuvchilar/").status_code == 404
+
+
+@pytest.mark.django_db
+def test_admin_cannot_block_self(aclient, admin_user):
+    """Admin o'zini bloklay olmaydi (aks holda tizimга kira olmay qoladi)."""
+    r = aclient.post(
+        f"/foydalanuvchilar/{admin_user.pk}/holat/", HTTP_HOST=PANEL_HOST
+    )
+    assert r.status_code == 302
+    admin_user.refresh_from_db()
+    assert admin_user.is_active is True
+
+
+@pytest.mark.django_db
+def test_cannot_block_last_superadmin(aclient, admin_user):
+    """Oxirgi faol super adminni (o'zidan boshqa admin yo'q) bloklab bo'lmaydi."""
+    from apps.accounts.models import Role, User
+
+    other = User.objects.create(
+        username="admin2", role=Role.SUPERADMIN, is_staff=True, is_superuser=True
+    )
+    other.set_password(PW)
+    other.must_change_password = False
+    other.save()
+    # admin_user admin2'ni bloklaydi -> qoladi 1 ta faol admin (admin_user) -> ruxsat
+    r = aclient.post(f"/foydalanuvchilar/{other.pk}/holat/", HTTP_HOST=PANEL_HOST)
+    assert r.status_code == 302
+    other.refresh_from_db()
+    assert other.is_active is False
+    # endi admin2 (bloklangan) qayta faollashsin, keyin admin_user'ni bloklashga urinib ko'ramiz:
+    # faqat 1 ta faol admin qolgani uchun (admin2 bloklangan) admin_user'ni bloklab bo'lmaydi
+    c2 = Client()
+    other.is_active = True
+    other.save()
+    c2.force_login(other)
+    # admin2 admin_user'ni bloklaydi (2 ta faol admin bor) -> ruxsat, qoladi admin2
+    r = c2.post(f"/foydalanuvchilar/{admin_user.pk}/holat/", HTTP_HOST=PANEL_HOST)
+    admin_user.refresh_from_db()
+    assert admin_user.is_active is False
+    # endi faqat admin2 faol -> admin2 o'zini bloklay olmaydi (self guard)
+    r = c2.post(f"/foydalanuvchilar/{other.pk}/holat/", HTTP_HOST=PANEL_HOST)
+    other.refresh_from_db()
+    assert other.is_active is True

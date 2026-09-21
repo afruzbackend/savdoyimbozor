@@ -39,8 +39,12 @@
         <td style="white-space:nowrap">
           <form method="post" action="{% url 'panel:user_reset' u.pk %}" style="display:inline">{% csrf_token %}
             <button class="btn btn-ghost" style="padding:6px 10px">Parol tiklash</button></form>
+          {% if u.pk == request.user.pk %}
+            <span class="muted" style="padding:6px 10px;font-size:var(--t--1)">Bu — siz</span>
+          {% else %}
           <form method="post" action="{% url 'panel:user_toggle' u.pk %}" style="display:inline">{% csrf_token %}
             <button class="btn btn-ghost" style="padding:6px 10px">{% if u.is_active %}Bloklash{% else %}Faollashtirish{% endif %}</button></form>
+          {% endif %}
         </td>
       </tr>
       {% empty %}<tr><td colspan="8" class="muted">Foydalanuvchi yo'q.</td></tr>{% endfor %}
