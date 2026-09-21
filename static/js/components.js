@@ -22,7 +22,15 @@
     return n.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   }
   function unfmt(s) { return parseInt(String(s).replace(/\D/g, ""), 10) || 0; }
-  window.BN = { fmt, unfmt, UZ_MONTHS, UZ_WD };
+  // Grafik o'qi uchun ixcham pul formati — float axlati YO'Q (0, 5K, 1.2M)
+  function moneyTick(v) {
+    v = Math.round(Number(v) || 0);
+    var a = Math.abs(v);
+    if (a >= 1000000) return (v / 1000000).toFixed(a % 1000000 ? 1 : 0) + "M";
+    if (a >= 1000) return Math.round(v / 1000) + "K";
+    return String(v);
+  }
+  window.BN = { fmt, unfmt, moneyTick, UZ_MONTHS, UZ_WD };
 
   function getCookie(name) {
     const m = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");

@@ -60,7 +60,7 @@
     new Chart(ctx,{data:{labels:d.labels,datasets:[
       {type:'bar',label:L('Savdo'),data:d.entered,backgroundColor:c('--brand-300')},
       {type:'line',label:L('Rostlik %'),data:d.truth,borderColor:c('--ok'),yAxisID:'y1',tension:.3,borderWidth:2,pointRadius:2}
-    ]},options:{responsive:true,scales:{y:{ticks:{callback:v=>(v/1000000)+'M'}},
+    ]},options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{precision:0,callback:v=>window.BN.moneyTick(v)}},
       y1:{position:'right',min:0,max:100,grid:{drawOnChartArea:false}}},
       plugins:{legend:{labels:{boxWidth:12,font:{size:11}}}}}});
   })();
