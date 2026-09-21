@@ -243,7 +243,7 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
   50%{opacity:.6;box-shadow:0 0 0 6px transparent}}
 @media (prefers-reduced-motion:reduce){.live-dot{animation:none}}
 .main{position:relative}
-.content{padding:var(--sp-5);max-width:1180px;width:100%;margin:0 auto;position:relative;z-index:1}
+.content{padding:var(--sp-5);max-width:1320px;width:100%;margin:0;position:relative;z-index:1}
 /* Milliy koshin rozetkasi — nafis suv belgisi. position:fixed -> skroll balandligini oshirmaydi */
 .page-ornament{position:fixed;right:-60px;bottom:-60px;width:320px;height:320px;
   color:var(--brand-500);opacity:.06;pointer-events:none;z-index:0;overflow:hidden}
