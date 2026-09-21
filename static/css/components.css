@@ -209,25 +209,14 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .navlink .icon{width:17px;height:17px}
 .nav-group-label{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
   color:var(--ink-faint);padding:10px 13px 4px}
-.navlink{transition:background .12s,color .12s,transform .08s}
-.navlink .icon{transition:transform .15s ease}
-.navlink:hover .icon{transform:scale(1.15)}
-.navlink:active{transform:scale(.97)}
-.navlink:active .icon{transform:scale(.9)}
+.navlink{transition:background .12s,color .12s}
+.navlink .icon{transition:color .15s ease}
 .navlink:hover{background:var(--surface-sunken);color:var(--ink);text-decoration:none}
 .navlink.active{background:var(--brand-50);color:var(--primary)}
 :root[data-theme="dark"] .navlink.active{background:var(--brand-900);color:var(--brand-200)}
-/* Bosilganda "jon" — tugma/chip/ikon bosilganда qimirlaydi (tuyg'u) */
-.btn,.chip,.btn-icon,.user-action,.segmented button{transition:transform .08s ease,background .12s,color .12s,border-color .12s,box-shadow .12s}
-.btn:active,.chip:active,.btn-icon:active,.user-action:active,.segmented button:active,.bottom-nav a:active{transform:scale(.95)}
-.bottom-nav a{transition:transform .08s,color .12s}
-.bottom-nav a:active .icon{transform:scale(.82)}
-/* Bo'sh holat emojisi nafis suzadi (jonli) */
-.emoji-xl{animation:emojiBob 2.8s ease-in-out infinite}
-@keyframes emojiBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-@media (prefers-reduced-motion:reduce){
-  .emoji-xl{animation:none}
-  .btn:active,.chip:active,.btn-icon:active,.user-action:active,.segmented button:active,.bottom-nav a:active,.navlink:active{transform:none}}
+/* Faqat rang/fon o'zgaradi — elementlar joyidan siljimaydi (qimirlamaydi) */
+.btn,.chip,.btn-icon,.user-action,.segmented button{transition:background .12s,color .12s,border-color .12s,box-shadow .12s}
+.bottom-nav a{transition:color .12s}
 .navlink .icon{color:currentColor}
 .sidebar .side-foot{padding:var(--sp-4);border-top:1px solid var(--border)}
 
