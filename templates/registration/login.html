@@ -52,7 +52,7 @@
       <h1 style="margin-bottom:4px">Tizimga kirish</h1>
       <p class="muted" style="margin-bottom:var(--sp-5)">Login va parolni administrator beradi</p>
       {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
-      <form method="post" action="{% url 'login' %}">
+      <form method="post" action="{% url 'login' %}" autocomplete="off">
         {% csrf_token %}
         <div class="field">
           <label class="label" for="id_username">Login</label>
