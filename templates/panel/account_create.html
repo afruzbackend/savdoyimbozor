@@ -26,7 +26,7 @@
 
       <div x-show="mode==='new'">
         <div class="grid grid-2">
-          <div class="field"><label class="label">Do'kon raqami</label><input class="input" name="number" placeholder="masalan: 12"></div>
+          <div class="field"><label class="label">Do'kon raqami (avto — betakror)</label><input class="input num" name="number" x-ref="number" placeholder="avto"></div>
           <div class="field"><label class="label">STIR</label><input class="input num" name="stir" placeholder="123456789"></div>
         </div>
         <div class="grid grid-2">
@@ -69,16 +69,20 @@
 </div>
 {% endblock %}
 {% block extra_js %}
+{{ next_by_market|json_script:"market-next" }}
 <script>
-  // Bozor tanlanganda koordinata maydonlari o'sha bozor markazi bilan to'ldiriladi (offline).
+  // Bozor tanlanganda: koordinata (markaz) + keyingi BETAKROR do'kon raqami avto to'ldiriladi.
   (function(){
     var ms=document.querySelector('[name=market]');
     var la=document.querySelector('[name=latitude]'), ln=document.querySelector('[name=longitude]');
+    var num=document.querySelector('[name=number]');
+    var nextMap={}; try{ nextMap=JSON.parse(document.getElementById('market-next').textContent);}catch(e){}
     if(!ms) return;
     function fill(){
       var o=ms.options[ms.selectedIndex]; if(!o) return;
       if(la && !la.value && o.dataset.lat) la.value=o.dataset.lat;
       if(ln && !ln.value && o.dataset.lng) ln.value=o.dataset.lng;
+      if(num) num.value = nextMap[o.value] || '';  // keyingi bo'sh raqam
     }
     ms.addEventListener('change', fill); fill();
   })();

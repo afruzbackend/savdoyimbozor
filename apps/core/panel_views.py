@@ -86,6 +86,16 @@ def user_toggle(request, pk):
     return redirect("panel:users")
 
 
+def _next_shop_number(market) -> str:
+    """Bozordagi eng katta raqamli do'kon +1 (betakror). Raqamlar unikal bo'lsin."""
+    nums = [
+        int(n)
+        for n in Shop.objects.filter(market=market).values_list("number", flat=True)
+        if str(n).isdigit()
+    ]
+    return str((max(nums) + 1) if nums else 1)
+
+
 @superadmin_required
 def account_create(request):
     """Bittalab hisob ochish: sotuvchi (do'kon bilan) yoki tekshiruvchi."""
@@ -100,15 +110,14 @@ def account_create(request):
                 market = get_object_or_404(Market, pk=request.POST.get("market"))
                 category = ShopCategory.objects.filter(pk=request.POST.get("category") or 0).first()
 
-                def _f(v):
-                    try:
-                        return float(v)
-                    except (TypeError, ValueError):
-                        return None
+                # Do'kon raqami UNIKAL: bo'sh yoki band bo'lsa — keyingi bo'sh raqam
+                number = request.POST.get("number", "").strip()[:20]
+                if not number or Shop.objects.filter(market=market, number=number).exists():
+                    number = _next_shop_number(market)
 
                 shop = Shop.objects.create(
                     market=market,
-                    number=request.POST.get("number", "").strip()[:20] or "0",
+                    number=number,
                     stir=request.POST.get("stir", "").strip()[:15],
                     owner_name=request.POST.get("full_name", "").strip()[:200],
                     owner_phone=request.POST.get("phone", "").strip()[:20],
@@ -132,12 +141,15 @@ def account_create(request):
         request.session["login_sheet"] = [cred_serializable(cred)]
         messages.success(request, "Hisob ochildi. Login varaqasi tayyor.")
         return redirect("panel:login_sheet")
+    markets = list(Market.objects.all())
+    next_by_market = {m.pk: _next_shop_number(m) for m in markets}
     return render(
         request,
         "panel/account_create.html",
         {
             "shops": Shop.objects.select_related("market").filter(staff__isnull=True),
-            "markets": Market.objects.all(),
+            "markets": markets,
+            "next_by_market": next_by_market,
             "categories": ShopCategory.objects.all(),
             "roles": [(Role.SELLER, "Sotuvchi"), (Role.INSPECTOR, "Tekshiruvchi")],
         },
