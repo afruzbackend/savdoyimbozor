@@ -113,7 +113,9 @@
     render("");
   }
   function enhanceSelects(root) {
-    (root || document).querySelectorAll("select.select-native").forEach(enhanceSelect);
+    // Maxsus dropdown FAQAT `.select-rich` bo'lsa. Oddiy `.select-native` — native
+    // <select> qoladi: telefonda OS tanlagichi (ishonchli, keyboard chiqmaydi, qopol emas).
+    (root || document).querySelectorAll("select.select-rich").forEach(enhanceSelect);
   }
   document.addEventListener("DOMContentLoaded", () => enhanceSelects());
   document.body &&

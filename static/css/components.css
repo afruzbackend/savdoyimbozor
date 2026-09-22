@@ -52,6 +52,10 @@
 }
 .input:focus,.textarea:focus,.select-native:focus{
   outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--ring)}
+/* Native select — izchil chevron (OS tanlagichi baribir ochiladi, ishonchli) */
+.select-native{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:38px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat:no-repeat;background-position:right 12px center}
 .input::placeholder{color:var(--ink-faint)}
 /* ===== Brauzer default elementlarini olib tashlash (dizayn toza bo'lsin) ===== */
 /* Raqam maydoni spinner o'qlari */
