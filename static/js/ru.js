@@ -227,6 +227,31 @@ window.RU_DICT = {
   // Savdo turlari (demo toifalar)
   "Elektronika": "Электроника", "Go'sht-baliq": "Мясо-рыба", "Gullar": "Цветы",
   "Maishiy kimyo": "Бытовая химия", "Non-shirinlik": "Хлеб-сладости",
+  "Meva-sabzavot": "Овощи-фрукты", "Kiyim-kechak": "Одежда", "Oziq-ovqat": "Продукты",
+
+  // ---- Login + sotuvchi qolgan matnlar ----
+  "Login va parolni administrator beradi": "Логин и пароль выдаёт администратор",
+  "Muddat": "Срок",
+  "Kassa (naqd sanoq — majburiy)": "Касса (подсчёт наличных — обязательно)",
+  "Naqd savdo (kutilgan)": "Наличная выручка (ожидаемая)",
+  "Sandiqdagi sanalgan naqd (so'm)": "Подсчитанная наличность в кассе (сум)",
+  "Sandiqda yozilgan naqddan ko'p bo'lsa — yozilmagan savdo belgisi (nazoratchiga signal).":
+    "Если в кассе больше записанного — признак несписанной выручки (сигнал инспектору).",
+  "Har mahsulot bo'yicha ertalabki va kechki qoldiqni kiriting. Tizim sotilgan miqdorni hisoblab, kiritilgan savdo bilan solishtiradi.":
+    "Введите утренний и вечерний остаток по каждому товару. Система посчитает проданное и сравнит с внесённой выручкой.",
+  "Qaytarilgan yoki yaroqsiz mahsulotni tanlang — miqdor qoldiqdan chiqariladi.":
+    "Выберите возвращённый или негодный товар — количество спишется с остатка.",
+  "Mahsulotni tanlang": "Выберите товар",
+  "Summa (so'm, ixtiyoriy)": "Сумма (сум, необязательно)",
+  "Xato kiritilgan sotuv summasini shu yerda tuzatasiz. Yozuv o'chmaydi — eski qiymat saqlanadi va har tuzatish inspektorga ko'rinadi. Sabab yozish majburiy.":
+    "Здесь исправляется ошибочно внесённая сумма продажи. Запись не удаляется — старое значение сохраняется, и каждое исправление видно инспектору. Указание причины обязательно.",
+  "Signalga rozi bo'lmasangiz, sababini yozing. Inspektor ko'rib chiqadi.":
+    "Если не согласны с сигналом, напишите причину. Инспектор рассмотрит.",
+  "Yuqori pog'onaga chiqish uchun savdoni oshiring va har chekni kiriting.":
+    "Чтобы подняться выше, увеличивайте продажи и вносите каждый чек.",
+  "Har mahsulotingiz bozordagi shu toifadagi mahsulotlar orasida sotilish bo'yicha":
+    "Каждый ваш товар по продажам среди товаров той же категории на рынке",
+  "Rejim (yorug'/qorong'i)": "Режим (светлый/тёмный)",
   "Tizim sozlamalari": "Системные настройки",
   "Audit jurnali": "Журнал аудита",
   "Texnik admin": "Тех. администратор",
@@ -640,6 +665,11 @@ window.RU_DICT = {
    Tartib muhim — aniqroq/uzunroq bo'laklar oldin. Faqat RU rejimida qo'llanadi. */
 window.RU_FRAGMENTS = [
   ["Potensial qo'shimcha soliq", "Потенциальный доп. налог"],
+  ["do'kon ichida (30 kunlik savdo bo'yicha)", "магазинов рынка (по продажам за 30 дней)"],
+  ["Bozordagi", "Среди"],
+  ["toifasida", "в категории"],
+  ["dona", "шт"],
+  ["bog'lam", "пучок"],
   ["ta mahsulot qo'shilgan · yo'nalishingizga mos tayyor ro'yxat",
    "товаров добавлено · готовый список по вашему направлению"],
   ["ta chek", "чеков"],
