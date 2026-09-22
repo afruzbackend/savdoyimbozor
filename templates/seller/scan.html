@@ -44,10 +44,13 @@
         <button class="chip" @click="addDiscount(b)">−<span x-text="fmtK(b)"></span></button></template>
       <button class="chip" @click="discount=0" x-show="discount>0">Bekor</button>
     </div>
-    <div class="segmented" style="margin-bottom:var(--sp-3)">
-      <button :aria-selected="pay==='cash'" @click="pay='cash'">Naqd</button>
-      <button :aria-selected="pay==='card'" @click="pay='card'">Karta</button>
-      <button :aria-selected="pay==='transfer'" @click="pay='transfer'">O'tkazma</button>
+    <div class="pay-select" style="margin-bottom:var(--sp-3)">
+      <button type="button" :aria-selected="pay==='cash'" @click="pay='cash'">
+        <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg> Naqd</button>
+      <button type="button" :aria-selected="pay==='card'" @click="pay='card'">
+        <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-credit-card"></use></svg> Karta</button>
+      <button type="button" :aria-selected="pay==='transfer'" @click="pay='transfer'">
+        <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-wallet"></use></svg> O'tkazma</button>
     </div>
     <button class="btn btn-lg btn-block" :disabled="total<=0||saving" @click="submit()">
       <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>

@@ -132,6 +132,23 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
   color:var(--ink-muted);padding:7px 14px;border-radius:6px;cursor:pointer}
 .segmented button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm)}
 
+/* To'lov turi tanlagichi — ikonkali, ko'rinarli (segmented o'rniga) */
+.pay-select{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pay-select button{display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:12px 6px;border:1.5px solid var(--border-strong);border-radius:var(--r-sm);
+  background:var(--surface);color:var(--ink-muted);font:inherit;font-weight:600;
+  font-size:var(--t--1);cursor:pointer;transition:border-color .12s,background .12s,color .12s}
+.pay-select button .icon{width:22px;height:22px}
+.pay-select button:hover{border-color:var(--primary)}
+.pay-select button[aria-selected="true"]{border-color:var(--primary);background:var(--brand-50);
+  color:var(--primary);box-shadow:0 0 0 1px var(--primary) inset}
+:root[data-theme="dark"] .pay-select button[aria-selected="true"]{background:var(--brand-900);color:var(--brand-100)}
+
+/* Forma xato holati — bo'sh majburiy maydon qizil bilan belgilanadi */
+.input.err,.select-native.err,.file-drop.err{border-color:var(--bad);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 18%,transparent)}
+.field-err{color:var(--bad);font-size:var(--t--2);margin-top:4px;display:flex;align-items:center;gap:4px}
+
 .tabs{display:flex;gap:var(--sp-4);border-bottom:1px solid var(--border);margin-bottom:var(--sp-4)}
 .tabs a,.tabs button{padding:10px 2px;color:var(--ink-muted);font-weight:500;border:none;
   background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}

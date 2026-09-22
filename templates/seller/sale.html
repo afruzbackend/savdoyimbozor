@@ -58,20 +58,19 @@
             @click="clearAll()" x-show="amount>0" x-cloak>
       <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-trash-2"></use></svg> Hammasini o'chirish
     </button>
-    <p class="faint" style="margin:var(--sp-2) 0 0;font-size:var(--t--2);text-align:center">
-      Kompyuterда klaviaturada ham yozish mumkin: raqamlar · Backspace · Enter (sotildi) · Esc (tozalash)</p>
   </div>
 
-  {# To'lov turi + ulgurji #}
-  <div class="row" style="justify-content:space-between;margin:var(--sp-4) 0">
-    <div class="segmented">
-      <button :aria-selected="pay==='cash'" @click="pay='cash'">Naqd</button>
-      <button :aria-selected="pay==='card'" @click="pay='card'">Karta</button>
-      <button :aria-selected="pay==='transfer'" @click="pay='transfer'">O'tkazma</button>
-    </div>
-    <label class="switch"><input type="checkbox" x-model="wholesale"><span class="track"></span><span class="thumb"></span>
-      <span style="font-size:var(--t--1)">Ulgurji</span></label>
+  {# To'lov turi — ikonkali #}
+  <div class="pay-select" style="margin:var(--sp-4) 0">
+    <button type="button" :aria-selected="pay==='cash'" @click="pay='cash'">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg> Naqd</button>
+    <button type="button" :aria-selected="pay==='card'" @click="pay='card'">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-credit-card"></use></svg> Karta</button>
+    <button type="button" :aria-selected="pay==='transfer'" @click="pay='transfer'">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-wallet"></use></svg> O'tkazma</button>
   </div>
+  <label class="switch" style="margin-bottom:var(--sp-3)"><input type="checkbox" x-model="wholesale"><span class="track"></span><span class="thumb"></span>
+    <span style="font-size:var(--t--1)">Ulgurji savdo</span></label>
 
   {# Sotildi #}
   <button class="btn btn-lg btn-block" style="padding:18px" :disabled="total<=0||saving" @click="submit()">

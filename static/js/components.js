@@ -120,6 +120,81 @@
     document.body.addEventListener &&
     document.body.addEventListener("htmx:afterSwap", (e) => enhanceSelects(e.target));
 
+  // ---- Forma validatsiyasi: bo'sh majburiy maydon QIZIL + aniq xabar ----
+  function fieldLabel(el) {
+    var f = el.closest(".field");
+    var lab = f && f.querySelector(".label");
+    var txt = lab ? lab.textContent : el.getAttribute("placeholder") || "Maydon";
+    return txt.trim().replace(/[:*\s]+$/, "");
+  }
+  function clearErr(el) {
+    el.classList.remove("err");
+    var f = el.closest(".field");
+    var m = f && f.querySelector(".field-err");
+    if (m) m.remove();
+  }
+  function showErr(el) {
+    el.classList.add("err");
+    var f = el.closest(".field");
+    if (f && !f.querySelector(".field-err")) {
+      var d = document.createElement("div");
+      d.className = "field-err";
+      d.textContent = fieldLabel(el) + " — to'ldiring";
+      f.appendChild(d);
+    }
+  }
+  function validateForm(form) {
+    var first = null;
+    var missing = [];
+    form.querySelectorAll("[required]").forEach(function (el) {
+      var box = el.closest(".field") || el;
+      if (el.disabled || box.offsetParent === null) return; // yashirin/o'chirilgan — tekshirilmaydi
+      var empty;
+      if (el.type === "checkbox" || el.type === "radio") {
+        empty = !form.querySelector('[name="' + el.name + '"]:checked');
+      } else {
+        empty = !String(el.value).trim();
+      }
+      if (empty) {
+        showErr(el);
+        missing.push(fieldLabel(el));
+        if (!first) first = el;
+      } else {
+        clearErr(el);
+      }
+    });
+    if (first) {
+      first.scrollIntoView({ block: "center", behavior: "smooth" });
+      try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); }
+      window.toast && window.toast("To'ldirilmagan: " + missing.join(", "), "bad");
+      return false;
+    }
+    return true;
+  }
+  function initValidation(root) {
+    (root || document).querySelectorAll("form").forEach(function (form) {
+      if (form.__valInit) return;
+      if ((form.getAttribute("method") || "").toLowerCase() === "get") return;
+      if (form.hasAttribute("data-no-validate")) return;
+      if (!form.querySelector("[required]")) return;
+      form.__valInit = true;
+      form.setAttribute("novalidate", "");
+      form.addEventListener("submit", function (e) {
+        if (!validateForm(form)) e.preventDefault();
+      });
+      form.addEventListener("input", function (e) {
+        if (e.target.matches("[required]")) clearErr(e.target);
+      });
+      form.addEventListener("change", function (e) {
+        if (e.target.matches("[required]")) clearErr(e.target);
+      });
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () { initValidation(); });
+  document.body &&
+    document.body.addEventListener &&
+    document.body.addEventListener("htmx:afterSwap", function (e) { initValidation(e.target); });
+
   // ---- Barkod skaner (kamera) — ZXing, hamma brauzerda ishlaydi ----
   window.openBarcodeScanner = function (onDetect) {
     if (!window.ZXing) {
