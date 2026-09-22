@@ -62,6 +62,9 @@
     if (!key) return text;
     const t = RU[key];
     if (t !== undefined) return text.replace(key, t); // aniq moslik (bo'sh joy saqlanadi)
+    // Oxirida tinish belgisi/strelka bo'lsa (":", "→", "»", "·") — asosini tarjima qilamiz
+    const m = key.match(/^(.+?)\s*([:→»·]+)$/);
+    if (m && RU[m[1]] !== undefined) return text.replace(m[1], RU[m[1]]);
     // Aniq moslik yo'q — dinamik bo'laklarni almashtiramiz (signal sabablari)
     let out = text;
     for (const [a, b] of RU_FRAG) {
