@@ -39,12 +39,19 @@
   <div class="card" style="text-align:center">
     <small class="muted">Jami</small>
     <div class="truth-big num" style="font-size:var(--t-4)" x-text="fmt(total)+' so\'m'"></div>
-    <div class="row gap-2 wrap-flex" style="justify-content:center;margin:var(--sp-3) 0" x-show="subtotal>0">
+    <div class="row gap-2 wrap-flex" style="justify-content:center;margin:var(--sp-3) 0" x-show="subtotal>0" x-cloak>
+      <span class="muted" style="align-self:center;font-size:var(--t--1)">Chegirma:</span>
       <template x-for="b in discountButtons" :key="b">
-        <button class="chip" @click="addDiscount(b)">−<span x-text="fmtK(b)"></span></button></template>
+        <button class="chip" @click="addDiscount(b)" :aria-pressed="discount===b">−<span x-text="fmtK(b)"></span></button></template>
+      <button class="chip" @click="customOpen=!customOpen">Boshqa summa</button>
       <button class="chip" @click="discount=0" x-show="discount>0">Bekor</button>
     </div>
-    <div class="pay-select" style="margin-bottom:var(--sp-3)">
+    <div class="row gap-2" x-show="customOpen" x-cloak style="justify-content:center;margin-bottom:var(--sp-3)">
+      <input class="input num" style="max-width:150px" inputmode="numeric" placeholder="Chegirma so'm"
+             x-model="customVal" @keydown.enter="setCustom()">
+      <button class="btn btn-ghost" @click="setCustom()">Qo'llash</button>
+    </div>
+    <div class="pay-select" style="margin:var(--sp-4) 0 var(--sp-3)">
       <button type="button" :aria-selected="pay==='cash'" @click="pay='cash'">
         <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg> Naqd</button>
       <button type="button" :aria-selected="pay==='card'" @click="pay='card'">
@@ -66,6 +73,8 @@
   document.addEventListener('alpine:init', () => {
     Alpine.data('scanSale', () => ({
       cfg: window.__PRICING__, q: '', results: [], cart: [], discount: 0, pay: 'cash', saving: false,
+      customOpen: false, customVal: '',
+      setCustom(){ this.discount = Math.min(window.BN.unfmt(this.customVal), this.cap); this.customOpen=false; this.customVal=''; },
       fmt(n){ return window.BN.fmt(Math.round(n)); },
       fmtK(n){ return n>=1000 ? (n/1000)+'k' : n; },
       get subtotal(){ return Math.round(this.cart.reduce((s,i)=>s+i.price*i.qty,0)); },

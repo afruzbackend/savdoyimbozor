@@ -71,7 +71,7 @@
   }
 
   // Tarjima qilinadigan atributlar (placeholder, tooltip, aria)
-  const ATTRS = ["placeholder", "title", "aria-label"];
+  const ATTRS = ["placeholder", "title", "aria-label", "data-tip"];
   function transformAttrs(el, transform) {
     if (!el.getAttribute) return;
     for (const a of ATTRS) {
