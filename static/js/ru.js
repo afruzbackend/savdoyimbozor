@@ -147,6 +147,86 @@ window.RU_DICT = {
   "Limon": "Лимон", "Nok": "Груша", "Qalampir": "Перец", "Sabzi": "Морковь",
   "Sarimsoq": "Чеснок", "Uzum": "Виноград", "Bodring": "Огурец", "Olma": "Яблоко",
   "Piyoz": "Лук", "Pomidor": "Помидор", "Kartoshka": "Картофель",
+
+  // ---- Sarlavhalar (topbar) ----
+  "Audit jurnali": "Журнал аудита",
+  "Boshqaruv": "Управление",
+  "Bozor sxemasi": "Схема рынка",
+  "Bozorlar": "Рынки",
+  "Bozorlar va viloyatlar": "Рынки и области",
+  "Do'konlarni Excel'dan yuklash": "Загрузка магазинов из Excel",
+  "Foydalanuvchilar": "Пользователи",
+  "Hisob ochish": "Создание аккаунта",
+  "Joriy ombor": "Текущий склад",
+  "Kameralar": "Камеры",
+  "Kassa / deklaratsiya yuklash": "Загрузка кассы / декларации",
+  "Login varaqalari": "Листы логинов",
+  "Login varaqasi": "Лист логинов",
+  "Savdo turlari": "Виды торговли",
+  "Savdo turlari (do'kon toifalari)": "Виды торговли (категории магазинов)",
+  "Sotuv statistikasi": "Статистика продаж",
+  "Super admin": "Супер администратор",
+  "Tekshiruv natijasi": "Результат проверки",
+  "Tizim sozlamalari": "Системные настройки",
+
+  // ---- Nazorat (inspektor) qo'shimcha ----
+  "Ma'lumot yo'q.": "Нет данных.",
+  "Ma'lumot yo'q": "Нет данных",
+  "Diqqat: bu — AI taxminiy bahosi, aniq summa emas.":
+    "Внимание: это ориентировочная оценка ИИ, не точная сумма.",
+  "Mustaqil manbalar (kassa/kamera/qoldiq) yozilgan savdodan qancha ko'p ko'rsatgani asosida; har bir holat tekshiruv talab qiladi.":
+    "На основе того, насколько независимые источники (касса/камера/остаток) показали больше внесённой выручки; каждый случай требует проверки.",
+  "Har rasta ustidagi raqam — rostlik darajasi (%). Rastani bosing — batafsil. Kattalashtirish uchun +/−.":
+    "Число над каждым рядом — уровень достоверности (%). Нажмите на ряд — подробнее. Масштаб +/−.",
+  "Sotuvchilar": "Продавцы",
+  "do'kon": "магазин",
+  "Kamera qo'shilganda AI worker /api/events/ orqali xaridor tashriflari va kamera holatini yuboradi. Backend tayyor turibdi.":
+    "После подключения камеры AI-воркер отправляет посещения покупателей и статус камеры через /api/events/. Бэкенд готов.",
+  "Eng zaif qism umumiy ballni cheklaydi — bitta kuchli signal yo'qolmaydi.":
+    "Самая слабая часть ограничивает общий балл — один сильный сигнал не теряется.",
+  "Kamera ulanganda shubhali hodisalarning 10 soniyalik kliplari shu yerda ko'rinadi.":
+    "После подключения камеры здесь появятся 10-секундные клипы подозрительных событий.",
+
+  // ---- Panel (admin) ----
+  "Oxirgi kirish": "Последний вход",
+  "Nusxa": "Копировать",
+  "Hech kirmagan": "Не входил",
+  "Bu — siz": "Это вы",
+  "Yangi do'kon": "Новый магазин",
+  "Mavjud do'kon": "Существующий магазин",
+  "Do'kon (sotuvchisiz)": "Магазин (без продавца)",
+  "Do'kon raqami (avto — betakror)": "Номер магазина (авто — уникальный)",
+  "Savdo turi": "Вид торговли",
+  "Manzil": "Адрес",
+  "Manzil (ixtiyoriy)": "Адрес (необязательно)",
+  "Kenglik (lat, ixtiyoriy)": "Широта (lat, необяз.)",
+  "Uzunlik (lng, ixtiyoriy)": "Долгота (lng, необяз.)",
+  "Kenglik (lat)": "Широта (lat)",
+  "Uzunlik (lng)": "Долгота (lng)",
+  "Koordinata ixtiyoriy — bo'sh qoldirsangiz bozor markazi olinadi.":
+    "Координаты необязательны — если оставить пустыми, берётся центр рынка.",
+  "Login avtomatik (faqat raqam: STIR+do'kon raqami). Vaqtinchalik parol beriladi.":
+    "Логин автоматический (только цифры: СТИР+номер магазина). Выдаётся временный пароль.",
+  "Yangi bozor": "Новый рынок",
+  "Viloyat": "Область",
+  "Bozor nomi": "Название рынка",
+  "Viloyat qo'shish": "Добавить область",
+  "Tahrirlash": "Редактировать",
+  "Yangi savdo turi": "Новый вид торговли",
+  "Savdo turi do'kon ochishda tanlanadi va sotuvchiga shu yo'nalishga mos tayyor mahsulot ro'yxatini beradi.":
+    "Вид торговли выбирается при создании магазина и даёт продавцу готовый список товаров по направлению.",
+  "Mavjud turlar": "Существующие виды",
+  "Mahsulot turlari": "Виды товаров",
+  "O'chirish": "Удалить",
+  "Boshqaruv paneliga qaytish": "Вернуться в панель управления",
+  "Soliq va jarima": "Налог и штраф",
+  "Soliq stavkasi (%)": "Ставка налога (%)",
+  "Jarima ustamasi (%)": "Надбавка штрафа (%)",
+  "Anomaliya tushish chegarasi (%)": "Порог падения (аномалия), %",
+  "Kassa kamomadi chegarasi (%)": "Порог недостачи кассы (%)",
+  // Savdo turlari (demo toifalar)
+  "Elektronika": "Электроника", "Go'sht-baliq": "Мясо-рыба", "Gullar": "Цветы",
+  "Maishiy kimyo": "Бытовая химия", "Non-shirinlik": "Хлеб-сладости",
   "Tizim sozlamalari": "Системные настройки",
   "Audit jurnali": "Журнал аудита",
   "Texnik admin": "Тех. администратор",
@@ -559,6 +639,7 @@ window.RU_DICT = {
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
    Tartib muhim — aniqroq/uzunroq bo'laklar oldin. Faqat RU rejimida qo'llanadi. */
 window.RU_FRAGMENTS = [
+  ["Potensial qo'shimcha soliq", "Потенциальный доп. налог"],
   ["ta mahsulot qo'shilgan · yo'nalishingizga mos tayyor ro'yxat",
    "товаров добавлено · готовый список по вашему направлению"],
   ["ta chek", "чеков"],
