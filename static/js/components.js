@@ -97,7 +97,9 @@
       if (searchable) {
         search.value = "";
         render("");
-        setTimeout(() => search.focus(), 30);
+        // Faqat kompyuterda (sichqoncha) avtofokus — telefonda klaviatura chiqmasin
+        var fine = window.matchMedia && window.matchMedia("(pointer:fine)").matches;
+        if (fine) setTimeout(() => search.focus(), 30);
       }
     }
     function close() {
@@ -113,9 +115,8 @@
     render("");
   }
   function enhanceSelects(root) {
-    // Maxsus dropdown FAQAT `.select-rich` bo'lsa. Oddiy `.select-native` — native
-    // <select> qoladi: telefonda OS tanlagichi (ishonchli, keyboard chiqmaydi, qopol emas).
-    (root || document).querySelectorAll("select.select-rich").forEach(enhanceSelect);
+    // Barcha `.select-native` -> maxsus dizayn dropdown (brauzer default'i emas).
+    (root || document).querySelectorAll("select.select-native").forEach(enhanceSelect);
   }
   document.addEventListener("DOMContentLoaded", () => enhanceSelects());
   document.body &&
