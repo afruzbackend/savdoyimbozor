@@ -69,20 +69,41 @@ def test_stock_in_manual_creates_product(sclient, shop):
 
 
 @pytest.mark.django_db
-def test_writeoff_requires_photo(sclient, shop):
+def test_writeoff_requires_photo(sclient, shop, product):
     # Fotosiz — yozilmaydi
     sclient.post(
-        "/hisobdan-chiqarish/", {"product_name": "Olma", "quantity": "2"}, HTTP_HOST=SELLER_HOST
+        "/hisobdan-chiqarish/",
+        {"product": product.pk, "quantity": "2", "reason": "chirigan"},
+        HTTP_HOST=SELLER_HOST,
     )
     assert not WriteOff.objects.filter(shop=shop).exists()
-    # Foto bilan — yoziladi
+    # Sababsiz — yozilmaydi
     photo = SimpleUploadedFile("w.png", _PNG, content_type="image/png")
     sclient.post(
         "/hisobdan-chiqarish/",
-        {"product_name": "Olma", "quantity": "2", "reason": "chirigan", "photo": photo},
+        {"product": product.pk, "quantity": "2", "photo": photo},
         HTTP_HOST=SELLER_HOST,
     )
-    assert WriteOff.objects.filter(shop=shop, product_name="Olma").exists()
+    assert not WriteOff.objects.filter(shop=shop).exists()
+    # Qoldiqdan ko'p — yozilmaydi
+    photo = SimpleUploadedFile("w.png", _PNG, content_type="image/png")
+    sclient.post(
+        "/hisobdan-chiqarish/",
+        {"product": product.pk, "quantity": "99999", "reason": "chirigan", "photo": photo},
+        HTTP_HOST=SELLER_HOST,
+    )
+    assert not WriteOff.objects.filter(shop=shop).exists()
+    # To'g'ri: mahsulot + sabab + foto — yoziladi va qoldiq kamayadi
+    before = product.stock
+    photo = SimpleUploadedFile("w.png", _PNG, content_type="image/png")
+    sclient.post(
+        "/hisobdan-chiqarish/",
+        {"product": product.pk, "quantity": "2", "reason": "chirigan", "photo": photo},
+        HTTP_HOST=SELLER_HOST,
+    )
+    assert WriteOff.objects.filter(shop=shop, product=product).exists()
+    product.refresh_from_db()
+    assert product.stock == before - 2
 
 
 @pytest.mark.django_db

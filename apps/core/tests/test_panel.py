@@ -20,7 +20,7 @@ def test_admin_creates_shop_with_location(aclient, market):
         {
             "role": "seller", "full_name": "Yangi Sotuvchi", "phone": "+998901112233",
             "number": "77", "stir": "555555555", "market": market.pk, "category": cat.pk,
-            "address": "Chorsu 3-qator", "latitude": "41.325", "longitude": "69.24",
+            "address": "Chorsu 3-qator",
         },
         HTTP_HOST=PANEL_HOST,
     )
@@ -28,7 +28,8 @@ def test_admin_creates_shop_with_location(aclient, market):
     s = Shop.objects.get(number="77")
     assert s.stir == "555555555"
     assert s.category == cat  # savdo turi
-    assert s.latitude == 41.325
+    # Koordinata so'ralmaydi — bozor markazi olinadi
+    assert s.latitude == market.latitude
     assert s.staff.exists()  # sotuvchi ochildi
 
 

@@ -21,4 +21,9 @@ app.conf.beat_schedule = {
         "task": "apps.analytics.tasks.recompute_yesterday",
         "schedule": crontab(hour=1, minute=0),
     },
+    # Har kuni 20:00 da sotuvchilarga kun yakuni/kassa yopishni eslatish
+    "close-reminders": {
+        "task": "apps.sales.tasks.close_reminders",
+        "schedule": crontab(hour=20, minute=0),
+    },
 }
