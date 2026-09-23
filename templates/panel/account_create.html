@@ -15,7 +15,7 @@
       <input type="hidden" name="mode" :value="mode">
     </div>
     <div class="field"><label class="label">F.I.O.</label>
-      <input class="input" name="full_name" placeholder="Ism Familiya"></div>
+      <input class="input" name="full_name" placeholder="Ism Familiya" required></div>
     <div class="field"><label class="label">Telefon</label>
       <input class="input" name="phone" placeholder="+998..."></div>
 
@@ -28,7 +28,7 @@
       <div x-show="mode==='new'">
         <div class="grid grid-2">
           <div class="field"><label class="label">Do'kon raqami (avto — betakror)</label><input class="input num" name="number" x-ref="number" placeholder="avto"></div>
-          <div class="field"><label class="label">STIR</label><input class="input num" name="stir" placeholder="123456789"></div>
+          <div class="field"><label class="label">STIR</label><input class="input num" name="stir" placeholder="123456789" required></div>
         </div>
         <div class="grid grid-2">
           <div class="field"><label class="label">Bozor</label>
