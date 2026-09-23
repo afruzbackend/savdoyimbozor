@@ -39,7 +39,7 @@
 {% if low_stock %}
 <div class="card" style="margin-bottom:var(--sp-4);border-left:3px solid var(--warn)">
   <div class="card-title" style="margin-bottom:var(--sp-2)">Kam qolgan mahsulotlar</div>
-  {% for p in low_stock %}<span class="badge badge-warn" style="margin:2px">{{ p.name }}: {{ p.stock }}</span>{% endfor %}
+  {% for p in low_stock %}<span class="badge badge-warn" style="margin:2px">{{ p.name }}: {{ p.stock|floatformat:'-3' }}</span>{% endfor %}
 </div>
 {% endif %}
 

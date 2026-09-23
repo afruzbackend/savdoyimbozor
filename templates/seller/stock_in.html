@@ -30,7 +30,7 @@
       <div x-show="mode==='select'">
         <div class="field"><label class="label">Mahsulot</label>
           <select class="select-native" name="product" x-ref="prod" :required="mode==='select'">
-            {% for p in products %}<option value="{{ p.pk }}" data-barcode="{{ p.barcode }}">{{ p.name }} ({{ p.stock }} {{ p.unit }})</option>{% endfor %}</select></div>
+            {% for p in products %}<option value="{{ p.pk }}" data-barcode="{{ p.barcode }}">{{ p.name }} ({{ p.stock|floatformat:'-3' }} {{ p.unit }})</option>{% endfor %}</select></div>
       </div>
 
       {# Rejim 2: qo'lda yangi mahsulot (oldindan yaratish shart emas) #}

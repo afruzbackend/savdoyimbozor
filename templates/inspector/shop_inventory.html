@@ -18,7 +18,7 @@
       {% for p in products %}
       <tr class="{% if p.is_low_stock %}row-warn{% endif %}">
         <td>{{ p.name }}</td><td class="num muted">{{ p.barcode|default:"—" }}</td>
-        <td class="num">{{ p.stock }} {{ p.unit }}</td>
+        <td class="num">{{ p.stock|floatformat:'-3' }} {{ p.unit }}</td>
         <td class="num">{{ p.sell_price|intcomma }}</td>
         <td class="num"><b>{{ p.line_value|intcomma }}</b></td>
       </tr>

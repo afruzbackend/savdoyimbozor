@@ -15,7 +15,7 @@
     <tbody>
     {% for p in products %}
     <tr class="{% if p.is_low_stock %}row-warn{% endif %}"><td>{{ p.name }}</td><td class="num muted">{{ p.barcode|default:"—" }}</td>
-      <td class="num">{{ p.sell_price|intcomma }}</td><td class="num">{{ p.stock }}</td></tr>
+      <td class="num">{{ p.sell_price|intcomma }}</td><td class="num">{{ p.stock|floatformat:'-3' }}</td></tr>
     {% empty %}<tr><td colspan="4" class="muted">Mahsulot yo'q. «Yangi mahsulot» tugmasi bilan qo'shing.</td></tr>{% endfor %}
     </tbody></table></div>
   {% include 'components/_pagination.html' %}
