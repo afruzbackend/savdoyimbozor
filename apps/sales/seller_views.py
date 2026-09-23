@@ -390,21 +390,40 @@ def writeoff(request):
     shop = _shop(request)
     if shop is None:
         return redirect("seller:home")
-    if request.method == "POST" and request.FILES.get("photo"):
-        WriteOff.objects.create(
-            shop=shop,
-            seller=request.user,
-            product_name=request.POST.get("product_name", "")[:200],
-            quantity=_dec(request.POST.get("quantity")),
-            photo=request.FILES["photo"],
-            reason=request.POST.get("reason", "")[:200],
-        )
-        messages.success(request, "Hisobdan chiqarish qayd etildi.")
+    if request.method == "POST":
+        product = Product.objects.filter(pk=request.POST.get("product") or 0, shop=shop).first()
+        qty = _dec(request.POST.get("quantity"))
+        reason = request.POST.get("reason", "").strip()[:200]
+        if product is None:
+            messages.error(request, "Mahsulotni tanlang.")
+        elif not reason:
+            messages.error(request, "Sababni yozing — bu majburiy.")
+        elif not request.FILES.get("photo"):
+            messages.error(request, "Foto majburiy.")
+        elif qty <= 0:
+            messages.error(request, "Miqdorni to'g'ri kiriting.")
+        elif qty > product.stock:
+            messages.error(
+                request,
+                f"Qoldiqdan ko'p bo'lmasin: «{product.name}» qoldig'i {product.stock:g} "
+                f"{product.get_unit_display()}, so'ralgan {qty:g}.",
+            )
+        else:
+            WriteOff.objects.create(
+                shop=shop, seller=request.user, product=product, product_name=product.name,
+                quantity=qty, photo=request.FILES["photo"], reason=reason,
+            )
+            Product.objects.filter(pk=product.pk).update(stock=F("stock") - qty)
+            messages.success(request, "Hisobdan chiqarish qayd etildi.")
         return redirect("seller:writeoff")
     return render(
         request,
         "seller/writeoff.html",
-        {"shop": shop, "recent": WriteOff.objects.filter(shop=shop)[:10]},
+        {
+            "shop": shop,
+            "products": Product.objects.filter(shop=shop, is_active=True).order_by("name"),
+            "recent": WriteOff.objects.filter(shop=shop).select_related("product")[:10],
+        },
     )
 
 

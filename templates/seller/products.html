@@ -3,24 +3,32 @@
 {% block title %}Mahsulotlar{% endblock %}
 {% block heading %}Mahsulotlar{% endblock %}
 {% block topbar_actions %}
+<button class="btn" type="button" onclick="document.getElementById('add-prod').hidden=false">
+  <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-plus"></use></svg> Yangi mahsulot</button>
 <a class="btn btn-ghost" href="{% url 'seller:product_labels' %}">
   <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Barkod yorliqlari</a>
 {% endblock %}
 {% block content %}
-<div class="grid" style="grid-template-columns:1fr 340px;gap:var(--sp-4);align-items:start">
-  <div class="card">
-    <div class="table-wrap"><table class="data">
-      <thead><tr><th>Nomi</th><th>Barkod</th><th class="num">Narx</th><th class="num">Qoldiq</th></tr></thead>
-      <tbody>
-      {% for p in products %}
-      <tr class="{% if p.is_low_stock %}row-warn{% endif %}"><td>{{ p.name }}</td><td class="num muted">{{ p.barcode|default:"—" }}</td>
-        <td class="num">{{ p.sell_price|intcomma }}</td><td class="num">{{ p.stock }}</td></tr>
-      {% empty %}<tr><td colspan="4" class="muted">Mahsulot yo'q.</td></tr>{% endfor %}
-      </tbody></table></div>
-    {% include 'components/_pagination.html' %}
-  </div>
-  <div class="card">
-    <div class="card-title" style="margin-bottom:var(--sp-3)">Yangi mahsulot</div>
+<div class="card">
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>Nomi</th><th>Barkod</th><th class="num">Narx</th><th class="num">Qoldiq</th></tr></thead>
+    <tbody>
+    {% for p in products %}
+    <tr class="{% if p.is_low_stock %}row-warn{% endif %}"><td>{{ p.name }}</td><td class="num muted">{{ p.barcode|default:"—" }}</td>
+      <td class="num">{{ p.sell_price|intcomma }}</td><td class="num">{{ p.stock }}</td></tr>
+    {% empty %}<tr><td colspan="4" class="muted">Mahsulot yo'q. «Yangi mahsulot» tugmasi bilan qo'shing.</td></tr>{% endfor %}
+    </tbody></table></div>
+  {% include 'components/_pagination.html' %}
+</div>
+
+{# Yangi mahsulot — alohida oyna (ro'yxat bilan aralashmaydi) #}
+<div id="add-prod" class="modal-backdrop" hidden onclick="if(event.target===this)this.hidden=true">
+  <div class="modal-card" style="max-width:460px">
+    <div class="settings-head">
+      <div class="settings-title">Yangi mahsulot</div>
+      <button type="button" class="settings-x" title="Yopish" onclick="document.getElementById('add-prod').hidden=true">
+        <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg></button>
+    </div>
     {% if shop.category %}<p class="faint" style="margin:0 0 var(--sp-3);font-size:var(--t--1)">Savdo turi: <b>{{ shop.category.name }}</b> — ro'yxat shunga mos.</p>{% endif %}
     <form method="post" x-data="prodForm()">{% csrf_token %}
       <input type="hidden" name="category" :value="picked ? picked.id : ''">
@@ -55,10 +63,10 @@
         </div>
       </div>
       <div class="grid grid-2">
-        <div class="field"><label class="label">Tannarx</label><input class="input num" type="number" name="buy_price" value="0"></div>
-        <div class="field"><label class="label">Sotish narxi</label><input class="input num" type="number" name="sell_price" value="0"></div>
+        <div class="field"><label class="label">Tannarx</label><input class="input num" type="number" name="buy_price" min="0" step="1000" value="0"></div>
+        <div class="field"><label class="label">Sotish narxi</label><input class="input num" type="number" name="sell_price" min="0" step="1000" value="0"></div>
       </div>
-      <div class="field"><label class="label">Kam qoldiq chegarasi</label><input class="input num" type="number" name="low_stock_threshold" value="0"></div>
+      <div class="field"><label class="label">Kam qoldiq chegarasi</label><input class="input num" type="number" name="low_stock_threshold" min="0" value="0"></div>
       <button class="btn btn-block" type="submit" :disabled="!picked">Qo'shish</button>
     </form>
   </div>
@@ -73,10 +81,9 @@
       items: JSON.parse(document.getElementById('catalog-data').textContent),
       q: '', open: false, picked: null,
       init(){
-        // Dashboarddan ?add=<id> bilan kelsa — o'sha mahsulotni oldindan tanlaymiz
         const id = new URLSearchParams(location.search).get('add');
         if(id){ const c = this.items.find(x=>String(x.id)===String(id)); if(c){ this.pick(c);
-          this.$nextTick(()=>{ this.$root.scrollIntoView({behavior:'smooth',block:'center'}); }); } }
+          document.getElementById('add-prod').hidden=false; } }
       },
       get filtered(){ const s=this.q.toLowerCase();
         return this.items.filter(i=>i.name.toLowerCase().includes(s)); },

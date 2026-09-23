@@ -61,8 +61,14 @@
         </div>
         <div class="field">
           <label class="label" for="id_password">Parol</label>
-          <input class="input" id="id_password" name="password" type="password" required
-                 autocomplete="current-password">
+          <div class="pw-input" x-data="{show:false}">
+            <input class="input" id="id_password" name="password" :type="show?'text':'password'" required
+                   autocomplete="off">
+            <button type="button" class="pw-eye" tabindex="-1" @click="show=!show"
+                    :aria-label="show?'Yashirish':'Ko\'rsatish'">
+              <svg class="icon-sm"><use :href="'{% static 'icons/sprite.svg' %}#'+(show?'i-eye-off':'i-eye')"></use></svg>
+            </button>
+          </div>
         </div>
         <button class="btn btn-lg btn-block" type="submit">
           <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-log-out"></use></svg>

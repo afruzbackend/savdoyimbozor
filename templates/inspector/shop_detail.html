@@ -176,6 +176,22 @@
     </div>
     {% endif %}
 
+    {% if writeoffs %}
+    <div class="card">
+      <div class="card-header"><span class="card-title">Hisobdan chiqarishlar</span>
+        <small class="faint">Chirigan/buzilgan deb chiqarilgan tovar — sabab va foto bilan</small></div>
+      <div class="table-wrap"><table class="data" style="font-size:var(--t--1)">
+        <thead><tr><th>Sana</th><th>Mahsulot</th><th class="num">Miqdor</th><th>Sabab</th><th>Foto</th></tr></thead>
+        <tbody>
+        {% for w in writeoffs %}
+        <tr><td class="num">{{ w.created_at|date:"d.m H:i" }}</td><td>{{ w.product_name }}</td>
+          <td class="num">{{ w.quantity|floatformat:"-3" }}</td><td>{{ w.reason|default:"—" }}</td>
+          <td>{% if w.photo %}<a href="{{ w.photo.url }}" target="_blank">ko'rish</a>{% else %}—{% endif %}</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+    </div>
+    {% endif %}
+
     <div class="card">
       <div class="card-title" style="margin-bottom:var(--sp-2)">Video dalil</div>
       <div class="empty" style="padding:var(--sp-5)">

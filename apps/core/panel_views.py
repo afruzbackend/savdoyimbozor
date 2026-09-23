@@ -150,8 +150,9 @@ def account_create(request):
                     owner_phone=request.POST.get("phone", "").strip()[:20],
                     address=request.POST.get("address", "").strip()[:300],
                     category=category,
-                    latitude=_f(request.POST.get("latitude")),
-                    longitude=_f(request.POST.get("longitude")),
+                    # Koordinata so'ralmaydi — bozor markazi olinadi (xarita uchun kifoya)
+                    latitude=market.latitude,
+                    longitude=market.longitude,
                 )
             cred = create_seller(
                 shop,

@@ -5,10 +5,15 @@
 {% block content %}
 <div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
   <div class="card">
-    <p class="hint">Chirigan/buzilgan mahsulot. Foto majburiy — me'yordan oshsa tizim signal beradi.</p>
+    {% if products %}
+    <p class="hint">Chirigan/buzilgan mahsulot. Foto va sabab majburiy — me'yordan oshsa tizim signal beradi.</p>
     <form method="post" enctype="multipart/form-data">{% csrf_token %}
-      <div class="field"><label class="label">Mahsulot</label><input class="input" name="product_name" required></div>
-      <div class="field"><label class="label">Miqdor</label><input class="input num" type="number" step="0.1" name="quantity" required></div>
+      <div class="field"><label class="label">Mahsulot</label>
+        <select class="select-native" name="product" required>
+          <option value="" disabled selected>Mahsulotni tanlang</option>
+          {% for p in products %}<option value="{{ p.pk }}">{{ p.name }} ({{ p.stock }} {{ p.unit }})</option>{% endfor %}
+        </select></div>
+      <div class="field"><label class="label">Miqdor (dona)</label><input class="input num" type="number" step="1" min="1" name="quantity" required></div>
       <div class="field"><label class="label">Foto (majburiy)</label>
         <label class="file-drop">
           <input type="file" name="photo" accept="image/*" capture="environment" required hidden>
@@ -16,18 +21,27 @@
           <span class="file-name muted" data-noloc>Fayl tanlanmagan</span>
         </label>
       </div>
-      <div class="field"><label class="label">Sabab</label><input class="input" name="reason"></div>
+      <div class="field"><label class="label">Sabab (majburiy)</label><input class="input" name="reason" placeholder="masalan: chirigan, singan" required></div>
       <button class="btn btn-block" type="submit">Qayd etish</button>
     </form>
+    {% else %}
+    <div class="empty" style="text-align:center;padding:var(--sp-5) var(--sp-3)">
+      <div style="font-size:44px">📦</div>
+      <p class="muted" style="margin:var(--sp-3) 0">Hali mahsulot yo'q. Hisobdan chiqarish uchun avval
+        <b>Kirim</b> orqali mahsulot qo'shing.</p>
+      <a class="btn" href="{% url 'seller:stock_in' %}">Kirimga o'tish</a>
+    </div>
+    {% endif %}
   </div>
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">So'nggi hisobdan chiqarishlar</div>
     <div class="table-wrap"><table class="data">
-      <thead><tr><th>Sana</th><th>Mahsulot</th><th class="num">Miqdor</th><th>Foto</th></tr></thead>
+      <thead><tr><th>Sana</th><th>Mahsulot</th><th class="num">Miqdor</th><th>Sabab</th><th>Foto</th></tr></thead>
       <tbody>
       {% for w in recent %}<tr><td class="num">{{ w.created_at|date:"d.m H:i" }}</td><td>{{ w.product_name }}</td>
-        <td class="num">{{ w.quantity }}</td><td>{% if w.photo %}<a href="{{ w.photo.url }}" target="_blank">ko'rish</a>{% endif %}</td></tr>
-      {% empty %}<tr><td colspan="4" class="muted">Yozuv yo'q.</td></tr>{% endfor %}
+        <td class="num">{{ w.quantity|floatformat:"-3" }}</td><td class="muted">{{ w.reason|default:"—" }}</td>
+        <td>{% if w.photo %}<a href="{{ w.photo.url }}" target="_blank">ko'rish</a>{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="5" class="muted">Yozuv yo'q.</td></tr>{% endfor %}
       </tbody></table></div>
   </div>
 </div>

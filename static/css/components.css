@@ -149,9 +149,16 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 :root[data-theme="dark"] .pay-select button[aria-selected="true"]{background:var(--brand-900);color:var(--brand-100)}
 
 /* Forma xato holati — bo'sh majburiy maydon qizil bilan belgilanadi */
-.input.err,.select-native.err,.file-drop.err{border-color:var(--bad);
+.input.err,.select-native.err,.file-drop.err,.dropdown-trigger.err{border-color:var(--bad);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 18%,transparent)}
 .field-err{color:var(--bad);font-size:var(--t--2);margin-top:4px;display:flex;align-items:center;gap:4px}
+
+/* Parol ko'rish/yashirish (ko'z) tugmasi */
+.pw-input{position:relative}
+.pw-input .input{padding-right:46px}
+.pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;
+  color:var(--ink-faint);cursor:pointer;padding:9px;display:flex;border-radius:8px}
+.pw-eye:hover{color:var(--ink);background:var(--surface-sunken)}
 
 .tabs{display:flex;gap:var(--sp-4);border-bottom:1px solid var(--border);margin-bottom:var(--sp-4)}
 .tabs a,.tabs button{padding:10px 2px;color:var(--ink-muted);font-weight:500;border:none;

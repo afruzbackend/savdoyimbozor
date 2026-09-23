@@ -45,10 +45,10 @@
   --sand-600:#6e675c; --sand-700:#4d483f; --sand-800:#302c26; --sand-900:#1f1c17;
 
   /* ---- Rollarga bog'langan (light) ---- */
-  --bg:var(--sand-100);
+  --bg:#f5f6f8;
   --surface:#ffffff;
-  --surface-2:var(--sand-50);
-  --surface-sunken:var(--sand-200);
+  --surface-2:#fafbfc;
+  --surface-sunken:#eef0f3;
   --border:var(--sand-300);
   --border-strong:var(--sand-400);
   --ink:#23201b;

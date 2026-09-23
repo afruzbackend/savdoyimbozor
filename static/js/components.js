@@ -78,6 +78,7 @@
     function render(q) {
       list.innerHTML = "";
       [...sel.options].forEach((o) => {
+        if (o.disabled || o.value === "") return; // "Tanlang" placeholder — tanlab bo'lmaydi
         if (q && !o.textContent.toLowerCase().includes(q.toLowerCase())) return;
         const item = document.createElement("div");
         item.className = "option";
@@ -130,14 +131,19 @@
     var txt = lab ? lab.textContent : el.getAttribute("placeholder") || "Maydon";
     return txt.trim().replace(/[:*\s]+$/, "");
   }
+  function errTarget(el) {
+    // Maxsus dropdownga aylantirilgan select uchun — ko'rinadigan trigger qizil bo'lsin
+    var wrap = el.closest && el.closest(".dropdown");
+    return (wrap && wrap.querySelector(".dropdown-trigger")) || el;
+  }
   function clearErr(el) {
-    el.classList.remove("err");
+    errTarget(el).classList.remove("err");
     var f = el.closest(".field");
     var m = f && f.querySelector(".field-err");
     if (m) m.remove();
   }
   function showErr(el) {
-    el.classList.add("err");
+    errTarget(el).classList.add("err");
     var f = el.closest(".field");
     if (f && !f.querySelector(".field-err")) {
       var d = document.createElement("div");

@@ -229,6 +229,7 @@ def shop_detail(request, pk):
         "appeals": shop.appeals.all()[:5],
         "corrections": shop.corrections.select_related("user")[:8],
         "register_closes": shop.register_closes.order_by("-date")[:10],
+        "writeoffs": shop.writeoffs.select_related("seller").order_by("-created_at")[:10],
     }
     return render(request, "inspector/shop_detail.html", ctx)
 

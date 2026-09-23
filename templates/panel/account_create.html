@@ -40,13 +40,6 @@
               {% for c in categories %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
         </div>
         <div class="field"><label class="label">Manzil</label><input class="input" name="address" placeholder="Ko'cha, mo'ljal"></div>
-        <div class="grid grid-2">
-          <div class="field"><label class="label">Kenglik (lat, ixtiyoriy)</label>
-            <input class="input num" name="latitude" x-ref="lat" placeholder="41.311"></div>
-          <div class="field"><label class="label">Uzunlik (lng, ixtiyoriy)</label>
-            <input class="input num" name="longitude" x-ref="lng" placeholder="69.279"></div>
-        </div>
-        <small class="faint">Koordinata ixtiyoriy — bo'sh qoldirsangiz bozor markazi olinadi.</small>
       </div>
 
       <div x-show="mode==='existing'" x-cloak>
