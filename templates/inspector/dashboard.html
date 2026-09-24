@@ -27,23 +27,32 @@
   <small class="faint"><b>Diqqat: bu — AI taxminiy bahosi, aniq summa emas.</b> Mustaqil manbalar (kassa/kamera/qoldiq) yozilgan savdodan qancha ko'p ko'rsatgani asosida; har bir holat tekshiruv talab qiladi.</small>
 </div>
 <div class="grid grid-4" style="margin-bottom:var(--sp-4)">
-  <div class="card">
-    <small class="muted">Nazoratdagi do'kon</small>
-    <div class="truth-big" style="font-size:var(--t-4)">{{ shop_count }}</div>
+  <div class="card stat-pop stat-card">
+    <span class="stat-ic" aria-hidden="true">
+      <svg class="shop-anim" viewBox="0 0 24 24" fill="none">
+        <path d="M4 9 L5.5 4 H18.5 L20 9 Z" fill="currentColor" opacity=".8"/>
+        <rect x="5" y="9" width="14" height="11" rx="1" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/>
+        <rect class="shutter" x="8" y="12" width="8" height="8" fill="currentColor" opacity=".55"/>
+      </svg></span>
+    <div><small class="muted">Nazoratdagi do'kon</small>
+      <div class="truth-big" style="font-size:var(--t-4);line-height:1">{{ shop_count }}</div></div>
   </div>
-  <div class="card">
-    <small class="muted">Qizil signal</small>
-    <div class="truth-big" style="font-size:var(--t-4);color:var(--bad)">{{ red_count }}</div>
-    <small class="muted">{{ yellow_count }} sariq</small>
+  <div class="card stat-pop stat-card">
+    <span class="stat-ic" style="background:var(--bad-bg);color:var(--bad)"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg></span>
+    <div><small class="muted">Qizil signal</small>
+      <div class="truth-big" style="font-size:var(--t-4);line-height:1;color:var(--bad)">{{ red_count }}</div>
+      <small class="muted">{{ yellow_count }} sariq</small></div>
   </div>
-  <div class="card">
-    <small class="muted">O'rtacha rostlik</small>
-    <div class="truth-big" style="font-size:var(--t-4);color:var(--ok)">{% if avg_truth is not None %}{{ avg_truth }}%{% else %}—{% endif %}</div>
+  <div class="card stat-pop stat-card">
+    <span class="stat-ic" style="background:var(--ok-bg,var(--brand-50));color:var(--ok)"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg></span>
+    <div><small class="muted">O'rtacha rostlik</small>
+      <div class="truth-big" style="font-size:var(--t-4);line-height:1;color:var(--ok)">{% if avg_truth is not None %}{{ avg_truth }}%{% else %}—{% endif %}</div></div>
   </div>
-  <div class="card">
-    <small class="muted">AI aniqligi</small>
-    <div class="truth-big" style="font-size:var(--t-4)">{% if accuracy is not None %}{{ accuracy }}%{% else %}—{% endif %}</div>
-    <small class="muted">tekshiruv natijasi</small>
+  <div class="card stat-pop stat-card">
+    <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-percent"></use></svg></span>
+    <div><small class="muted">AI aniqligi</small>
+      <div class="truth-big" style="font-size:var(--t-4);line-height:1">{% if accuracy is not None %}{{ accuracy }}%{% else %}—{% endif %}</div>
+      <small class="muted">tekshiruv natijasi</small></div>
   </div>
 </div>
 

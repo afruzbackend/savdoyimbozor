@@ -7,15 +7,22 @@
 {% endblock %}
 {% block content %}
 <div class="grid grid-2" style="margin-bottom:var(--sp-4)">
-  <div class="card">
-    <small class="muted">Bugungi savdo</small>
-    <div class="truth-big num" style="font-size:var(--t-4);margin-top:4px">{{ today_total|intcomma }}<span style="font-size:var(--t-1)"> so'm</span></div>
-    <small class="muted">{{ today_count }} ta chek</small>
+  <div class="card stat-pop stat-card">
+    <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg></span>
+    <div><small class="muted">Bugungi savdo</small>
+      <div class="truth-big num" style="font-size:var(--t-4);line-height:1;margin-top:2px">{{ today_total|intcomma }}<span style="font-size:var(--t-1)"> so'm</span></div>
+      <small class="muted">{{ today_count }} ta chek</small></div>
   </div>
-  <div class="card">
-    <small class="muted">Do'kon</small>
-    <div style="font-family:var(--font-serif);font-size:var(--t-2);margin-top:6px">{{ shop.display_name|default:"—" }}</div>
-    <small class="muted">{% if shop %}№{{ shop.number }} · {{ shop.market.name }}{% endif %}</small>
+  <div class="card stat-pop stat-card">
+    <span class="stat-ic" aria-hidden="true">
+      <svg class="shop-anim" viewBox="0 0 24 24" fill="none">
+        <path d="M4 9 L5.5 4 H18.5 L20 9 Z" fill="currentColor" opacity=".8"/>
+        <rect x="5" y="9" width="14" height="11" rx="1" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/>
+        <rect class="shutter" x="8" y="12" width="8" height="8" fill="currentColor" opacity=".55"/>
+      </svg></span>
+    <div><small class="muted">Do'kon</small>
+      <div style="font-family:var(--font-serif);font-size:var(--t-1);margin-top:2px">{{ shop.display_name|default:"—" }}</div>
+      <small class="muted">{% if shop %}№{{ shop.number }} · {{ shop.market.name }}{% endif %}</small></div>
   </div>
 </div>
 
