@@ -191,3 +191,40 @@ def test_can_delete_unused_category(aclient):
     )
     assert r.status_code == 302
     assert not ShopCategory.objects.filter(pk=cat.pk).exists()
+
+
+@pytest.mark.django_db
+def test_settings_reject_lockout_and_bad_thresholds(aclient):
+    """login_max_attempts=0 (hammani bloklash) va yashil<=sariq rad etiladi."""
+    from apps.core.models import SystemSettings
+
+    s = SystemSettings.get_solo()
+    old_attempts, old_green = s.login_max_attempts, s.green_threshold
+    aclient.post("/sozlamalar/", {"login_max_attempts": "0"}, HTTP_HOST=PANEL_HOST)
+    aclient.post("/sozlamalar/", {"green_threshold": "40", "yellow_threshold": "60"},
+                 HTTP_HOST=PANEL_HOST)
+    aclient.post("/sozlamalar/", {"tax_rate_percent": "abc"}, HTTP_HOST=PANEL_HOST)  # crash yo'q
+    SystemSettings._cache = None
+    s = SystemSettings.get_solo()
+    assert s.login_max_attempts == old_attempts
+    assert s.green_threshold == old_green
+
+
+@pytest.mark.django_db
+def test_login_sheet_shown_only_once(aclient):
+    session = aclient.session
+    session["login_sheet"] = [{"name": "X", "login": "1", "password": "SECRET1", "shop": ""}]
+    session.save()
+    r1 = aclient.get("/login-varaqasi/", HTTP_HOST=PANEL_HOST)
+    r2 = aclient.get("/login-varaqasi/", HTTP_HOST=PANEL_HOST)
+    assert "SECRET1" in r1.content.decode()
+    assert "SECRET1" not in r2.content.decode()
+
+
+def test_excel_str_float_numbers():
+    from apps.core.format import excel_str
+
+    assert excel_str(25.0) == "25"
+    assert excel_str(300000001.0) == "300000001"
+    assert excel_str("A-12") == "A-12"
+    assert excel_str(None) == ""

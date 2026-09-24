@@ -326,14 +326,29 @@ def inspection_create(request):
     preselect = alert.shop if alert else None
 
     if request.method == "POST":
-        shop = get_object_or_404(shops, pk=request.POST.get("shop"))
+        from django.contrib import messages as _msg
+
+        from apps.core.format import to_int
+
+        shop = get_object_or_404(shops, pk=request.POST.get("shop") or 0)
+        # Signal FAQAT shu do'konniki bo'lsin (boshqa bozor signalini yopib bo'lmasin)
+        post_alert = None
+        if request.POST.get("alert"):
+            post_alert = Alert.objects.filter(pk=request.POST.get("alert"), shop=shop).first()
+        result = request.POST.get("result") or Inspection.Result.PENDING
+        if result not in Inspection.Result.values:
+            result = Inspection.Result.PENDING
+        fine = to_int(request.POST.get("fine_amount"))
+        if fine is not None and fine < 0:
+            _msg.error(request, "Jarima manfiy bo'lmasin.")
+            return redirect(request.get_full_path())
         insp = Inspection.objects.create(
             shop=shop,
-            alert_id=request.POST.get("alert") or None,
+            alert=post_alert,
             inspector=request.user,
-            result=request.POST.get("result", "pending"),
-            act_number=request.POST.get("act_number", "")[:60],
-            fine_amount=request.POST.get("fine_amount") or None,
+            result=result,
+            act_number=request.POST.get("act_number", "").strip()[:60],
+            fine_amount=fine or None,
             notes=request.POST.get("notes", ""),
             photo=request.FILES.get("photo"),
         )
@@ -373,14 +388,20 @@ def inspection_act(request, pk):
         shop__in=shops,
     )
     shop = insp.shop
-    today = timezone.localdate()
+    # Rasmiy hujjat O'ZGARMAS bo'lsin: davr va sana tekshiruv kuniga qotiriladi
+    # (ilgari "bugun"dan hisoblanib, aktni har chop etganda raqam/sana o'zgarardi).
+    act_dt = timezone.localtime(insp.created_at)
+    today = act_dt.date()
     start = today - timedelta(days=29)
     scores = list(DailyScore.objects.filter(shop=shop, date__range=(start, today)))
     hidden = sum(s.hidden_sales for s in scores)
     evaded_tax = int(hidden * cfg.tax_rate_percent / 100)
-    # Takroriylik: shu do'konda ilgari tasdiqlangan tekshiruv bo'lganmi (shu aktdan tashqari)
+    # Takroriylik: shu aktdan OLDIN tasdiqlangan tekshiruv bo'lganmi
+    # (keyinroq yaratilgani eski aktni "takroriy" qilib qo'ymasin)
     repeat = (
-        Inspection.objects.filter(shop=shop, result=Inspection.Result.CONFIRMED)
+        Inspection.objects.filter(
+            shop=shop, result=Inspection.Result.CONFIRMED, created_at__lt=insp.created_at
+        )
         .exclude(pk=insp.pk)
         .exists()
     )
@@ -416,7 +437,7 @@ def inspection_act(request, pk):
             "penalty_pct": cfg.fine_penalty_percent,
             "tier": tier,
             "repeat": repeat,
-            "now": timezone.now(),
+            "now": act_dt,  # akt sanasi = tekshiruv vaqti (har ochilganda o'zgarmaydi)
             "inspector": insp.inspector or request.user,
         },
     )

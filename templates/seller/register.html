@@ -37,8 +37,10 @@
     </div>
     <form method="post" class="stack gap-3">{% csrf_token %}
       <div class="field"><label class="label">Sanalgan naqd (so'm)</label>
-        <input class="input num" type="number" name="counted_cash" min="0"
-               value="{% if today_close %}{{ today_close.counted_cash }}{% else %}{{ t.cash }}{% endif %}" required></div>
+        {# Kutilgan summa bilan OLDINDAN TO'LDIRILMAYDI — aks holda sanamasdan "mos keldi" bo'lardi #}
+        <input class="input num" type="number" name="counted_cash" min="0" inputmode="numeric"
+               placeholder="Sandiqdagi naqdni sanab yozing"
+               value="{% if today_close %}{{ today_close.counted_cash }}{% endif %}" required></div>
       <div class="field"><label class="label">Izoh (ixtiyoriy)</label>
         <input class="input" name="note" placeholder="masalan: mayda pul yetishmadi"></div>
       <button class="btn btn-block" type="submit">Kassani yopish</button>

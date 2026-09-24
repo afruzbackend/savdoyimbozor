@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from apps.catalog.models import Product, ProductCategory, Unit
-from apps.core.format import som
+from apps.core.format import som, to_dec, to_int
 from apps.core.models import Notification, SystemSettings, notify
 
 from .models import (
@@ -166,15 +166,24 @@ def products(request):
         if not name:
             messages.error(request, "Mahsulotni ro'yxatdan tanlang.")
             return redirect("seller:products")
+        buy = to_int(request.POST.get("buy_price"), 0)
+        sell = to_int(request.POST.get("sell_price"), 0)
+        low = to_dec(request.POST.get("low_stock_threshold"), Decimal("0"))
+        if buy is None or sell is None or buy < 0 or sell < 0 or low < 0:
+            messages.error(request, "Narx va miqdor manfiy bo'lmasin.")
+            return redirect("seller:products")
+        if Product.objects.filter(shop=shop, name__iexact=name[:200], is_active=True).exists():
+            messages.error(request, f"«{name}» allaqachon ro'yxatda bor — boshqa nav/rang yozing.")
+            return redirect("seller:products")
         p = Product.objects.create(
             shop=shop,
             name=name[:200],
             category=cat,
             unit=unit,
-            barcode=request.POST.get("barcode", "")[:64],
-            buy_price=int(request.POST.get("buy_price") or 0),
-            sell_price=int(request.POST.get("sell_price") or 0),
-            low_stock_threshold=_dec(request.POST.get("low_stock_threshold")),
+            barcode=request.POST.get("barcode", "").strip()[:64],
+            buy_price=buy,
+            sell_price=sell,
+            low_stock_threshold=low,
         )
         if not p.barcode:  # barkod berilmagan bo'lsa — avtomatik EAN-13
             from apps.catalog.barcodes import ensure_barcode
@@ -225,7 +234,15 @@ def stock_in(request):
     if shop is None:
         return redirect("seller:home")
     if request.method == "POST":
-        price = int(request.POST.get("unit_price") or 0)
+        price = to_int(request.POST.get("unit_price"), 0)
+        qty = to_dec(request.POST.get("quantity"))
+        # Manfiy/nol kirim — foto/sababsiz yashirin "chiqarish" yo'li bo'lmasin
+        if qty is None or qty <= 0:
+            messages.error(request, "Miqdor 0 dan katta bo'lsin.")
+            return redirect("seller:stock_in")
+        if price is None or price < 0:
+            messages.error(request, "Kelish narxi manfiy bo'lmasin.")
+            return redirect("seller:stock_in")
         # 2 xil: mavjud mahsulotni tanlash YOKI qo'lda yangi nom yozish (yangi mahsulot yaratiladi)
         product = Product.objects.filter(pk=request.POST.get("product") or 0, shop=shop).first()
         if product is None:
@@ -240,15 +257,14 @@ def stock_in(request):
                     shop=shop,
                     name=name[:200],
                     unit=request.POST.get("unit", Unit.PIECE),
-                    barcode=request.POST.get("barcode", "")[:64],
+                    barcode=request.POST.get("barcode", "").strip()[:64],
                     buy_price=price,
-                    sell_price=int(request.POST.get("sell_price") or 0),
+                    sell_price=max(0, to_int(request.POST.get("sell_price"), 0) or 0),
                 )
                 if not product.barcode:
                     from apps.catalog.barcodes import ensure_barcode
 
                     ensure_barcode(product)
-        qty = _dec(request.POST.get("quantity"))
         in_packs = bool(request.POST.get("in_packs"))
         real_qty = qty * product.pack_coeff if in_packs else qty
         StockIn.objects.create(
@@ -282,14 +298,23 @@ def daily_close(request):
     today = timezone.localdate()
     prods = Product.objects.filter(shop=shop, is_active=True)
     if request.method == "POST":
+        # Sanalgan naqd MAJBURIY: bo'sh qolsa 0 deb yozilib, inspektorga noto'g'ri
+        # "100% kamomad" signali ketardi.
+        counted = to_int(request.POST.get("counted_cash"))
+        if counted is None or counted < 0:
+            messages.error(request, "Sandiqdagi sanalgan naqdni kiriting (0 bo'lsa 0 yozing).")
+            return redirect("seller:daily_close")
         close, _ = DailyClose.objects.update_or_create(
             shop=shop, date=today, defaults={"seller": request.user}
         )
         close.lines.all().delete()
         computed = 0
         for p in prods:
-            morning = _dec(request.POST.get(f"morning_{p.id}"))
-            evening = _dec(request.POST.get(f"evening_{p.id}"))
+            raw_ev = request.POST.get(f"evening_{p.id}")
+            if raw_ev is None or str(raw_ev).strip() == "":
+                continue  # sanalmagan mahsulot — 0 deb olinsa "hammasi sotilgan" bo'lardi
+            morning = max(Decimal("0"), to_dec(request.POST.get(f"morning_{p.id}"), Decimal("0")))
+            evening = max(Decimal("0"), to_dec(raw_ev, Decimal("0")))
             sold = max(Decimal("0"), morning - evening)
             computed += int(sold * p.sell_price)
             DailyCloseLine.objects.create(
@@ -309,7 +334,6 @@ def daily_close(request):
         close.save()
         # Kassa (Z-hisobot) — kun yakunining majburiy qismi
         t = _register_totals(shop, today)
-        counted = int(request.POST.get("counted_cash") or 0)
         RegisterClose.objects.update_or_create(
             shop=shop,
             date=today,
@@ -336,12 +360,50 @@ def daily_close(request):
     existing = DailyClose.objects.filter(shop=shop, date=today).first()
     reg = _register_totals(shop, today)
     today_close = RegisterClose.objects.filter(shop=shop, date=today).first()
+
+    # "Ertalab" = kun BOSHIDAGI qoldiq. Joriy qoldiq emas — skaner sotuvlari uni kechgacha
+    # allaqachon kamaytirgan bo'ladi (aks holda sotilgan ≈ 0 chiqib, nazorat ma'nosiz edi).
+    # Avval kechagi kechki sanoq; bo'lmasa: joriy + bugun sotilgan − bugun kirim.
+    yesterday = today - timedelta(days=1)
+    y_evening = {
+        ln.product_id: ln.evening_qty
+        for ln in DailyCloseLine.objects.filter(
+            close__shop=shop, close__date=yesterday, product__isnull=False
+        )
+    }
+    sold_today = {
+        r["product"]: r["q"]
+        for r in SaleItem.objects.filter(
+            sale__shop=shop, sale__created_at__date=today, product__isnull=False
+        ).values("product").annotate(q=Sum("quantity"))
+    }
+    in_today = {
+        r["product"]: r["q"]
+        for r in StockIn.objects.filter(shop=shop, created_at__date=today)
+        .values("product").annotate(q=Sum("quantity"))
+    }
+    lines_today = {}
+    if existing:
+        lines_today = {ln.product_id: ln for ln in existing.lines.all()}
+    rows = []
+    for p in prods:
+        if p.id in lines_today:  # bugun allaqachon yopilgan — kiritilganini ko'rsatamiz
+            morning = lines_today[p.id].morning_qty
+            evening = lines_today[p.id].evening_qty
+        else:
+            morning = y_evening.get(p.id)
+            if morning is None:
+                morning = max(Decimal("0"), p.stock + (sold_today.get(p.id) or 0)
+                              - (in_today.get(p.id) or 0))
+            evening = None
+        rows.append({"p": p, "morning": morning, "evening": evening})
     return render(
         request,
         "seller/daily_close.html",
         {
             "shop": shop,
             "products": prods,
+            "rows": rows,
             "existing": existing,
             "reg": reg,
             "today_close": today_close,
@@ -356,23 +418,34 @@ def returns(request):
         return redirect("seller:home")
     if request.method == "POST":
         product = Product.objects.filter(pk=request.POST.get("product") or 0, shop=shop).first()
-        qty = _dec(request.POST.get("quantity"))
-        # Summa: kiritilgan bo'lsa o'sha, aks holda mahsulot narxi × miqdor
-        amount = int(request.POST.get("amount") or 0)
-        if not amount and product:
-            amount = int(qty * product.sell_price)
-        SaleReturn.objects.create(
-            shop=shop,
-            seller=request.user,
-            product=product,
-            quantity=qty,
-            amount=amount,
-            reason=request.POST.get("reason", "")[:200],
-        )
-        # Qoldiqni kamaytiramiz (qaytarilgan/yaroqsiz mahsulot ombordan chiqadi)
-        if product and qty > 0:
+        qty = to_dec(request.POST.get("quantity"))
+        reason = request.POST.get("reason", "").strip()[:200]
+        amount = to_int(request.POST.get("amount"), 0)
+        # Qoldiqni kamaytiradi — shuning uchun hisobdan chiqarish kabi nazorat qilinadi
+        # (aks holda tovarni dalilsiz "qaytarish" deb chiqarib yuborish mumkin edi).
+        if product is None:
+            messages.error(request, "Mahsulotni tanlang.")
+        elif qty is None or qty <= 0:
+            messages.error(request, "Miqdor 0 dan katta bo'lsin.")
+        elif qty > product.stock:
+            messages.error(
+                request,
+                f"Qoldiqdan ko'p bo'lmasin: «{product.name}» qoldig'i {product.stock:g}, "
+                f"so'ralgan {qty:g}.",
+            )
+        elif not reason:
+            messages.error(request, "Sababni yozing — bu majburiy.")
+        elif amount is None or amount < 0:
+            messages.error(request, "Summa manfiy bo'lmasin.")
+        else:
+            if not amount:  # kiritilmagan bo'lsa — narx × miqdor
+                amount = int(qty * product.sell_price)
+            SaleReturn.objects.create(
+                shop=shop, seller=request.user, product=product,
+                quantity=qty, amount=amount, reason=reason,
+            )
             Product.objects.filter(pk=product.pk).update(stock=F("stock") - qty)
-        messages.success(request, "Qaytarish qayd etildi. Qoldiq yangilandi.")
+            messages.success(request, "Qaytarish qayd etildi. Qoldiq yangilandi.")
         return redirect("seller:returns")
     return render(
         request,
@@ -392,7 +465,7 @@ def writeoff(request):
         return redirect("seller:home")
     if request.method == "POST":
         product = Product.objects.filter(pk=request.POST.get("product") or 0, shop=shop).first()
-        qty = _dec(request.POST.get("quantity"))
+        qty = to_dec(request.POST.get("quantity"), Decimal("0"))
         reason = request.POST.get("reason", "").strip()[:200]
         if product is None:
             messages.error(request, "Mahsulotni tanlang.")
@@ -445,19 +518,28 @@ def debts(request):
             due = None
             raw_due = request.POST.get("due_date", "").strip()
             if raw_due:
-                try:
-                    due = datetime.strptime(raw_due, "%Y-%m-%d").date()
-                except ValueError:
-                    due = None
-            Debt.objects.create(
-                shop=shop,
-                customer_name=request.POST.get("customer_name", "")[:200],
-                customer_phone=request.POST.get("customer_phone", "")[:20],
-                amount=int(request.POST.get("amount") or 0),
-                due_date=due,
-                note=request.POST.get("note", "")[:200],
-            )
-            messages.success(request, "Nasiya qo'shildi.")
+                for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
+                    try:
+                        due = datetime.strptime(raw_due, fmt).date()
+                        break
+                    except ValueError:
+                        continue
+            name = request.POST.get("customer_name", "").strip()[:200]
+            amount = to_int(request.POST.get("amount"))
+            if not name:
+                messages.error(request, "Xaridor ismini yozing.")
+            elif amount is None or amount <= 0:
+                messages.error(request, "Summa 0 dan katta bo'lsin.")
+            else:
+                Debt.objects.create(
+                    shop=shop,
+                    customer_name=name,
+                    customer_phone=request.POST.get("customer_phone", "").strip()[:20],
+                    amount=amount,
+                    due_date=due,
+                    note=request.POST.get("note", "").strip()[:200],
+                )
+                messages.success(request, "Nasiya qo'shildi.")
         return redirect("seller:debts")
     active = Debt.objects.filter(shop=shop, is_paid=False)
     return render(
@@ -490,8 +572,12 @@ def report(request):
         sale__shop=shop, sale__created_at__date__range=(start, today)
     ).select_related("product")
     revenue = sum(i.line_total for i in items)
-    cost = sum(int(i.quantity * (i.product.buy_price if i.product else 0)) for i in items)
-    profit = revenue - cost
+    # Foyda FAQAT tannarxi ma'lum mahsulotlar bo'yicha. Tez sotuvda (mahsulotsiz)
+    # tannarx noma'lum — uni 0 deb olsak foyda = butun tushum bo'lib, chalg'itardi.
+    known = [i for i in items if i.product_id and i.product and i.product.buy_price]
+    profit = (
+        sum(i.line_total - int(i.quantity * i.product.buy_price) for i in known) if known else None
+    )
 
     # Davrlar bo'yicha ko'rsatkichlar
     from django.db.models import Sum
@@ -509,8 +595,8 @@ def report(request):
         "discount": sales_all.aggregate(s=Sum("discount"))["s"] or 0,
         "count": sales_all.count(),
         "sold_qty": SaleItem.objects.filter(sale__shop=shop).aggregate(q=Sum("quantity"))["q"] or 0,
-        "remaining": Product.objects.filter(shop=shop, is_active=True).aggregate(q=Sum("stock"))["q"]
-        or 0,
+        # kg + dona + bog'lamni qo'shish ma'nosiz — qoldiqdagi mahsulot TURLARI soni
+        "remaining": Product.objects.filter(shop=shop, is_active=True, stock__gt=0).count(),
     }
 
     chart = {
@@ -690,7 +776,15 @@ def register(request):
     t = _register_totals(shop, today)
 
     if request.method == "POST":
-        counted = int(request.POST.get("counted_cash") or 0)
+        counted = to_int(request.POST.get("counted_cash"))
+        if counted is None or counted < 0:
+            messages.error(request, "Sandiqdagi sanalgan naqdni kiriting (0 bo'lsa 0 yozing).")
+            return redirect("seller:register")
+        note = request.POST.get("note", "").strip()[:200]
+        prev = RegisterClose.objects.filter(shop=shop, date=today).first()
+        if prev and prev.counted_cash != counted:
+            # Qayta yopish — oldingi sanoq izsiz yo'qolmasin (inspektor ko'radi)
+            note = (f"Qayta yopildi (avval {som(prev.counted_cash)}). " + note)[:200]
         RegisterClose.objects.update_or_create(
             shop=shop,
             date=today,
@@ -701,7 +795,7 @@ def register(request):
                 "card_total": t["card"],
                 "transfer_total": t["transfer"],
                 "checks_count": t["count"],
-                "note": request.POST.get("note", "")[:200],
+                "note": note,
             },
         )
         diff = counted - t["cash"]
@@ -740,8 +834,11 @@ def corrections(request):
     today = timezone.localdate()
 
     if request.method == "POST":
-        sale = get_object_or_404(Sale, pk=request.POST.get("sale"), shop=shop)
-        new_total = int(request.POST.get("new_total") or 0)
+        # Faqat BUGUNGI sotuv — eski (hisoblangan) kunlarni orqaga o'zgartirib bo'lmasin
+        sale = get_object_or_404(
+            Sale, pk=request.POST.get("sale") or 0, shop=shop, created_at__date=today
+        )
+        new_total = to_int(request.POST.get("new_total"), 0) or 0
         reason = request.POST.get("reason", "").strip()[:200]
         if new_total <= 0 or not reason:
             messages.error(request, "Yangi summa (0 dan katta) va sabab kiritilishi shart.")
@@ -797,6 +894,9 @@ def appeals(request):
     if request.method == "POST":
         alert_id = request.POST.get("nosales_alert")
         msg = request.POST.get("message", "").strip()
+        if not msg:
+            messages.error(request, "Matnni yozing — bo'sh yuborib bo'lmaydi.")
+            return redirect("seller:appeals")
         if alert_id:  # nol-savdoni tushuntirish
             alert = Alert.objects.filter(
                 pk=alert_id, shop=shop, kind=Alert.Kind.ZERO_SALES

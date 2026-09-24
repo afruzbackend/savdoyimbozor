@@ -29,6 +29,7 @@ def create_sale(
     mode="quick",
     client_ts=None,
     note="",
+    client_uid="",
 ):
     """Sotuv yaratadi.
 
@@ -112,6 +113,7 @@ def create_sale(
         is_wholesale=is_wholesale,
         client_ts=client_ts,
         is_late=is_late,
+        client_uid=(client_uid or "")[:64],
         note=note[:200],
     )
     for q, up, pid, name in lines:

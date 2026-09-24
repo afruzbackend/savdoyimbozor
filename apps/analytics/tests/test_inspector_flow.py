@@ -114,3 +114,35 @@ def test_login_page_opens(client):
     """Kirmagan foydalanuvchi login sahifasini ko'radi (istalgan host)."""
     r = client.get("/login/", HTTP_HOST="127.0.0.1:8000")
     assert r.status_code == 200
+
+
+@pytest.mark.django_db
+def test_inspection_act_is_frozen_to_creation_date(iclient, shop):
+    """Akt sanasi/davri tekshiruv kuniga qotiriladi — keyin ochganda o'zgarmaydi."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.analytics.models import Inspection
+
+    insp = Inspection.objects.create(shop=shop, result="confirmed")
+    old = timezone.now() - timedelta(days=10)
+    Inspection.objects.filter(pk=insp.pk).update(created_at=old)
+    r = iclient.get(f"/tekshiruv/{insp.pk}/akt/", HTTP_HOST=INSPECTOR_HOST)
+    assert r.status_code == 200
+    assert timezone.localtime(old).strftime("%d.%m.%Y") in r.content.decode()
+
+
+@pytest.mark.django_db
+def test_inspection_cannot_resolve_foreign_alert(iclient, shop, market):
+    """Boshqa do'kon signalini POST orqali yopib bo'lmaydi (IDOR)."""
+    from apps.analytics.models import Alert
+    from apps.shops.models import Shop
+
+    other = Shop.objects.create(market=market, number="999", stir="1")
+    foreign = Alert.objects.create(shop=other, date="2026-01-01", kind="truth", level="red",
+                                   reason="x")
+    iclient.post("/tekshiruv/yangi/", {"shop": shop.pk, "alert": foreign.pk, "result": "false"},
+                 HTTP_HOST=INSPECTOR_HOST)
+    foreign.refresh_from_db()
+    assert foreign.status == Alert.Status.NEW

@@ -20,12 +20,24 @@ def test_seller_get_pages(sclient, shop, path):
 
 
 @pytest.mark.django_db
-def test_return_recorded(sclient, shop):
+def test_return_recorded(sclient, shop, product):
+    # Mahsulotsiz / sababsiz / qoldiqdan ko'p — yozilmaydi (dalilsiz chiqarish yo'li yopiq)
+    sclient.post("/qaytarish/", {"amount": "20000", "reason": "yaroqsiz"}, HTTP_HOST=SELLER_HOST)
+    sclient.post("/qaytarish/", {"product": product.pk, "quantity": "1"}, HTTP_HOST=SELLER_HOST)
+    sclient.post("/qaytarish/", {"product": product.pk, "quantity": "99999", "reason": "x"},
+                 HTTP_HOST=SELLER_HOST)
+    assert not SaleReturn.objects.filter(shop=shop).exists()
+    # To'g'ri — yoziladi, qoldiq kamayadi
+    before = product.stock
     r = sclient.post(
-        "/qaytarish/", {"amount": "20000", "reason": "yaroqsiz"}, HTTP_HOST=SELLER_HOST
+        "/qaytarish/",
+        {"product": product.pk, "quantity": "2", "amount": "20000", "reason": "yaroqsiz"},
+        HTTP_HOST=SELLER_HOST,
     )
     assert r.status_code == 302
     assert SaleReturn.objects.filter(shop=shop, amount=20000).exists()
+    product.refresh_from_db()
+    assert product.stock == before - 2
 
 
 @pytest.mark.django_db

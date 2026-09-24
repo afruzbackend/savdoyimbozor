@@ -10,7 +10,9 @@
     {% else %}<div class="truth-big">—</div><small class="muted">ma'lumot yig'ilmoqda</small>{% endif %}
   </div>
   <div class="card center"><small class="muted">Bugungi savdo</small><div class="truth-big num" style="font-size:var(--t-3)">{{ metrics.today|intcomma }}</div><small class="muted">so'm</small></div>
-  <div class="card center"><small class="muted">Taxminiy foyda (14 kun)</small><div class="truth-big num" style="font-size:var(--t-3);color:var(--ok)">{{ profit|intcomma }}</div><small class="muted">so'm</small></div>
+  <div class="card center"><small class="muted">Taxminiy foyda (14 kun)</small>
+    {% if profit is not None %}<div class="truth-big num" style="font-size:var(--t-3);color:var(--ok)">{{ profit|intcomma }}</div><small class="muted">so'm · tannarxi ma'lum mahsulotlar</small>
+    {% else %}<div class="truth-big" style="font-size:var(--t-3)">—</div><small class="muted">tannarx kiritilmagan</small>{% endif %}</div>
 </div>
 
 <div class="grid grid-4" style="margin-bottom:var(--sp-4)">
@@ -21,8 +23,8 @@
 </div>
 <div class="grid grid-3" style="margin-bottom:var(--sp-4)">
   <div class="card"><small class="muted">Sotuvlar soni</small><div class="num" style="font-size:var(--t-2);font-weight:700">{{ metrics.count|intcomma }}</div></div>
-  <div class="card"><small class="muted">Sotilgan mahsulot (birlik)</small><div class="num" style="font-size:var(--t-2);font-weight:700">{{ metrics.sold_qty|floatformat:0|intcomma }}</div></div>
-  <div class="card"><small class="muted">Qolgan mahsulot (birlik)</small><div class="num" style="font-size:var(--t-2);font-weight:700">{{ metrics.remaining|floatformat:0|intcomma }}</div></div>
+  <div class="card"><small class="muted">Jami cheklar</small><div class="num" style="font-size:var(--t-2);font-weight:700">{{ metrics.count|intcomma }}</div></div>
+  <div class="card"><small class="muted">Qoldiqdagi mahsulot turlari</small><div class="num" style="font-size:var(--t-2);font-weight:700">{{ metrics.remaining }}</div></div>
 </div>
 
 <div class="grid" style="grid-template-columns:1fr 340px;gap:var(--sp-4);align-items:start">

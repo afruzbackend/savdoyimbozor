@@ -202,18 +202,24 @@ def import_shops(request):
         market = get_object_or_404(Market, pk=request.POST.get("market"))
         wb = openpyxl.load_workbook(request.FILES["file"], data_only=True)
         ws = wb.active
+        from apps.core.format import excel_str
+
         created = []
         errors = 0
-        for row in ws.iter_rows(min_row=2, values_only=True):
+        bad_rows = []
+        for idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
             if not row or row[0] is None:
                 continue
             try:
-                number = str(row[0]).strip()
-                stir = str(row[1]).strip() if row[1] else ""
-                owner = str(row[2]).strip() if row[2] else ""
-                phone = str(row[3]).strip() if row[3] else ""
-                cat_name = str(row[4]).strip() if len(row) > 4 and row[4] else ""
-                row_name = str(row[5]).strip() if len(row) > 5 and row[5] else ""
+                # Excel sonni float saqlaydi: 25.0 -> "25" (aks holda raqam "25.0" bo'lardi)
+                number = excel_str(row[0])
+                stir = excel_str(row[1]) if len(row) > 1 else ""
+                owner = excel_str(row[2]) if len(row) > 2 else ""
+                phone = excel_str(row[3]) if len(row) > 3 else ""
+                cat_name = excel_str(row[4]) if len(row) > 4 else ""
+                row_name = excel_str(row[5]) if len(row) > 5 else ""
+                if not number:
+                    raise ValueError("raqam bo'sh")
                 category = ShopCategory.objects.filter(name=cat_name).first() if cat_name else None
                 row_obj = (
                     Row.objects.get_or_create(market=market, label=row_name)[0]
@@ -235,17 +241,23 @@ def import_shops(request):
                     created.append(
                         cred_serializable(create_seller(shop, full_name=owner, phone=phone))
                     )
-            except Exception:
+            except Exception as e:  # noqa: BLE001 — qator xatosi importni to'xtatmasin
                 errors += 1
+                bad_rows.append(f"{idx}-qator ({e})")
         request.session["login_sheet"] = created
         messages.success(request, f"{len(created)} ta hisob ochildi, {errors} ta xato.")
+        if bad_rows:
+            messages.warning(request, "Xato qatorlar: " + "; ".join(bad_rows[:10])
+                             + (" ..." if len(bad_rows) > 10 else ""))
         return redirect("panel:login_sheet")
     return render(request, "panel/import_shops.html", {"markets": Market.objects.all()})
 
 
 @superadmin_required
 def login_sheet(request):
-    creds = request.session.get("login_sheet", [])
+    # Parollar FAQAT BIR MARTA ko'rsatiladi — sessiyadan olib tashlaymiz
+    # (ilgari sahifani qayta ochganda ochiq parollar yana ko'rinardi).
+    creds = request.session.pop("login_sheet", [])
     return render(request, "panel/login_sheet.html", {"creds": creds})
 
 
@@ -258,31 +270,59 @@ def import_cash(request):
         import openpyxl
 
         from apps.cash.models import CashRecord
+        from apps.core.format import excel_str, to_int
 
         wb = openpyxl.load_workbook(request.FILES["file"], data_only=True)
         ws = wb.active
         added, skipped = 0, 0
         dates = set()
-        for row in ws.iter_rows(min_row=2, values_only=True):
+        reasons = []
+        for idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
             if not row or not row[0]:
                 continue
-            shop = Shop.objects.filter(stir=str(row[0]).strip()).first()
-            if not shop:
+            stir = excel_str(row[0])
+            number = excel_str(row[3]) if len(row) > 3 else ""
+            qs = Shop.objects.filter(stir=stir)
+            if number:
+                qs = qs.filter(number=number)
+            matches = list(qs[:2])
+            if not matches:
                 skipped += 1
+                reasons.append(f"{idx}: STIR {stir} topilmadi")
                 continue
+            if len(matches) > 1:
+                # Bitta egasi (STIR) bir nechta do'konga ega — qaysi biri ekani noma'lum
+                skipped += 1
+                reasons.append(f"{idx}: STIR {stir} bir nechta do'konda — 4-ustunga do'kon raqami yozing")
+                continue
+            shop = matches[0]
             try:
                 d = row[1]
                 if isinstance(d, datetime.datetime):
                     d = d.date()
                 elif isinstance(d, str):
-                    d = datetime.datetime.strptime(d, "%Y-%m-%d").date()
+                    d = d.strip()
+                    for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y"):
+                        try:
+                            d = datetime.datetime.strptime(d, fmt).date()
+                            break
+                        except ValueError:
+                            continue
+                    else:
+                        raise ValueError("sana formati")
+                if not isinstance(d, datetime.date):
+                    raise ValueError("sana yo'q")
+                amount = to_int(row[2] if len(row) > 2 else None)
+                if amount is None or amount < 0:
+                    raise ValueError("summa noto'g'ri")
                 CashRecord.objects.update_or_create(
-                    shop=shop, date=d, source="excel", defaults={"amount": int(row[2] or 0)}
+                    shop=shop, date=d, source="excel", defaults={"amount": amount}
                 )
                 dates.add(d)
                 added += 1
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as e:
                 skipped += 1
+                reasons.append(f"{idx}: {e}")
         # Ta'sirlangan kunlar bo'yicha rostlikni qayta hisoblaymiz
         from apps.analytics.scoring.services import recompute_for_date
 
@@ -291,6 +331,9 @@ def import_cash(request):
         messages.success(
             request, f"{added} ta yozuv yuklandi, {skipped} o'tkazib yuborildi. Rostlik yangilandi."
         )
+        if reasons:
+            messages.warning(request, "O'tkazilgan qatorlar: " + "; ".join(reasons[:10])
+                             + (" ..." if len(reasons) > 10 else ""))
         return redirect("panel:import_cash")
     return render(request, "panel/import_cash.html")
 
@@ -316,10 +359,55 @@ def settings_edit(request):
             "anomaly_drop_pct",
             "cash_shortage_pct",
         ]
+        from apps.core.format import to_int
+
+        # Har maydon uchun ruxsat etilgan oraliq (noto'g'ri qiymat tizimni buzmasin)
+        limits = {
+            "green_threshold": (1, 100), "yellow_threshold": (0, 99),
+            "weight_cash": (0, 100), "weight_camera": (0, 100),
+            "weight_stock": (0, 100), "weight_price": (0, 100),
+            "weakest_part_cap": (0, 100), "max_discount_no_cost_pct": (0, 90),
+            "rounding_max": (0, 100000),
+            # 0/1 bo'lsa hamma (admin ham) birinchi xatodayoq bloklanardi
+            "login_max_attempts": (3, 20), "login_lock_minutes": (1, 1440),
+            "tax_rate_percent": (0, 100), "fine_penalty_percent": (0, 500),
+            "anomaly_drop_pct": (1, 100), "cash_shortage_pct": (1, 100),
+        }
+        labels = {
+            "green_threshold": "Yashil chegara", "yellow_threshold": "Sariq chegara",
+            "weight_cash": "Kassa og'irligi", "weight_camera": "Kamera og'irligi",
+            "weight_stock": "Qoldiq og'irligi", "weight_price": "Narx og'irligi",
+            "weakest_part_cap": "Eng zaif qism ustamasi",
+            "max_discount_no_cost_pct": "Maks. chegirma (%)", "rounding_max": "Yaxlitlash maks.",
+            "login_max_attempts": "Kirish urinishlari", "login_lock_minutes": "Blok muddati",
+            "tax_rate_percent": "Soliq stavkasi", "fine_penalty_percent": "Jarima ustamasi",
+            "anomaly_drop_pct": "Anomaliya chegarasi", "cash_shortage_pct": "Kassa kamomadi chegarasi",
+        }
+        new, errors = {}, []
         for f in fields:
-            val = request.POST.get(f)
-            if val is not None and val != "":
-                setattr(s, f, int(val))
+            raw = request.POST.get(f)
+            if raw is None or str(raw).strip() == "":
+                continue
+            val = to_int(raw)
+            lo, hi = limits[f]
+            if val is None or not (lo <= val <= hi):
+                errors.append(f"{labels.get(f, f)}: {lo}–{hi} oralig'ida butun son bo'lsin")
+            else:
+                new[f] = val
+        g = new.get("green_threshold", s.green_threshold)
+        y = new.get("yellow_threshold", s.yellow_threshold)
+        if not errors and g <= y:
+            errors.append("Yashil chegara sariqdan katta bo'lsin")
+        weights = [new.get(k, getattr(s, k)) for k in
+                   ("weight_cash", "weight_camera", "weight_stock", "weight_price")]
+        if not errors and sum(weights) <= 0:
+            errors.append("Og'irliklar yig'indisi 0 dan katta bo'lsin")
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+            return redirect("panel:settings")
+        for f, v in new.items():
+            setattr(s, f, v)
         s.save()
         SystemSettings._cache = None
         messages.success(request, "Sozlamalar saqlandi.")

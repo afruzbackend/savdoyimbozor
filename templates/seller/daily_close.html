@@ -14,10 +14,11 @@
     <div class="table-wrap"><table class="data">
       <thead><tr><th>Mahsulot</th><th class="num">Narx</th><th>Ertalab</th><th>Kechqurun</th></tr></thead>
       <tbody>
-      {% for p in products %}
-      <tr><td>{{ p.name }}</td><td class="num muted">{{ p.sell_price|intcomma }}</td>
-        <td><input class="input num" style="width:100px" type="number" step="0.1" name="morning_{{ p.id }}" value="{{ p.stock|floatformat:'-3' }}"></td>
-        <td><input class="input num" style="width:100px" type="number" step="0.1" name="evening_{{ p.id }}"></td></tr>
+      {% for r in rows %}
+      <tr><td>{{ r.p.name }}</td><td class="num muted">{{ r.p.sell_price|intcomma }}</td>
+        <td><input class="input num" style="width:100px" type="number" step="any" min="0" name="morning_{{ r.p.id }}" value="{{ r.morning|floatformat:'-3' }}"></td>
+        <td><input class="input num" style="width:100px" type="number" step="any" min="0" name="evening_{{ r.p.id }}" placeholder="sanang"
+                   value="{% if r.evening is not None %}{{ r.evening|floatformat:'-3' }}{% endif %}"></td></tr>
       {% empty %}<tr><td colspan="4" class="muted">Mahsulot yo'q.</td></tr>{% endfor %}
       </tbody></table></div>
 
@@ -29,8 +30,10 @@
         <div><small class="muted">O'tkazma</small><div class="num" style="font-weight:700">{{ reg.transfer|intcomma }}</div></div>
       </div>
       <div class="field"><label class="label">Sandiqdagi sanalgan naqd (so'm)</label>
-        <input class="input num" type="number" name="counted_cash" min="0" required
-               value="{% if today_close %}{{ today_close.counted_cash }}{% else %}{{ reg.cash }}{% endif %}"></div>
+        {# Kutilgan summa bilan OLDINDAN TO'LDIRILMAYDI — sotuvchi haqiqatan sanab yozsin #}
+        <input class="input num" type="number" name="counted_cash" min="0" required inputmode="numeric"
+               placeholder="Sandiqdagi naqdni sanab yozing"
+               value="{% if today_close %}{{ today_close.counted_cash }}{% endif %}"></div>
       <small class="faint">Sandiqda yozilgan naqddan ko'p bo'lsa — yozilmagan savdo belgisi (nazoratchiga signal).</small>
     </div>
 

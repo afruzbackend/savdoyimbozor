@@ -1,6 +1,8 @@
-"""Umumiy formatlash yordamchilari."""
+"""Umumiy formatlash va xavfsiz parsing yordamchilari."""
 
 from __future__ import annotations
+
+from decimal import Decimal, InvalidOperation
 
 
 def som(value) -> str:
@@ -14,3 +16,59 @@ def som(value) -> str:
         return f"{int(value or 0):,}".replace(",", " ")
     except (TypeError, ValueError):
         return str(value)
+
+
+def _clean_num(value) -> str:
+    """Foydalanuvchi yozgan sonni tozalaydi: "25 000", "12,5", "1 000.00" -> parse qilinadigan."""
+    s = str(value).strip().replace(" ", "").replace(" ", "")
+    return s.replace(",", ".")
+
+
+# Aqlli yuqori chegara: 9 kvadrillion so'm (BigInteger va JS xavfsiz butun son ichida).
+# "1e999" kabi ulkan son bazada to'lib ketib 500 xato bermasin.
+MAX_INT = 9_000_000_000_000_000
+
+
+def to_int(value, default=None):
+    """Formadan kelgan qiymat -> butun son (so'm). Bo'sh/xato bo'lsa `default`.
+
+    `int(request.POST[...])` o'rniga — "12.5", "abc", "25 000", "1e999" kabi
+    kiritishda 500 xato (crash) bo'lmasin.
+    """
+    if value is None:
+        return default
+    s = _clean_num(value)
+    if s == "":
+        return default
+    try:
+        d = Decimal(s)
+        if not d.is_finite() or abs(d) > MAX_INT:
+            return default
+        return int(d)
+    except (InvalidOperation, ValueError, OverflowError):
+        return default
+
+
+def to_dec(value, default=None):
+    """Formadan kelgan qiymat -> Decimal (miqdor). Bo'sh/xato bo'lsa `default`."""
+    if value is None:
+        return default
+    s = _clean_num(value)
+    if s == "":
+        return default
+    try:
+        d = Decimal(s)
+    except (InvalidOperation, ValueError):
+        return default
+    if not d.is_finite() or abs(d) > 1_000_000_000:  # miqdor uchun aqlli chegara
+        return default
+    return d
+
+
+def excel_str(value) -> str:
+    """Excel katakchasini matnga: 25.0 (float) -> "25", 300000001.0 -> "300000001"."""
+    if value is None:
+        return ""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value).strip()

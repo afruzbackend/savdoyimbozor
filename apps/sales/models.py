@@ -59,6 +59,8 @@ class Sale(TimeStampedModel):
     # Vaqt serverdan; client vaqti va kechikish belgisi (offline navbat uchun)
     client_ts = models.DateTimeField(_("Qurilma vaqti"), null=True, blank=True)
     is_late = models.BooleanField(_("Kech kiritilgan"), default=False)
+    # Qurilma bergan noyob id — offline navbatdan qayta yuborilganda dublikat bo'lmasin
+    client_uid = models.CharField(_("Qurilma ID"), max_length=64, blank=True, default="")
     note = models.CharField(_("Izoh"), max_length=200, blank=True)
 
     class Meta:
@@ -68,6 +70,13 @@ class Sale(TimeStampedModel):
         indexes = [
             models.Index(fields=["shop", "-created_at"]),
             models.Index(fields=["-created_at"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["shop", "client_uid"],
+                condition=~models.Q(client_uid=""),
+                name="uniq_sale_shop_client_uid",
+            )
         ]
 
     def __str__(self):
