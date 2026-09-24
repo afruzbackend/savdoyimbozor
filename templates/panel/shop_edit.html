@@ -1,0 +1,66 @@
+{% extends 'panel/base.html' %}
+{% load static %}
+{% block title %}Do'kon №{{ shop.number }}{% endblock %}
+{% block heading %}Do'kon №{{ shop.number }} — tahrirlash{% endblock %}
+{% block topbar_actions %}<a class="btn btn-ghost" href="{% url 'panel:market_detail' shop.market_id %}">
+  <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-arrow-left"></use></svg> {{ shop.market.name }}</a>{% endblock %}
+{% block content %}
+<div class="grid" style="grid-template-columns:minmax(0,640px) minmax(0,1fr);gap:var(--sp-4);align-items:start">
+<div class="card">
+  <form method="post" class="dirty-guard">
+    {% csrf_token %}
+    <div class="field"><label class="label">Egasining F.I.O.</label>
+      <input class="input" name="owner_name" value="{{ shop.owner_name }}" placeholder="Ism Familiya" required></div>
+    <div class="grid grid-2">
+      <div class="field"><label class="label">STIR</label>
+        <input class="input num" name="stir" value="{{ shop.stir }}" inputmode="numeric" placeholder="123456789" required></div>
+      <div class="field"><label class="label">Do'kon raqami</label>
+        <input class="input num" name="number" value="{{ shop.number }}" required></div>
+    </div>
+    <div class="grid grid-2">
+      <div class="field"><label class="label">Telefon</label>
+        <input class="input" name="owner_phone" value="{{ shop.owner_phone }}" placeholder="+998..."></div>
+      <div class="field"><label class="label">Savdo turi</label>
+        <select class="select-native" name="category" required>
+          <option value="" disabled {% if not shop.category_id %}selected{% endif %}>Tanlang</option>
+          {% for c in categories %}<option value="{{ c.pk }}" {% if c.pk == shop.category_id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+        </select></div>
+    </div>
+    <div class="grid grid-2">
+      <div class="field"><label class="label">Qator</label>
+        <select class="select-native" name="row">
+          <option value="" {% if not shop.row_id %}selected{% endif %}>— qatorsiz —</option>
+          {% for r in rows %}<option value="{{ r.pk }}" {% if r.pk == shop.row_id %}selected{% endif %}>{{ r.label }}</option>{% endfor %}
+        </select></div>
+      <div class="field"><label class="label">Manzil</label>
+        <input class="input" name="address" value="{{ shop.address }}" placeholder="Ko'cha, mo'ljal"></div>
+    </div>
+    <div class="field"><label class="label">Dam olish kunlari <small class="muted">(bu kunlarda signal berilmaydi)</small></label>
+      <div class="row gap-2 wrap-flex">
+        {% for n, d in weekdays %}
+        <label class="day-pill"><input type="checkbox" name="closed" value="{{ n }}" {% if n in closed %}checked{% endif %}><span>{{ d }}</span></label>
+        {% endfor %}
+      </div></div>
+    <label class="switch-row" style="margin-top:var(--sp-2)">
+      <span>Do'kon faol <small class="muted">(o'chirilsa — nazorat va reytingdan chiqadi)</small></span>
+      <input type="checkbox" name="is_active" {% if shop.is_active %}checked{% endif %}></label>
+    <button class="btn btn-lg" type="submit" style="margin-top:var(--sp-3)">Saqlash</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title" style="margin-bottom:var(--sp-3)">Sotuvchi hisobi</div>
+  {% for s in sellers %}
+    <div class="row gap-2" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="min-width:0"><b>{{ s.get_full_name|default:"—" }}</b>
+        <div class="muted num" style="font-size:var(--t--1)" data-noloc>Login: {{ s.username }}</div></div>
+      <a class="btn btn-ghost" style="padding:6px 10px" href="{% url 'panel:user_edit' s.pk %}">Tahrirlash</a>
+    </div>
+  {% empty %}
+    <p class="muted" style="margin:0 0 var(--sp-3)">Bu do'konda sotuvchi hisobi yo'q.</p>
+    <a class="btn btn-ghost" href="{% url 'panel:account_create' %}">+ Hisob ochish</a>
+  {% endfor %}
+  <p class="hint" style="margin-top:var(--sp-3)">STIR yoki raqam o'zgarsa ham sotuvchi logini o'zgarmaydi — u eski login bilan kiraveradi.</p>
+</div>
+</div>
+{% endblock %}

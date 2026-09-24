@@ -46,9 +46,17 @@ def user_list(request):
     role = request.GET.get("role")
     if role:
         users = users.filter(role=role)
-    q = request.GET.get("q")
+    q = (request.GET.get("q") or "").strip()
     if q:
-        users = users.filter(username__icontains=q)
+        from django.db.models import Q
+
+        users = users.filter(
+            Q(username__icontains=q)
+            | Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(shop__number=q)
+            | Q(shop__stir__icontains=q)
+        )
     from apps.core.pagination import paginate
 
     page = paginate(request, users, per_page=50)
@@ -119,6 +127,9 @@ def account_create(request):
     """Bittalab hisob ochish: sotuvchi (do'kon bilan) yoki tekshiruvchi."""
     if request.method == "POST":
         role = request.POST.get("role")
+        if not request.POST.get("full_name", "").strip():
+            messages.error(request, "F.I.O. ni yozing.")
+            return redirect("panel:account_create")
         if role == Role.SELLER:
             # "mode" formadan: mavjud do'kon faqat existing rejimda ishlatiladi
             # (yangi rejimda yashirin shop select qiymati e'tiborga olinmaydi).
@@ -135,6 +146,9 @@ def account_create(request):
                 category = ShopCategory.objects.filter(pk=request.POST.get("category") or 0).first()
                 if category is None:
                     messages.error(request, "Savdo turini tanlang.")
+                    return redirect("panel:account_create")
+                if not any(c.isdigit() for c in request.POST.get("stir", "")):
+                    messages.error(request, "STIR ni yozing (login shundan hosil bo'ladi).")
                     return redirect("panel:account_create")
 
                 # Do'kon raqami UNIKAL: bo'sh yoki band bo'lsa — keyingi bo'sh raqam
@@ -161,6 +175,10 @@ def account_create(request):
             )
         else:
             markets = Market.objects.filter(pk__in=request.POST.getlist("markets"))
+            if not markets.exists():
+                # Bozorsiz inspektor hech narsa ko'rmaydi — foydasiz hisob ochilmasin
+                messages.error(request, "Inspektorga kamida bitta bozor biriktiring.")
+                return redirect("panel:account_create")
             cred = create_inspector(
                 request.POST.get("full_name", "Inspektor"),
                 list(markets),
@@ -494,6 +512,95 @@ def market_detail(request, pk):
         seller = s.staff.first()  # do'kon sotuvchisi (odatda bitta)
         rows.append({"shop": s, "seller": seller})
     return render(request, "panel/market_detail.html", {"market": market, "rows": rows})
+
+
+WEEKDAYS = [(0, "Du"), (1, "Se"), (2, "Ch"), (3, "Pa"), (4, "Ju"), (5, "Sh"), (6, "Ya")]
+
+
+@superadmin_required
+def shop_edit(request, pk):
+    """Do'kon ma'lumotini tahrirlash (egasi, STIR, telefon, tur, qator, dam kunlari)."""
+    shop = get_object_or_404(Shop.objects.select_related("market", "category", "row"), pk=pk)
+    if request.method == "POST":
+        p = request.POST
+        owner = p.get("owner_name", "").strip()[:200]
+        stir = "".join(c for c in p.get("stir", "") if c.isdigit())[:15]
+        number = p.get("number", "").strip()[:20]
+        category = ShopCategory.objects.filter(pk=p.get("category") or 0).first()
+        errors = []
+        if not owner:
+            errors.append("Egasining F.I.O.")
+        if not stir:
+            errors.append("STIR")
+        if not number:
+            errors.append("do'kon raqami")
+        if category is None:
+            errors.append("savdo turi")
+        if errors:
+            messages.error(request, "To'ldiring: " + ", ".join(errors) + ".")
+            return redirect("panel:shop_edit", pk=shop.pk)
+        if Shop.objects.filter(market=shop.market, number=number).exclude(pk=shop.pk).exists():
+            messages.error(request, f"№{number} bu bozorda band — boshqa raqam tanlang.")
+            return redirect("panel:shop_edit", pk=shop.pk)
+        shop.owner_name = owner
+        shop.stir = stir
+        shop.number = number
+        shop.category = category
+        shop.owner_phone = p.get("owner_phone", "").strip()[:20]
+        shop.address = p.get("address", "").strip()[:300]
+        shop.row = Row.objects.filter(pk=p.get("row") or 0, market=shop.market).first()
+        days = sorted({int(d) for d in p.getlist("closed") if d.isdigit() and 0 <= int(d) <= 6})
+        shop.closed_weekdays = ",".join(str(d) for d in days)
+        shop.is_active = p.get("is_active") == "on"
+        shop.save()  # audit — AuditMiddleware POST'ni o'zi yozadi
+        messages.success(request, f"Do'kon №{shop.number} saqlandi.")
+        return redirect("panel:market_detail", pk=shop.market_id)
+    return render(
+        request,
+        "panel/shop_edit.html",
+        {
+            "shop": shop,
+            "categories": ShopCategory.objects.all(),
+            "rows": shop.market.rows.all(),
+            "weekdays": WEEKDAYS,
+            "closed": shop.closed_weekday_list(),
+            "sellers": shop.staff.all(),
+        },
+    )
+
+
+@superadmin_required
+def user_edit(request, pk):
+    """Foydalanuvchi: F.I.O., telefon; inspektorga bozor biriktirish."""
+    u = get_object_or_404(User.objects.select_related("shop", "shop__market"), pk=pk)
+    if request.method == "POST":
+        full = request.POST.get("full_name", "").split()
+        if not full:
+            messages.error(request, "F.I.O. ni yozing.")
+            return redirect("panel:user_edit", pk=u.pk)
+        u.first_name = full[0][:150]
+        u.last_name = " ".join(full[1:])[:150]
+        u.phone = request.POST.get("phone", "").strip()[:20]
+        u.save(update_fields=["first_name", "last_name", "phone"])
+        if u.is_inspector:
+            ids = request.POST.getlist("markets")
+            markets = list(Market.objects.filter(pk__in=ids))
+            if not markets:
+                messages.warning(
+                    request, "Inspektorga bozor biriktirilmadi — u hech bir do'konni ko'rmaydi."
+                )
+            u.assigned_markets.set(markets)
+        messages.success(request, f"{u.get_full_name()} saqlandi.")
+        return redirect("panel:users")
+    return render(
+        request,
+        "panel/user_edit.html",
+        {
+            "u": u,
+            "markets": Market.objects.select_related("region"),
+            "assigned": set(u.assigned_markets.values_list("pk", flat=True)),
+        },
+    )
 
 
 @superadmin_required

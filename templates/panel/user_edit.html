@@ -1,0 +1,34 @@
+{% extends 'panel/base.html' %}
+{% load static %}
+{% block title %}{{ u.get_full_name|default:u.username }}{% endblock %}
+{% block heading %}{{ u.get_full_name|default:u.username }}{% endblock %}
+{% block topbar_actions %}<a class="btn btn-ghost" href="{% url 'panel:users' %}">
+  <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-arrow-left"></use></svg> Foydalanuvchilar</a>{% endblock %}
+{% block content %}
+<div class="card" style="max-width:640px">
+  <div class="row gap-2" style="margin-bottom:var(--sp-4);flex-wrap:wrap">
+    <span class="badge badge-neutral">{{ u.get_role_display }}</span>
+    <span class="login-pill" data-noloc><span class="muted" style="font-size:var(--t--2)">Login:</span> <b class="num">{{ u.username }}</b></span>
+    {% if u.shop %}<a class="badge badge-neutral" href="{% url 'panel:shop_edit' u.shop.pk %}">Do'kon №{{ u.shop.number }} · {{ u.shop.market.name }}</a>{% endif %}
+    {% if not u.is_active %}<span class="badge badge-bad">Bloklangan</span>{% elif u.is_locked %}<span class="badge badge-warn">Vaqtincha bloklangan (xato parol)</span>{% endif %}
+  </div>
+  <form method="post" class="dirty-guard">
+    {% csrf_token %}
+    <div class="field"><label class="label">F.I.O.</label>
+      <input class="input" name="full_name" value="{{ u.get_full_name }}" placeholder="Ism Familiya" required></div>
+    <div class="field"><label class="label">Telefon</label>
+      <input class="input" name="phone" value="{{ u.phone }}" placeholder="+998..."></div>
+    {% if u.is_inspector %}
+    <div class="field"><label class="label">Biriktirilgan bozorlar <small class="muted">(inspektor faqat shu bozorlarni ko'radi)</small></label>
+      <div class="stack gap-1">
+      {% for m in markets %}<label class="check"><input type="checkbox" name="markets" value="{{ m.pk }}" {% if m.pk in assigned %}checked{% endif %}> {{ m.name }} <small class="muted">· {{ m.region.name }}</small></label>
+      {% empty %}<span class="muted">Bozor yo'q — avval bozor qo'shing.</span>{% endfor %}
+      </div></div>
+    {% endif %}
+    <button class="btn btn-lg" type="submit" style="margin-top:var(--sp-3)">Saqlash</button>
+  </form>
+  {% if u.is_locked %}
+  <p class="hint" style="margin-top:var(--sp-3)">Blokni ochish uchun foydalanuvchilar ro'yxatida «Parol tiklash» ni bosing — yangi parol beriladi va blok olinadi.</p>
+  {% endif %}
+</div>
+{% endblock %}

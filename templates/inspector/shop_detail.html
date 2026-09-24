@@ -122,10 +122,11 @@
         {% elif a.status == 'new' %}
         <form method="post" action="{% url 'inspector:appeal_respond' a.pk %}" class="stack gap-2" style="margin-top:6px">
           {% csrf_token %}
-          <input class="input" name="response" placeholder="Javob matni">
+          <input class="input" name="response" placeholder="Javob matni (rad etsangiz — sababi majburiy)">
           <div class="row gap-2">
             <button class="btn btn-ghost" name="action" value="accepted" style="padding:6px 12px">Qabul qilish</button>
-            <button class="btn btn-ghost" name="action" value="rejected" style="padding:6px 12px">Rad etish</button>
+            <button class="btn btn-ghost" name="action" value="rejected" style="padding:6px 12px"
+                    onclick="var t=this.form.response;if(!t.value.trim()){t.classList.add('err');t.focus();window.toast&&window.toast('Rad etish sababini yozing','bad');return false}">Rad etish</button>
           </div>
         </form>
         {% endif %}

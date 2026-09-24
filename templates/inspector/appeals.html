@@ -1,0 +1,53 @@
+{% extends 'inspector/base.html' %}
+{% load static uzdate %}
+{% block title %}E'tirozlar{% endblock %}
+{% block heading %}E'tirozlar{% endblock %}
+{% block content %}
+<div class="row gap-2 wrap-flex" style="margin-bottom:var(--sp-4)">
+  <a class="chip" href="?status=new" {% if status == 'new' %}aria-pressed="true"{% endif %}>Javob kutmoqda{% if new_count %} · {{ new_count }}{% endif %}</a>
+  <a class="chip" href="?status=accepted" {% if status == 'accepted' %}aria-pressed="true"{% endif %}>Qabul qilingan</a>
+  <a class="chip" href="?status=rejected" {% if status == 'rejected' %}aria-pressed="true"{% endif %}>Rad etilgan</a>
+  <a class="chip" href="?status=all" {% if not status %}aria-pressed="true"{% endif %}>Barchasi</a>
+</div>
+
+<div class="stack gap-3">
+{% for a in appeals %}
+  <div class="card appeal-card">
+    <div class="row gap-2" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap">
+      <div style="min-width:0">
+        <a href="{% url 'inspector:shop_detail' a.shop.pk %}" style="font-weight:700">№{{ a.shop.number }} {{ a.shop.owner_name }}</a>
+        <div class="muted" style="font-size:var(--t--1)">{{ a.shop.market.name }} · <span class="num">{{ a.created_at|uzdatetime }}</span></div>
+      </div>
+      <span class="badge badge-{% if a.status == 'accepted' %}ok{% elif a.status == 'rejected' %}bad{% else %}warn{% endif %}">{{ a.get_status_display }}</span>
+    </div>
+    {% if a.alert %}
+    <div class="msg {% if a.alert.level == 'red' %}error{% else %}warning{% endif %}" style="margin:var(--sp-3) 0 0">
+      <b>Signal ({{ a.alert.date|uzdate }}):</b> {{ a.alert.reason }}</div>
+    {% endif %}
+    <div style="margin-top:var(--sp-3);white-space:pre-line">{{ a.message }}</div>
+    {% if a.status != 'new' %}
+      {% if a.response %}<div class="msg info" style="margin:var(--sp-3) 0 0"><b>Javob:</b> {{ a.response }}</div>{% endif %}
+    {% else %}
+    <form method="post" action="{% url 'inspector:appeal_respond' a.pk %}" class="stack gap-2" style="margin-top:var(--sp-3)">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <textarea class="input" name="response" rows="2" placeholder="Javob matni (rad etsangiz — sababi majburiy)"></textarea>
+      <div class="row gap-2">
+        <button class="btn" name="action" value="accepted">
+          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-check"></use></svg> Qabul qilish</button>
+        <button class="btn btn-ghost" name="action" value="rejected"
+                onclick="var t=this.form.response;if(!t.value.trim()){t.classList.add('err');t.focus();window.toast&&window.toast('Rad etish sababini yozing','bad');return false}">
+          <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg> Rad etish</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+{% empty %}
+  <div class="card empty">
+    <img class="emoji-xl" src="{% static 'emoji/check.svg' %}" alt="" style="width:44px;height:44px"><br>
+    {% if status == 'new' %}Javob kutayotgan e'tiroz yo'q.{% else %}E'tiroz yo'q.{% endif %}
+  </div>
+{% endfor %}
+</div>
+{% include 'components/_pagination.html' %}
+{% endblock %}

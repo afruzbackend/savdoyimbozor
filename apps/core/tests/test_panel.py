@@ -228,3 +228,71 @@ def test_excel_str_float_numbers():
     assert excel_str(300000001.0) == "300000001"
     assert excel_str("A-12") == "A-12"
     assert excel_str(None) == ""
+
+
+@pytest.mark.django_db
+def test_admin_edits_shop(aclient, shop):
+    from apps.catalog.models import ShopCategory
+
+    cat = ShopCategory.objects.create(name="Kiyim-kechak")
+    assert aclient.get(f"/dokon/{shop.pk}/", HTTP_HOST=PANEL_HOST).status_code == 200
+    r = aclient.post(
+        f"/dokon/{shop.pk}/",
+        {"owner_name": "Yangi Egasi", "stir": "111 222 333", "number": shop.number,
+         "category": cat.pk, "owner_phone": "+998901234567", "closed": ["6", "0", "9"],
+         "is_active": "on"},
+        HTTP_HOST=PANEL_HOST,
+    )
+    assert r.status_code == 302
+    shop.refresh_from_db()
+    assert shop.owner_name == "Yangi Egasi"
+    assert shop.stir == "111222333"
+    assert shop.category == cat
+    assert shop.closed_weekdays == "0,6"  # 9 — noto'g'ri kun, tashlandi
+
+
+@pytest.mark.django_db
+def test_shop_edit_rejects_duplicate_number_and_blank(aclient, shop, market):
+    other = Shop.objects.create(market=market, number="999", stir="1")
+    base = {"owner_name": "X", "stir": "123", "category": shop.category_id}
+    aclient.post(f"/dokon/{shop.pk}/", {**base, "number": "999"}, HTTP_HOST=PANEL_HOST)
+    aclient.post(f"/dokon/{shop.pk}/", {**base, "number": shop.number, "owner_name": ""},
+                 HTTP_HOST=PANEL_HOST)
+    old = shop.number
+    shop.refresh_from_db()
+    assert shop.number == old and shop.owner_name != "X"
+    assert other.number == "999"
+
+
+@pytest.mark.django_db
+def test_admin_edits_inspector_markets(aclient, market):
+    from apps.geo.models import Market
+
+    m2 = Market.objects.create(region=market.region, name="Oloy")
+    cred = create_inspector("Nodir Aliyev", [market])
+    u = cred["user"]
+    r = aclient.post(
+        f"/foydalanuvchilar/{u.pk}/",
+        {"full_name": "Nodir Karimov", "phone": "+998900000009", "markets": [m2.pk]},
+        HTTP_HOST=PANEL_HOST,
+    )
+    assert r.status_code == 302
+    u.refresh_from_db()
+    assert u.last_name == "Karimov"
+    assert list(u.assigned_markets.all()) == [m2]
+
+
+@pytest.mark.django_db
+def test_inspector_without_market_not_created(aclient):
+    from apps.accounts.models import Role, User
+
+    before = User.objects.filter(role=Role.INSPECTOR).count()
+    aclient.post("/hisob/yangi/", {"role": "inspector", "full_name": "Bo'sh"},
+                 HTTP_HOST=PANEL_HOST)
+    assert User.objects.filter(role=Role.INSPECTOR).count() == before
+
+
+@pytest.mark.django_db
+def test_user_search_by_name_and_shop(aclient, seller, shop):
+    r = aclient.get(f"/foydalanuvchilar/?q={shop.number}", HTTP_HOST=PANEL_HOST)
+    assert seller.username in r.content.decode()

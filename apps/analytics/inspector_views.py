@@ -361,7 +361,7 @@ def inspection_create(request):
         # Tasdiqlangan bo'lsa — to'g'ridan-to'g'ri jarima aktiga o'tamiz
         if insp.result == Inspection.Result.CONFIRMED:
             return redirect("inspector:inspection_act", pk=insp.pk)
-        return redirect("inspector:alerts")
+        return redirect("inspector:inspections")
 
     return render(
         request,
@@ -460,18 +460,109 @@ def shop_search(request):
 
 
 @login_required
+def appeals_list(request):
+    """Barcha e'tirozlar bir joyda (ilgari faqat do'kon sahifasida — topish qiyin edi)."""
+    from apps.core.pagination import paginate
+
+    shops = _visible_shops(request)
+    base = Appeal.objects.filter(shop__in=shops)
+    status = request.GET.get("status", "new")
+    if status not in Appeal.Status.values:
+        status = ""
+    qs = base.select_related("shop", "shop__market", "alert", "author")
+    if status:
+        qs = qs.filter(status=status)
+    page = paginate(request, qs.order_by("-created_at"), per_page=30)
+    return render(
+        request,
+        "inspector/appeals.html",
+        {
+            "appeals": page.object_list,
+            "page": page,
+            "querystring": f"status={status}",
+            "status": status,
+            "new_count": base.filter(status=Appeal.Status.NEW).count(),
+        },
+    )
+
+
+@login_required
+def inspections_list(request):
+    """Tekshiruvlar va aktlar arxivi — o'tgan dalolatnomani qayta topib chop etish uchun."""
+    from django.db.models import Count, Q, Sum
+
+    from apps.core.pagination import paginate
+
+    shops = _visible_shops(request)
+    base = Inspection.objects.filter(shop__in=shops)
+    result = request.GET.get("result", "")
+    if result not in Inspection.Result.values:
+        result = ""
+    mine = request.GET.get("mine") == "1"
+    q = request.GET.get("q", "").strip()
+    qs = base.select_related("shop", "shop__market", "inspector", "alert")
+    if result:
+        qs = qs.filter(result=result)
+    if mine:
+        qs = qs.filter(inspector=request.user)
+    if q:
+        qs = qs.filter(
+            Q(shop__number__icontains=q) | Q(shop__stir__icontains=q) | Q(act_number__icontains=q)
+        )
+    totals = base.aggregate(
+        total=Count("id"),
+        confirmed=Count("id", filter=Q(result=Inspection.Result.CONFIRMED)),
+        false=Count("id", filter=Q(result=Inspection.Result.FALSE)),
+        fines=Sum("fine_amount", filter=Q(result=Inspection.Result.CONFIRMED)),
+    )
+    page = paginate(request, qs.order_by("-created_at"), per_page=30)
+    return render(
+        request,
+        "inspector/inspections.html",
+        {
+            "inspections": page.object_list,
+            "page": page,
+            "querystring": f"result={result}&mine={'1' if mine else ''}&q={q}",
+            "result": result,
+            "mine": mine,
+            "q": q,
+            "totals": totals,
+        },
+    )
+
+
+@login_required
 @require_POST
 def appeal_respond(request, pk):
     """Inspektor e'tirozga javob beradi (qabul/rad + matn)."""
+    from django.contrib import messages
+    from django.utils.http import url_has_allowed_host_and_scheme
+
     shops = _visible_shops(request)
     appeal = get_object_or_404(Appeal, pk=pk, shop__in=shops)
+    nxt = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
+        nxt = ""
+    back = redirect(nxt) if nxt else redirect("inspector:shop_detail", pk=appeal.shop_id)
     action = request.POST.get("action")
+    response = request.POST.get("response", "").strip()[:2000]
+    if appeal.status != Appeal.Status.NEW:
+        messages.info(request, "Bu e'tirozga allaqachon javob berilgan.")
+        return back
+    if action == "rejected" and not response:
+        # Sababsiz rad etish — sotuvchi nima uchunligini bilmaydi, adolatsiz
+        messages.error(request, "Rad etish sababini yozing.")
+        return back
     if action in ("accepted", "rejected"):
         appeal.status = action
-        appeal.response = request.POST.get("response", "")[:2000]
+        appeal.response = response or ("Qabul qilindi." if action == "accepted" else "")
         appeal.save(update_fields=["status", "response"])
-        from django.contrib import messages
-
+        # E'tiroz qabul qilindi = signal asossiz — ochiq signal yopiladi
+        if action == "accepted" and appeal.alert_id and appeal.alert.status in (
+            Alert.Status.NEW, Alert.Status.ASSIGNED
+        ):
+            appeal.alert.status = Alert.Status.DISMISSED
+            appeal.alert.save(update_fields=["status"])
         from apps.core.models import Notification, notify
 
         target = appeal.author or getattr(appeal.shop, "staff", None)
@@ -487,7 +578,7 @@ def appeal_respond(request, pk):
             key=f"appeal:{appeal.id}:{action}",
         )
         messages.success(request, "E'tirozga javob berildi.")
-    return redirect("inspector:shop_detail", pk=appeal.shop_id)
+    return back
 
 
 @login_required

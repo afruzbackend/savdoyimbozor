@@ -146,3 +146,54 @@ def test_inspection_cannot_resolve_foreign_alert(iclient, shop, market):
                  HTTP_HOST=INSPECTOR_HOST)
     foreign.refresh_from_db()
     assert foreign.status == Alert.Status.NEW
+
+
+@pytest.mark.django_db
+def test_appeals_and_inspections_lists_render(iclient, shop, inspector):
+    from apps.analytics.models import Appeal, Inspection
+
+    Appeal.objects.create(shop=shop, message="Kassa xato yuklangan")
+    Inspection.objects.create(shop=shop, inspector=inspector, result="confirmed", act_number="BN-1")
+    r = iclient.get("/e-tirozlar/", HTTP_HOST=INSPECTOR_HOST)
+    assert r.status_code == 200 and "Kassa xato yuklangan" in r.content.decode()
+    r = iclient.get("/tekshiruvlar/?q=BN-1", HTTP_HOST=INSPECTOR_HOST)
+    assert r.status_code == 200 and "BN-1" in r.content.decode()
+    # Menyuda javobsiz e'tiroz soni ko'rinadi
+    assert r.context["nav_appeals_new"] == 1
+
+
+@pytest.mark.django_db
+def test_appeal_reject_requires_reason_and_accept_dismisses_alert(iclient, shop):
+    from datetime import date
+
+    from apps.analytics.models import Alert, Appeal
+
+    alert = Alert.objects.create(shop=shop, date=date.today(), level="red", reason="x")
+    ap = Appeal.objects.create(shop=shop, alert=alert, message="asossiz")
+    iclient.post(f"/e-tiroz/{ap.pk}/javob/", {"action": "rejected", "response": " "},
+                 HTTP_HOST=INSPECTOR_HOST)
+    ap.refresh_from_db()
+    assert ap.status == "new"  # sababsiz rad etilmadi
+    r = iclient.post(f"/e-tiroz/{ap.pk}/javob/",
+                     {"action": "accepted", "next": "/e-tirozlar/"}, HTTP_HOST=INSPECTOR_HOST)
+    assert r.status_code == 302 and r["Location"] == "/e-tirozlar/"
+    ap.refresh_from_db()
+    alert.refresh_from_db()
+    assert ap.status == "accepted"
+    assert alert.status == "dismissed"  # asossiz signal yopildi
+    # Qayta javob berib bo'lmaydi (qarorni jimgina o'zgartirish yo'q)
+    iclient.post(f"/e-tiroz/{ap.pk}/javob/", {"action": "rejected", "response": "y"},
+                 HTTP_HOST=INSPECTOR_HOST)
+    ap.refresh_from_db()
+    assert ap.status == "accepted"
+
+
+@pytest.mark.django_db
+def test_appeal_respond_ignores_external_next(iclient, shop):
+    from apps.analytics.models import Appeal
+
+    ap = Appeal.objects.create(shop=shop, message="m")
+    r = iclient.post(f"/e-tiroz/{ap.pk}/javob/",
+                     {"action": "accepted", "next": "https://evil.example/"},
+                     HTTP_HOST=INSPECTOR_HOST)
+    assert "evil" not in r["Location"]

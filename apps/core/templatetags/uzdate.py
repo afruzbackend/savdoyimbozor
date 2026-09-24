@@ -12,7 +12,7 @@ UZ_MONTHS = [
 ]
 
 
-@register.filter
+@register.filter(expects_localtime=True)
 def uzdate(value):
     """21-sentabr 2026"""
     if not value:
@@ -23,7 +23,7 @@ def uzdate(value):
         return str(value)
 
 
-@register.filter
+@register.filter(expects_localtime=True)
 def uzdatetime(value):
     """21-sentabr 2026, 14:30"""
     if not value:

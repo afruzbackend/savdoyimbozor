@@ -54,7 +54,7 @@
     <div x-show="role==='inspector'" x-cloak>
       <div class="field"><label class="label">Biriktirilgan bozorlar</label>
         <div class="stack gap-1">
-        {% for m in markets %}<label class="check"><input type="checkbox" name="markets" value="{{ m.pk }}"> {{ m.name }}</label>{% endfor %}
+        {% for m in markets %}<label class="check"><input type="checkbox" name="markets" value="{{ m.pk }}"{% if forloop.first %} required{% endif %}> {{ m.name }}</label>{% endfor %}
         </div>
       </div>
     </div>

@@ -1,0 +1,64 @@
+{% extends 'inspector/base.html' %}
+{% load static humanize uzdate %}
+{% block title %}Tekshiruvlar{% endblock %}
+{% block heading %}Tekshiruvlar{% endblock %}
+{% block topbar_actions %}
+<a class="btn" href="{% url 'inspector:inspection_create' %}">
+  <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-plus"></use></svg> Yangi tekshiruv</a>
+{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:var(--sp-4)">
+  <div class="card stat-card stat-pop"><span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg></span>
+    <div><small class="muted">Jami tekshiruv</small><div class="truth-big num count-up" style="font-size:var(--t-3);line-height:1.1">{{ totals.total }}</div></div></div>
+  <div class="card stat-card stat-pop"><span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg></span>
+    <div><small class="muted">Tasdiqlangan</small><div class="truth-big num count-up" style="font-size:var(--t-3);line-height:1.1;color:var(--bad)">{{ totals.confirmed }}</div></div></div>
+  <div class="card stat-card stat-pop"><span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg></span>
+    <div><small class="muted">Noto'g'ri signal</small><div class="truth-big num count-up" style="font-size:var(--t-3);line-height:1.1">{{ totals.false }}</div></div></div>
+  <div class="card stat-card stat-pop"><span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg></span>
+    <div><small class="muted">Hisoblangan jarima</small><div class="truth-big num" style="font-size:var(--t-2);line-height:1.1">{{ totals.fines|default:0|intcomma }} <small class="muted">so'm</small></div></div></div>
+</div>
+
+<form method="get" class="row gap-2 wrap-flex" style="margin-bottom:var(--sp-4);align-items:center">
+  <a class="chip" href="?" {% if not result and not mine and not q %}aria-pressed="true"{% endif %}>Barchasi</a>
+  <a class="chip" href="?result=confirmed" {% if result == 'confirmed' %}aria-pressed="true"{% endif %}>Tasdiqlangan</a>
+  <a class="chip" href="?result=false" {% if result == 'false' %}aria-pressed="true"{% endif %}>Noto'g'ri signal</a>
+  <a class="chip" href="?result=pending" {% if result == 'pending' %}aria-pressed="true"{% endif %}>Jarayonda</a>
+  <a class="chip" href="?mine=1" {% if mine %}aria-pressed="true"{% endif %}>Mening</a>
+  <div class="search-inline" style="margin-left:auto;display:flex;gap:6px">
+    <input class="input" name="q" value="{{ q }}" placeholder="Do'kon №, STIR yoki akt raqami" style="min-width:220px">
+    <button class="btn btn-ghost" type="submit"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-search"></use></svg></button>
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Sana</th><th>Do'kon</th><th>Natija</th><th>Dalolatnoma</th><th class="num">Jarima</th><th>Tekshiruvchi</th><th></th></tr></thead>
+      <tbody>
+      {% for i in inspections %}
+      <tr class="{% if i.result == 'confirmed' %}row-bad{% endif %}">
+        <td class="num" style="white-space:nowrap">{{ i.created_at|uzdatetime }}</td>
+        <td><a href="{% url 'inspector:shop_detail' i.shop.pk %}">№{{ i.shop.number }} {{ i.shop.owner_name }}</a>
+          <div class="muted" style="font-size:var(--t--1)">{{ i.shop.market.name }}{% if i.alert %} · {{ i.alert.reason|truncatechars:60 }}{% endif %}</div></td>
+        <td><span class="badge badge-{% if i.result == 'confirmed' %}bad{% elif i.result == 'false' %}ok{% else %}neutral{% endif %}">{{ i.get_result_display }}</span></td>
+        <td class="num" data-noloc>{{ i.act_number|default:"—" }}</td>
+        <td class="num">{% if i.fine_amount %}{{ i.fine_amount|intcomma }}{% else %}—{% endif %}</td>
+        <td>{{ i.inspector.get_full_name|default:i.inspector.username|default:"—" }}</td>
+        <td style="white-space:nowrap">
+          {% if i.result == 'confirmed' %}
+          <a class="btn btn-ghost" style="padding:6px 10px" href="{% url 'inspector:inspection_act' i.pk %}">
+            <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-file-text"></use></svg> Akt</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="empty">
+        <img class="emoji-xl" src="{% static 'emoji/check.svg' %}" alt="" style="width:44px;height:44px"><br>
+        {% if q or result or mine %}Filtr bo'yicha tekshiruv topilmadi.{% else %}Hali tekshiruv o'tkazilmagan.{% endif %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'components/_pagination.html' %}
+{% endblock %}

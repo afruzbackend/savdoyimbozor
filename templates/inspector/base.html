@@ -1,19 +1,24 @@
 {% extends 'shell.html' %}
 {% load static %}
 {% block nav %}
-<a class="navlink {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'inspector:dashboard' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-layout-dashboard"></use></svg> Boshqaruv paneli</a>
-<a class="navlink {% if 'map' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'inspector:map' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg> Bozor xaritasi</a>
-<a class="navlink {% if request.resolver_match.url_name == 'shop_search' %}active{% endif %}" href="{% url 'inspector:shop_search' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-search"></use></svg> Do'kon qidirish</a>
-<a class="navlink {% if request.resolver_match.url_name == 'alerts' %}active{% endif %}" href="{% url 'inspector:alerts' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg> Signallar</a>
-<a class="navlink {% if request.resolver_match.url_name == 'inspection_create' %}active{% endif %}" href="{% url 'inspector:inspection_create' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Tekshiruv</a>
-<a class="navlink {% if 'inventory' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'inspector:inventory' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg> Joriy ombor</a>
-<a class="navlink {% if request.resolver_match.url_name == 'cameras' %}active{% endif %}" href="{% url 'inspector:cameras' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-camera"></use></svg> Kameralar</a>
-<a class="navlink {% if request.resolver_match.url_name == 'statistics' %}active{% endif %}" href="{% url 'inspector:statistics' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-trending-up"></use></svg> Statistika</a>
-<a class="navlink {% if request.resolver_match.url_name == 'reports' %}active{% endif %}" href="{% url 'inspector:reports' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg> Hisobotlar</a>
+{% with u=request.resolver_match.url_name %}
+<a class="navlink {% if u == 'dashboard' %}active{% endif %}" href="{% url 'inspector:dashboard' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-layout-dashboard"></use></svg> Boshqaruv paneli</a>
+<a class="navlink {% if 'map' in u %}active{% endif %}" href="{% url 'inspector:map' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg> Bozor xaritasi</a>
+<a class="navlink {% if u == 'shop_search' %}active{% endif %}" href="{% url 'inspector:shop_search' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-search"></use></svg> Do'kon qidirish</a>
+<a class="navlink {% if u == 'alerts' %}active{% endif %}" href="{% url 'inspector:alerts' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg> Signallar{% if nav_alerts_new %} <span class="nav-badge" title="Yangi signallar">{% if nav_alerts_new > 99 %}99+{% else %}{{ nav_alerts_new }}{% endif %}</span>{% endif %}</a>
+<a class="navlink {% if u == 'appeals' %}active{% endif %}" href="{% url 'inspector:appeals' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-info"></use></svg> E'tirozlar{% if nav_appeals_new %} <span class="nav-badge" title="Javob kutayotgan">{{ nav_appeals_new }}</span>{% endif %}</a>
+<a class="navlink {% if u == 'inspections' or u == 'inspection_create' or u == 'inspection_act' %}active{% endif %}" href="{% url 'inspector:inspections' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Tekshiruvlar</a>
+<a class="navlink {% if 'inventory' in u %}active{% endif %}" href="{% url 'inspector:inventory' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg> Joriy ombor</a>
+<a class="navlink {% if u == 'cameras' %}active{% endif %}" href="{% url 'inspector:cameras' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-camera"></use></svg> Kameralar</a>
+<a class="navlink {% if u == 'statistics' %}active{% endif %}" href="{% url 'inspector:statistics' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-trending-up"></use></svg> Statistika</a>
+<a class="navlink {% if u == 'reports' %}active{% endif %}" href="{% url 'inspector:reports' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bar-chart-3"></use></svg> Hisobotlar</a>
+{% endwith %}
 {% endblock %}
 {% block bottom_nav %}
-<a href="{% url 'inspector:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-layout-dashboard"></use></svg>Panel</a>
-<a href="{% url 'inspector:map' %}" class="{% if 'map' in request.resolver_match.url_name %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg>Xarita</a>
-<a href="{% url 'inspector:alerts' %}" class="{% if request.resolver_match.url_name == 'alerts' %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg>Signal</a>
-<a href="{% url 'profile' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-user"></use></svg>Profil</a>
+{% with u=request.resolver_match.url_name %}
+<a href="{% url 'inspector:dashboard' %}" class="{% if u == 'dashboard' %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-layout-dashboard"></use></svg>Panel</a>
+<a href="{% url 'inspector:map' %}" class="{% if 'map' in u %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg>Xarita</a>
+<a href="{% url 'inspector:alerts' %}" class="{% if u == 'alerts' %}active{% endif %}"><span class="bn-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg>{% if nav_alerts_new %}<span class="bn-badge">{% if nav_alerts_new > 99 %}99+{% else %}{{ nav_alerts_new }}{% endif %}</span>{% endif %}</span>Signal</a>
+<a href="{% url 'inspector:inspections' %}" class="{% if u == 'inspections' or u == 'inspection_create' or u == 'inspection_act' %}active{% endif %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg>Tekshiruv</a>
+{% endwith %}
 {% endblock %}

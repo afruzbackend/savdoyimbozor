@@ -8,12 +8,12 @@
 <div class="card">
   <div class="card-title" style="margin-bottom:var(--sp-3)">{{ market.region.name }} · {{ rows|length }} ta do'kon</div>
   <div class="table-wrap"><table class="data">
-    <thead><tr><th>№</th><th>Egasi</th><th>STIR</th><th>Savdo turi</th><th>Login</th><th>Parol</th></tr></thead>
+    <thead><tr><th>№</th><th>Egasi</th><th>STIR</th><th>Savdo turi</th><th>Login</th><th>Parol</th><th></th></tr></thead>
     <tbody>
     {% for r in rows %}
       <tr>
         <td class="num">{{ r.shop.number }}</td>
-        <td>{{ r.shop.owner_name|default:"—" }}</td>
+        <td>{{ r.shop.owner_name|default:"—" }}{% if not r.shop.is_active %} <span class="badge badge-neutral">Nofaol</span>{% endif %}</td>
         <td class="num muted">{{ r.shop.stir|default:"—" }}</td>
         <td>{{ r.shop.category.name|default:"—" }}</td>
         <td class="num" data-noloc>{% if r.seller %}{{ r.seller.username }}{% else %}<span class="muted">— sotuvchi yo'q —</span>{% endif %}</td>
@@ -29,8 +29,9 @@
           </span>
           {% else %}<span class="muted">—</span>{% endif %}
         </td>
+        <td><a class="btn btn-ghost" style="padding:6px 10px" href="{% url 'panel:shop_edit' r.shop.pk %}">Tahrirlash</a></td>
       </tr>
-    {% empty %}<tr><td colspan="6" class="muted">Bu bozorda do'kon yo'q.</td></tr>{% endfor %}
+    {% empty %}<tr><td colspan="7" class="muted">Bu bozorda do'kon yo'q.</td></tr>{% endfor %}
     </tbody>
   </table></div>
 </div>

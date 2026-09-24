@@ -24,4 +24,18 @@ def ui_context(request):
             ctx["unread_notifications"] = user.notifications.filter(is_read=False).count()
         except Exception:
             ctx["unread_notifications"] = 0
+        attention = ctx["unread_notifications"]
+        if ctx["current_role"] == "inspector":
+            # Menyuda ko'rinadigan son: yangi signal va javobsiz e'tiroz (ilova ichida xabar)
+            from apps.analytics.models import Alert, Appeal
+
+            shops = user.visible_shops()
+            ctx["nav_alerts_new"] = Alert.objects.filter(
+                shop__in=shops, status=Alert.Status.NEW, level__in=("red", "yellow")
+            ).count()
+            ctx["nav_appeals_new"] = Appeal.objects.filter(
+                shop__in=shops, status=Appeal.Status.NEW
+            ).count()
+            attention += ctx["nav_alerts_new"] + ctx["nav_appeals_new"]
+        ctx["nav_attention"] = attention
     return ctx

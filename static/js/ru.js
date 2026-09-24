@@ -659,11 +659,58 @@ window.RU_DICT = {
   "Yashirilgan savdo (30 kun)": "Скрытая выручка (30 дней)",
   "Potensial qo'shimcha soliq ({{ tax_rate }}%)": "Потенциальный доп. налог",
   "Signallar": "Сигналы", "O'tkazilgan tekshiruvlar": "Проведённые проверки",
+  // E'tirozlar va tekshiruvlar ro'yxati
+  "Javob kutmoqda": "Ожидают ответа", "Qabul qilingan": "Принятые", "Rad etilgan": "Отклонённые",
+  "Javob matni (rad etsangiz — sababi majburiy)": "Текст ответа (при отклонении причина обязательна)",
+  "Rad etish sababini yozing": "Укажите причину отклонения",
+  "Rad etish sababini yozing.": "Укажите причину отклонения.",
+  "Javob kutayotgan e'tiroz yo'q.": "Нет возражений, ожидающих ответа.",
+  "E'tiroz yo'q.": "Возражений нет.", "Javob:": "Ответ:",
+  "Bu e'tirozga allaqachon javob berilgan.": "На это возражение уже дан ответ.",
+  "E'tirozga javob berildi.": "Ответ на возражение отправлен.",
+  "Yangi tekshiruv": "Новая проверка", "Jami tekshiruv": "Всего проверок",
+  "Hisoblangan jarima": "Начисленный штраф", "Mening": "Мои",
+  "Do'kon №, STIR yoki akt raqami": "№ магазина, ИНН или номер акта",
+  "Dalolatnoma": "Акт", "Akt": "Акт",
+  "Filtr bo'yicha tekshiruv topilmadi.": "По фильтру проверок не найдено.",
+  "Hali tekshiruv o'tkazilmagan.": "Проверок ещё не проводилось.",
+  "Yangi signallar": "Новые сигналы", "Javob kutayotgan": "Ожидают ответа",
+  "Yangi xabar bor": "Есть новые уведомления",
+  "Jonli — avtomatik yangilanadi": "В реальном времени — обновляется автоматически",
+  // Panel: do'kon / foydalanuvchi tahrirlash
+  "Egasining F.I.O.": "Ф.И.О. владельца", "Do'kon raqami": "Номер магазина",
+  "— qatorsiz —": "— без ряда —", "Dam olish kunlari": "Выходные дни",
+  "(bu kunlarda signal berilmaydi)": "(в эти дни сигналы не формируются)",
+  "Du": "Пн", "Se": "Вт", "Ch": "Ср", "Pa": "Чт", "Ju": "Пт", "Sh": "Сб", "Ya": "Вс",
+  "Do'kon faol": "Магазин активен",
+  "(o'chirilsa — nazorat va reytingdan chiqadi)": "(если выключить — исключается из контроля и рейтинга)",
+  "Sotuvchi hisobi": "Учётная запись продавца",
+  "Bu do'konda sotuvchi hisobi yo'q.": "У этого магазина нет учётной записи продавца.",
+  "STIR yoki raqam o'zgarsa ham sotuvchi logini o'zgarmaydi — u eski login bilan kiraveradi.":
+    "Даже при смене ИНН или номера логин продавца не меняется — он входит со старым логином.",
+  "(inspektor faqat shu bozorlarni ko'radi)": "(инспектор видит только эти рынки)",
+  "Bozor yo'q — avval bozor qo'shing.": "Рынков нет — сначала добавьте рынок.",
+  "Blokni ochish uchun foydalanuvchilar ro'yxatida «Parol tiklash» ni bosing — yangi parol beriladi va blok olinadi.":
+    "Чтобы снять блокировку, нажмите «Сбросить пароль» в списке пользователей — будет выдан новый пароль.",
+  "Vaqtincha bloklangan (xato parol)": "Временно заблокирован (неверный пароль)",
+  "Vaqtincha blok": "Временная блокировка", "Nofaol": "Неактивен",
+  "Login, F.I.O. yoki do'kon №": "Логин, Ф.И.О. или № магазина",
+  "Ko'cha, mo'ljal": "Улица, ориентир", "Login:": "Логин:",
+  "Inspektorga kamida bitta bozor biriktiring.": "Назначьте инспектору хотя бы один рынок.",
+  "F.I.O. ni yozing.": "Укажите Ф.И.О.",
+  "STIR ni yozing (login shundan hosil bo'ladi).": "Укажите ИНН (из него формируется логин).",
+  "Inspektorga bozor biriktirilmadi — u hech bir do'konni ko'rmaydi.":
+    "Инспектору не назначен рынок — он не увидит ни одного магазина.",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
    Tartib muhim — aniqroq/uzunroq bo'laklar oldin. Faqat RU rejimida qo'llanadi. */
 window.RU_FRAGMENTS = [
+  [" — tahrirlash", " — редактирование"],
+  ["To'ldiring: ", "Заполните: "],
+  [" bu bozorda band — boshqa raqam tanlang.", " на этом рынке занят — выберите другой номер."],
+  [" saqlandi.", " — сохранено."],
+  ["Do'kon №", "Магазин №"],
   ["Potensial qo'shimcha soliq", "Потенциальный доп. налог"],
   ["do'kon ichida (30 kunlik savdo bo'yicha)", "магазинов рынка (по продажам за 30 дней)"],
   ["Bozordagi", "Среди"],

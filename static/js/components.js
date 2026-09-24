@@ -204,6 +204,41 @@
     document.body.addEventListener &&
     document.body.addEventListener("htmx:afterSwap", function (e) { initValidation(e.target); });
 
+  // ---- Jonli yangilanish: faqat foydalanuvchi tinch turganda; skroll joyi saqlanadi ----
+  // (ilgari har 25s da to'liq reload bo'lib, o'qib turgan joy tepaga sakrardi)
+  window.liveRefresh = function (ms) {
+    var main = document.querySelector(".main");
+    var key = "bn-scroll:" + location.pathname;
+    try {
+      var saved = sessionStorage.getItem(key);
+      if (saved !== null && main) main.scrollTop = parseInt(saved, 10) || 0;
+      sessionStorage.removeItem(key);
+      // Avto-yangilanishdan keyin animatsiyalar qayta o'ynamasin (jim)
+      if (sessionStorage.getItem("bn-quiet") === "1") {
+        window.__bnQuiet = true;
+        document.documentElement.classList.add("no-anim");
+        if (window.Chart) window.Chart.defaults.animation = false;
+      }
+      sessionStorage.removeItem("bn-quiet");
+    } catch (e) { /* storage yopiq bo'lishi mumkin */ }
+    var last = Date.now();
+    var mark = function () { last = Date.now(); };
+    if (main) main.addEventListener("scroll", mark, { passive: true });
+    ["click", "keydown", "touchstart", "input", "mousemove"].forEach(function (ev) {
+      document.addEventListener(ev, mark, { passive: true, capture: true });
+    });
+    setInterval(function () {
+      if (document.hidden) return;
+      if (document.querySelector(".modal-backdrop:not([hidden])")) return;
+      if (Date.now() - last < 20000) return; // foydalanuvchi faol — halaqit bermaymiz
+      try {
+        if (main) sessionStorage.setItem(key, String(main.scrollTop));
+        sessionStorage.setItem("bn-quiet", "1");
+      } catch (e) { /* ok */ }
+      location.reload();
+    }, ms || 30000);
+  };
+
   // ---- Raqamlar 0 dan sanalib chiqadi (.count-up) — dashboard "jonli" ko'rinadi ----
   function countUp(el) {
     var node = null;
@@ -230,7 +265,7 @@
   }
   document.addEventListener("DOMContentLoaded", function () {
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
-    if (reduce) return;
+    if (reduce || window.__bnQuiet) return;
     document.querySelectorAll(".count-up").forEach(countUp);
   });
 

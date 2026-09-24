@@ -134,6 +134,8 @@ input:-webkit-autofill:focus,.textarea:-webkit-autofill{
 @media (prefers-reduced-motion:reduce){
   .stat-pop{animation:none;opacity:1;transform:none}
   .shop-anim .shutter{animation:none;transform:scaleY(1)}}
+/* Jonli avto-yangilanishdan keyin — kirish animatsiyalari qayta o'ynamaydi */
+.no-anim .stat-pop,.no-anim .truth-ring{animation:none;opacity:1;transform:none}
 .truth-ring::before{content:"";position:absolute;inset:10px;border-radius:50%;background:var(--surface)}
 .truth-ring .val{position:relative;font-family:var(--font-serif);font-weight:700;
   font-size:var(--t-3);font-variant-numeric:tabular-nums;color:var(--ink)}
@@ -201,6 +203,14 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .switch input:focus-visible+.track{box-shadow:0 0 0 3px var(--ring)}
 
 /* ---------- Checkbox / radio ---------- */
+/* Hafta kuni tanlagich (Du..Ya) — bosiladigan pill, brauzer checkbox'i ko'rinmaydi */
+.day-pill{position:relative;cursor:pointer;user-select:none}
+.day-pill input{position:absolute;opacity:0;pointer-events:none}
+.day-pill span{display:inline-grid;place-items:center;min-width:44px;height:38px;padding:0 10px;
+  border:1px solid var(--border-strong);border-radius:var(--r-2);font-weight:600;color:var(--ink-muted);
+  background:var(--surface);transition:background .12s,color .12s,border-color .12s}
+.day-pill input:checked+span{background:var(--primary);border-color:var(--primary);color:#fff}
+.day-pill input:focus-visible+span{outline:2px solid var(--primary);outline-offset:2px}
 .check{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
 .check input{width:20px;height:20px;accent-color:var(--primary)}
 
@@ -492,7 +502,16 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 /* Mobil pastki navigatsiya (sotuvchi/inspektor telefonda) */
 .bottom-nav{display:none}
 .menu-btn{display:none;align-items:center;justify-content:center;border:1px solid var(--border-strong);
-  background:transparent;color:var(--ink);border-radius:var(--r-2);padding:7px;cursor:pointer;flex:none}
+  background:transparent;color:var(--ink);border-radius:var(--r-2);padding:7px;cursor:pointer;flex:none;
+  position:relative}
+/* Telefonda yangi xabar/signal bo'lsa menyu tugmasida qizil nuqta */
+.menu-dot{position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;
+  background:var(--bad);box-shadow:0 0 0 2px var(--surface)}
+/* Pastki navigatsiyadagi son (masalan yangi signallar) */
+.bn-ic{position:relative;display:inline-flex}
+.bn-badge{position:absolute;top:-6px;left:calc(100% - 6px);min-width:16px;height:16px;padding:0 4px;
+  border-radius:99px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;line-height:16px;
+  text-align:center;box-shadow:0 0 0 2px var(--surface)}
 .menu-backdrop{display:none}
 @media (max-width:860px){
   .sidebar{display:none}
