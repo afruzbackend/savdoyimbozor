@@ -454,6 +454,10 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 @media (max-width:860px){
   .sidebar{display:none}
   .grid-4,.grid-3,.grid-2{grid-template-columns:1fr}
+  /* Inline ikki ustunli gridlar (masalan "360px 1fr") telefonda bitta ustun bo'lsin */
+  .content .grid[style*="grid-template-columns"]{grid-template-columns:1fr !important}
+  /* Grid bolalari qisqara olsin (keng jadval ustunni cho'zib yubormasin — o'zi skroll qiladi) */
+  .content .grid[style*="grid-template-columns"]>*{min-width:0}
   .content{padding:var(--sp-4);padding-bottom:84px}
   .menu-btn{display:inline-flex}
   /* Tor ekranда: sarlavha doim ko'rinsin; keng amal tugmasi joy yetmasa
