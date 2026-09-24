@@ -455,6 +455,25 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .file-name{font-size:var(--t--1);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .file-drop.has-file .file-btn{border-style:solid;border-color:var(--ok);color:var(--ok)}
 
+/* Sotuv muvaffaqiyati — yashil belgi chiziladi + summa */
+.sale-ok{position:fixed;inset:0;z-index:95;display:none;place-items:center;
+  background:rgba(15,20,30,.35);backdrop-filter:blur(1px)}
+.sale-ok.show{display:grid;animation:okBg 1.25s ease forwards}
+@keyframes okBg{0%{opacity:0}12%{opacity:1}80%{opacity:1}100%{opacity:0}}
+.sale-ok-card{background:var(--surface);border-radius:var(--r-3);padding:var(--sp-5) var(--sp-6);
+  text-align:center;box-shadow:var(--shadow-lg);transform:scale(.85);animation:okPop .4s cubic-bezier(.2,.8,.3,1.4) forwards}
+@keyframes okPop{to{transform:scale(1)}}
+.sale-ok-mark{width:88px;height:88px}
+.sale-ok-mark .c{fill:none;stroke:var(--ok);stroke-width:3;stroke-dasharray:151;stroke-dashoffset:151;animation:okC .5s ease forwards}
+.sale-ok-mark .p{fill:none;stroke:var(--ok);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:40;stroke-dashoffset:40;animation:okP .3s .42s ease forwards}
+@keyframes okC{to{stroke-dashoffset:0}}
+@keyframes okP{to{stroke-dashoffset:0}}
+.sale-ok-amt{font-family:var(--font-serif);font-weight:700;font-size:var(--t-3);margin-top:var(--sp-2);color:var(--ok)}
+@media (prefers-reduced-motion:reduce){
+  .sale-ok-card,.sale-ok-mark .c,.sale-ok-mark .p{animation:none}
+  .sale-ok-mark .c,.sale-ok-mark .p{stroke-dashoffset:0}.sale-ok-card{transform:none}}
+
 /* Modal (tasdiqlash) */
 [hidden]{display:none!important}
 .modal-backdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;

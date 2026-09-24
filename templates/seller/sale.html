@@ -76,6 +76,15 @@
     <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>
     <span x-text="saving?'Saqlanmoqda...':'Sotildi'"></span>
   </button>
+
+  {# Muvaffaqiyat animatsiyasi #}
+  <div class="sale-ok" x-ref="okOverlay" aria-hidden="true">
+    <div class="sale-ok-card">
+      <svg class="sale-ok-mark" viewBox="0 0 52 52"><circle class="c" cx="26" cy="26" r="24"/><path class="p" d="M15 27l7 7 15-16"/></svg>
+      <div class="sale-ok-amt" x-ref="okAmt"></div>
+      <div class="muted">Sotildi</div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -153,13 +162,20 @@
             body: JSON.stringify(body) });
           if (!r.ok) throw new Error('server');
           const d = await r.json();
-          window.toast('Sotildi: ' + window.BN.fmt(d.total) + ' so\'m', 'ok');
+          this.showOk(d.total);
           this.reset();
         } catch (e) {
           this.queue(body);
           window.toast('Internet yo\'q — navbatga saqlandi', 'warn');
           this.reset();
         } finally { this.saving = false; }
+      },
+      showOk(total) {
+        const o = this.$refs.okOverlay; if (!o) { return; }
+        if (this.$refs.okAmt) this.$refs.okAmt.textContent = window.BN.fmt(total) + ' so\'m';
+        o.classList.remove('show'); void o.offsetWidth; o.classList.add('show');
+        clearTimeout(this._okT);
+        this._okT = setTimeout(() => o.classList.remove('show'), 1250);
       },
       // ---- Offline navbat (localStorage) ----
       queue(body) {
