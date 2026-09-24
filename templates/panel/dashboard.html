@@ -4,10 +4,24 @@
 {% block heading %}Boshqaruv{% endblock %}
 {% block content %}
 <div class="grid grid-4" style="margin-bottom:var(--sp-4)">
-  <div class="card"><small class="muted">Viloyatlar</small><div class="truth-big" style="font-size:var(--t-4)">{{ regions }}</div></div>
-  <div class="card"><small class="muted">Bozorlar</small><div class="truth-big" style="font-size:var(--t-4)">{{ markets }}</div></div>
-  <div class="card"><small class="muted">Do'konlar</small><div class="truth-big" style="font-size:var(--t-4)">{{ shops }}</div></div>
-  <div class="card"><small class="muted">Foydalanuvchilar</small><div class="truth-big" style="font-size:var(--t-4)">{{ sellers|add:inspectors }}</div><small class="muted">{{ sellers }} sotuvchi · {{ inspectors }} inspektor</small></div>
+  <div class="card stat-pop stat-card">
+    <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg></span>
+    <div><small class="muted">Viloyatlar</small><div class="truth-big" style="font-size:var(--t-4);line-height:1">{{ regions }}</div></div></div>
+  <div class="card stat-pop stat-card">
+    <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-store"></use></svg></span>
+    <div><small class="muted">Bozorlar</small><div class="truth-big" style="font-size:var(--t-4);line-height:1">{{ markets }}</div></div></div>
+  <div class="card stat-pop stat-card">
+    <span class="stat-ic" aria-hidden="true">
+      <svg class="shop-anim" viewBox="0 0 24 24" fill="none">
+        <path d="M4 9 L5.5 4 H18.5 L20 9 Z" fill="currentColor" opacity=".8"/>
+        <rect x="5" y="9" width="14" height="11" rx="1" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/>
+        <rect class="shutter" x="8" y="12" width="8" height="8" fill="currentColor" opacity=".55"/>
+      </svg></span>
+    <div><small class="muted">Do'konlar</small><div class="truth-big" style="font-size:var(--t-4);line-height:1">{{ shops }}</div></div></div>
+  <div class="card stat-pop stat-card">
+    <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-users"></use></svg></span>
+    <div><small class="muted">Foydalanuvchilar</small><div class="truth-big" style="font-size:var(--t-4);line-height:1">{{ sellers|add:inspectors }}</div>
+      <small class="muted">{{ sellers }} sotuvchi · {{ inspectors }} inspektor</small></div></div>
 </div>
 <div class="grid grid-2">
   <div class="card">

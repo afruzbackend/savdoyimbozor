@@ -110,6 +110,24 @@ input:-webkit-autofill:focus,.textarea:-webkit-autofill{
 .truth-ring{--v:0;--c:var(--ok);width:104px;height:104px;flex:none;border-radius:50%;
   display:grid;place-items:center;position:relative;
   background:conic-gradient(var(--c) calc(var(--v)*1%),var(--surface-sunken) 0)}
+/* Dashboard kartalari — yuklanganda yumshoq ko'tarilib chiqadi (bir marta) */
+.stat-pop{opacity:0;transform:translateY(10px);animation:statPop .5s cubic-bezier(.2,.7,.3,1) forwards}
+.stat-pop:nth-child(2){animation-delay:.07s}
+.stat-pop:nth-child(3){animation-delay:.14s}
+.stat-pop:nth-child(4){animation-delay:.21s}
+@keyframes statPop{to{opacity:1;transform:none}}
+.stat-card{display:flex;align-items:center;gap:var(--sp-3)}
+.stat-card .stat-ic{width:40px;height:40px;flex:none;border-radius:11px;display:grid;place-items:center;
+  background:var(--brand-50);color:var(--primary)}
+:root[data-theme="dark"] .stat-card .stat-ic{background:var(--brand-900);color:var(--brand-200)}
+.stat-card .stat-ic .icon{width:22px;height:22px}
+/* Do'kon ikonkasi — jalyuz (eshik) yopilib-ochilib turadi */
+.shop-anim{width:26px;height:26px;overflow:hidden}
+.shop-anim .shutter{transform-origin:center top;animation:shopShutter 4.5s ease-in-out infinite}
+@keyframes shopShutter{0%{transform:scaleY(0)}35%{transform:scaleY(1)}62%{transform:scaleY(1)}90%,100%{transform:scaleY(0)}}
+@media (prefers-reduced-motion:reduce){
+  .stat-pop{animation:none;opacity:1;transform:none}
+  .shop-anim .shutter{animation:none;transform:scaleY(1)}}
 .truth-ring::before{content:"";position:absolute;inset:10px;border-radius:50%;background:var(--surface)}
 .truth-ring .val{position:relative;font-family:var(--font-serif);font-weight:700;
   font-size:var(--t-3);font-variant-numeric:tabular-nums;color:var(--ink)}
