@@ -6,10 +6,10 @@
 <div class="grid grid-4" style="margin-bottom:var(--sp-4)">
   <div class="card stat-pop stat-card">
     <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg></span>
-    <div><small class="muted">Viloyatlar</small><div class="truth-big" style="font-size:var(--t-4);line-height:1">{{ regions }}</div></div></div>
+    <div><small class="muted">Viloyatlar</small><div class="truth-big count-up" style="font-size:var(--t-4);line-height:1">{{ regions }}</div></div></div>
   <div class="card stat-pop stat-card">
     <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-store"></use></svg></span>
-    <div><small class="muted">Bozorlar</small><div class="truth-big" style="font-size:var(--t-4);line-height:1">{{ markets }}</div></div></div>
+    <div><small class="muted">Bozorlar</small><div class="truth-big count-up" style="font-size:var(--t-4);line-height:1">{{ markets }}</div></div></div>
   <div class="card stat-pop stat-card">
     <span class="stat-ic" aria-hidden="true">
       <svg class="shop-anim" viewBox="0 0 24 24" fill="none">
@@ -17,10 +17,10 @@
         <rect x="5" y="9" width="14" height="11" rx="1" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/>
         <rect class="shutter" x="8" y="12" width="8" height="8" fill="currentColor" opacity=".55"/>
       </svg></span>
-    <div><small class="muted">Do'konlar</small><div class="truth-big" style="font-size:var(--t-4);line-height:1">{{ shops }}</div></div></div>
+    <div><small class="muted">Do'konlar</small><div class="truth-big count-up" style="font-size:var(--t-4);line-height:1">{{ shops }}</div></div></div>
   <div class="card stat-pop stat-card">
     <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-users"></use></svg></span>
-    <div><small class="muted">Foydalanuvchilar</small><div class="truth-big" style="font-size:var(--t-4);line-height:1">{{ sellers|add:inspectors }}</div>
+    <div><small class="muted">Foydalanuvchilar</small><div class="truth-big count-up" style="font-size:var(--t-4);line-height:1">{{ sellers|add:inspectors }}</div>
       <small class="muted">{{ sellers }} sotuvchi · {{ inspectors }} inspektor</small></div></div>
 </div>
 <div class="grid grid-2">

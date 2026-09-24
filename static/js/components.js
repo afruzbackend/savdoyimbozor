@@ -204,6 +204,36 @@
     document.body.addEventListener &&
     document.body.addEventListener("htmx:afterSwap", function (e) { initValidation(e.target); });
 
+  // ---- Raqamlar 0 dan sanalib chiqadi (.count-up) — dashboard "jonli" ko'rinadi ----
+  function countUp(el) {
+    var node = null;
+    for (var i = 0; i < el.childNodes.length; i++) {
+      var n = el.childNodes[i];
+      if (n.nodeType === 3 && /\d/.test(n.textContent)) { node = n; break; }
+    }
+    if (!node) return;
+    var orig = node.textContent;
+    var target = parseInt(orig.replace(/\D/g, ""), 10);
+    if (!target || target > 2000000000) return;
+    var pct = orig.indexOf("%") >= 0 ? "%" : "";
+    var trail = /\s$/.test(orig) ? " " : "";
+    var fmt = function (v) { return window.BN ? window.BN.fmt(v) : String(v); };
+    var dur = 700, t0 = performance.now();
+    function step(now) {
+      var p = Math.min(1, (now - t0) / dur);
+      var val = Math.floor((1 - Math.pow(1 - p, 3)) * target);
+      node.textContent = fmt(val) + pct + trail;
+      if (p < 1) requestAnimationFrame(step);
+      else node.textContent = fmt(target) + pct + trail;
+    }
+    requestAnimationFrame(step);
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    if (reduce) return;
+    document.querySelectorAll(".count-up").forEach(countUp);
+  });
+
   // ---- Barkod skaner (kamera) — ZXing, hamma brauzerda ishlaydi ----
   window.openBarcodeScanner = function (onDetect) {
     if (!window.ZXing) {
