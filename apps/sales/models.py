@@ -10,6 +10,7 @@ class PaymentType(models.TextChoices):
     CASH = "cash", _("Naqd")
     CARD = "card", _("Karta")
     TRANSFER = "transfer", _("O'tkazma")
+    DEBT = "debt", _("Nasiya")  # pul keyin — sandiqqa tushmaydi, nasiya daftariga yoziladi
 
 
 class SaleMode(models.TextChoices):
@@ -202,7 +203,10 @@ class RegisterClose(TimeStampedModel):
     )
     seller = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
     date = models.DateField(_("Sana"), db_index=True)
+    # Kutilgan naqd = ertalabki maydalik + naqd sotuv + nasiyadan qaytgan naqd
     expected_cash = models.BigIntegerField(_("Kutilgan naqd (so'm)"), default=0)
+    opening_cash = models.BigIntegerField(_("Ertalabki maydalik (so'm)"), default=0)
+    debt_cash_in = models.BigIntegerField(_("Nasiyadan qaytgan naqd (so'm)"), default=0)
     counted_cash = models.BigIntegerField(_("Sanalgan naqd (so'm)"), default=0)
     card_total = models.BigIntegerField(_("Karta (so'm)"), default=0)
     transfer_total = models.BigIntegerField(_("O'tkazma (so'm)"), default=0)
@@ -224,6 +228,25 @@ class RegisterClose(TimeStampedModel):
         return f"{self.shop} Z-{self.date}: {self.counted_cash}"
 
 
+class CashOpen(TimeStampedModel):
+    """Kun boshidagi sandiqdagi maydalik (qaytim uchun).
+
+    Faqat kunning BIRINCHI sotuvidan oldin kiritiladi/o'zgartiriladi — aks holda
+    kechqurun yozilmagan savdo pulini "maydalik edi" deb yashirish mumkin bo'lardi.
+    Kiritilmasa kechqurun maydalik "ortiqcha" bo'lib, noto'g'ri signal chiqardi.
+    """
+
+    shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="cash_opens")
+    seller = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
+    date = models.DateField(_("Sana"), db_index=True)
+    amount = models.BigIntegerField(_("Maydalik (so'm)"), default=0)
+
+    class Meta:
+        verbose_name = _("Kun boshi maydaligi")
+        verbose_name_plural = _("Kun boshi maydaliklari")
+        unique_together = ("shop", "date")
+
+
 class Debt(TimeStampedModel):
     """Nasiya daftari."""
 
@@ -232,10 +255,36 @@ class Debt(TimeStampedModel):
     customer_phone = models.CharField(_("Telefon"), max_length=20, blank=True)
     amount = models.BigIntegerField(_("Summa (so'm)"), default=0)
     due_date = models.DateField(_("Qaytarish sanasi"), null=True, blank=True, db_index=True)
+    paid_amount = models.BigIntegerField(_("To'langan qismi (so'm)"), default=0)
     is_paid = models.BooleanField(_("To'langan"), default=False)
     paid_at = models.DateTimeField(null=True, blank=True)
     note = models.CharField(max_length=200, blank=True)
+    # Sotuv ekranida "Nasiya" bilan sotilgan bo'lsa — o'sha chek
+    sale = models.ForeignKey(
+        Sale, null=True, blank=True, on_delete=models.SET_NULL, related_name="debt_records"
+    )
 
     class Meta:
         verbose_name = _("Nasiya")
         verbose_name_plural = _("Nasiyalar")
+
+    @property
+    def remaining(self):
+        return max(0, self.amount - self.paid_amount)
+
+
+class DebtPayment(TimeStampedModel):
+    """Nasiya to'lovi (qisman ham). Naqd to'lov kassadagi kutilgan naqdga qo'shiladi."""
+
+    debt = models.ForeignKey(Debt, on_delete=models.PROTECT, related_name="payments")
+    shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="debt_payments")
+    seller = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
+    amount = models.BigIntegerField(_("Summa (so'm)"))
+    method = models.CharField(
+        _("To'lov"), max_length=12, choices=PaymentType.choices[:3], default=PaymentType.CASH
+    )
+
+    class Meta:
+        verbose_name = _("Nasiya to'lovi")
+        verbose_name_plural = _("Nasiya to'lovlari")
+        indexes = [models.Index(fields=["shop", "-created_at"])]

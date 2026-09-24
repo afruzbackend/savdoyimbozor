@@ -28,10 +28,11 @@
       <div class="row" style="justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
         <div class="grow"><div x-text="it.name" style="font-weight:600"></div>
           <small class="muted"><span class="num" x-text="fmt(it.price)"></span> × </small>
-          <input class="input" style="width:70px;display:inline-block;padding:4px 8px" type="number" step="0.1" x-model.number="it.qty">
+          <input class="input num" style="width:78px;display:inline-block;padding:4px 8px" type="number" step="any" min="0" inputmode="decimal"
+                 x-model.number="it.qty" :class="!(it.qty>0)&&'err'">
         </div>
-        <div class="num" style="font-weight:700;align-self:center" x-text="fmt(it.price*it.qty)"></div>
-        <button class="btn-quiet btn-icon" @click="cart.splice(idx,1)"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg></button>
+        <div class="num" style="font-weight:700;align-self:center" x-text="fmt(it.price*(it.qty||0))"></div>
+        <button class="btn-quiet btn-icon" title="Savatdan olib tashlash" @click="cart.splice(idx,1)"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-trash-2"></use></svg></button>
       </div>
     </template>
   </div>
@@ -58,6 +59,12 @@
         <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-credit-card"></use></svg> Karta</button>
       <button type="button" :aria-selected="pay==='transfer'" @click="pay='transfer'">
         <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-wallet"></use></svg> O'tkazma</button>
+      <button type="button" :aria-selected="pay==='debt'" @click="pay='debt';setTimeout(()=>$refs.debtor&&$refs.debtor.focus(),60)">
+        <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Nasiya</button>
+    </div>
+    <div class="debtor-box" x-show="pay==='debt'" x-cloak>
+      <input class="input" x-ref="debtor" x-model="debtorName" placeholder="Xaridor ismi (majburiy)" :class="debtorErr&&'err'" @input="debtorErr=false">
+      <input class="input num" x-model="debtorPhone" placeholder="Telefon" inputmode="tel">
     </div>
     <button class="btn btn-lg btn-block" :disabled="total<=0||saving" @click="submit()">
       <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>
@@ -82,6 +89,7 @@
   document.addEventListener('alpine:init', () => {
     Alpine.data('scanSale', () => ({
       cfg: window.__PRICING__, q: '', results: [], cart: [], discount: 0, pay: 'cash', saving: false,
+      debtorName: '', debtorPhone: '', debtorErr: false,
       customOpen: false, customVal: '',
       setCustom(){ this.discount = Math.min(window.BN.unfmt(this.customVal), this.cap); this.customOpen=false; this.customVal=''; },
       fmt(n){ return window.BN.fmt(Math.round(n)); },
@@ -103,17 +111,31 @@
         this.q=''; this.results=[]; this.$refs.scan.focus(); },
       async quickAdd(){ await this.search(); if(this.results.length) this.add(this.results[0]); },
       addDiscount(b){ this.discount=(this.discount===b)?0:Math.min(b,this.cap); },
-      async submit(){ if(this.total<=0) return; this.saving=true;
+      reset(){ this.cart=[]; this.discount=0; this.customOpen=false;
+        if(this.pay==='debt') this.pay='cash'; this.debtorName=''; this.debtorPhone=''; this.debtorErr=false;
+        this.$refs.scan.focus(); },
+      async submit(){ if(this.total<=0||this.saving) return;
+        if(this.cart.some(i=>!(i.qty>0))){ window.toast('Miqdor 0 dan katta bo\'lsin','bad'); return; }
+        if(this.pay==='debt' && !this.debtorName.trim()){ this.debtorErr=true; this.$refs.debtor&&this.$refs.debtor.focus();
+          window.toast('Nasiya uchun xaridor ismini yozing','bad'); return; }
+        this.saving=true;
         const body={ items:this.cart.map(i=>({product_id:i.id,name:i.name,qty:i.qty,unit_price:i.price})),
-          discount:this.discount, rounding:0, payment_type:this.pay, mode:'scan', client_ts:new Date().toISOString() };
-        try{ const r=await fetch('/api/sales/',{method:'POST',headers:{'Content-Type':'application/json',
-          'X-CSRFToken':document.cookie.match(/csrftoken=([^;]+)/)?.[1]||''},body:JSON.stringify(body)});
-          if(!r.ok){ let m='Xatolik — qayta urinib ko\'ring';
-            try{ const err=await r.json(); if(err.detail) m=err.detail; }catch(e){}
-            window.toast(m,'bad'); return; }
-          const d=await r.json();
-          this.showOk(d.total); this.cart=[]; this.discount=0; this.customOpen=false; this.$refs.scan.focus();
-        }catch(e){ window.toast('Xatolik — qayta urinib ko\'ring','bad'); } finally{ this.saving=false; } },
+          discount:this.discount, rounding:0, payment_type:this.pay, mode:'scan',
+          client_uid:window.saleQueue.uid(), client_ts:new Date().toISOString(),
+          debtor_name:this.pay==='debt'?this.debtorName.trim():'', debtor_phone:this.pay==='debt'?this.debtorPhone.trim():'' };
+        let r;
+        try{ r=await fetch('/api/sales/',{method:'POST',headers:{'Content-Type':'application/json',
+          'X-CSRFToken':document.cookie.match(/csrftoken=([^;]+)/)?.[1]||''},body:JSON.stringify(body)}); }
+        catch(e){
+          // Faqat haqiqiy tarmoq uzilishi — navbatga (sotuv yo'qolmaydi, keyin yuboriladi)
+          window.saleQueue.add(body); window.toast('Internet yo\'q — navbatga saqlandi','warn');
+          this.reset(); this.saving=false; return; }
+        this.saving=false;
+        if(!r.ok){ let m='Xatolik — qayta urinib ko\'ring';
+          try{ const err=await r.json(); if(err.detail) m=err.detail; }catch(e){}
+          window.toast(m,'bad'); return; }
+        const d=await r.json();
+        this.showOk(d.total); this.reset(); },
       showOk(total){ const o=this.$refs.okOverlay; if(!o){return;}
         if(this.$refs.okAmt) this.$refs.okAmt.textContent=window.BN.fmt(total)+' so\'m';
         o.classList.remove('show'); void o.offsetWidth; o.classList.add('show');

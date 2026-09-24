@@ -16,6 +16,10 @@ class InsufficientStock(Exception):
     """Qoldiqdan ko'p sotishga urinilganda."""
 
 
+class DebtorRequired(Exception):
+    """Nasiyaga sotuvda xaridor ismi yo'q."""
+
+
 @transaction.atomic
 def create_sale(
     *,
@@ -30,13 +34,20 @@ def create_sale(
     client_ts=None,
     note="",
     client_uid="",
+    debtor=None,
 ):
     """Sotuv yaratadi.
 
     items: [{"product_id"?, "name", "qty", "unit_price"}] — quick rejimda bitta qator ham bo'ladi.
     Vaqt serverdan olinadi; client_ts kelsa va farq katta bo'lsa is_late belgilanadi.
+    debtor: {"name", "phone"} — payment_type="debt" bo'lsa MAJBURIY (nasiya daftariga yoziladi).
     """
     from decimal import Decimal
+
+    debtor = debtor or {}
+    debtor_name = str(debtor.get("name") or "").strip()[:200]
+    if payment_type == "debt" and not debtor_name:
+        raise DebtorRequired("Nasiya uchun xaridor ismini yozing.")
 
     from apps.catalog.models import Product
 
@@ -128,4 +139,15 @@ def create_sale(
         # Qoldiqni kamaytiramiz (qatorlar allaqachon qulflangan)
         if pid:
             Product.objects.filter(pk=pid).update(stock=F("stock") - q)
+    if payment_type == "debt" and sale.total > 0:
+        from ..models import Debt
+
+        Debt.objects.create(
+            shop=shop,
+            sale=sale,
+            customer_name=debtor_name,
+            customer_phone=str(debtor.get("phone") or "").strip()[:20],
+            amount=sale.total,
+            note=f"Chek #{sale.pk}",
+        )
     return sale

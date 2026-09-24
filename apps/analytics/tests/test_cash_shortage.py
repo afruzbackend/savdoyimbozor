@@ -81,7 +81,7 @@ def test_hidden_sales_computed(shop, seller):
 
 @pytest.mark.django_db
 def test_zero_sales_with_stock_is_red(shop, seller, product):
-    """Do'kon ochiq, tovari bor, lekin 0 savdo kiritilган — qizil signal."""
+    """Do'kon ochiq, tovari bor, lekin 0 savdo kiritilgan — qizil signal."""
     day = timezone.localdate()
     # product fikstura'sida stock=100, savdo yo'q
     recompute_for_date(day)

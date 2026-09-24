@@ -66,7 +66,7 @@ def test_seller_blocked_from_panel(sclient):
 
 @pytest.mark.django_db
 def test_admin_cannot_block_self(aclient, admin_user):
-    """Admin o'zini bloklay olmaydi (aks holda tizimга kira olmay qoladi)."""
+    """Admin o'zini bloklay olmaydi (aks holda tizimga kira olmay qoladi)."""
     r = aclient.post(
         f"/foydalanuvchilar/{admin_user.pk}/holat/", HTTP_HOST=PANEL_HOST
     )
@@ -131,7 +131,7 @@ def test_new_shop_increases_market_count(aclient, market):
 @pytest.mark.django_db
 def test_new_shop_ignores_stray_shop_value(aclient, market, shop):
     """mode=new bo'lsa, POST'dagi 'shop' qiymati (yashirin select) e'tiborsiz —
-    mavjud do'konga biriktirmасdan yangi do'kon yaratadi."""
+    mavjud do'konga biriktirmasdan yangi do'kon yaratadi."""
     from apps.catalog.models import ShopCategory
 
     cat = ShopCategory.objects.create(name="Kiyim")

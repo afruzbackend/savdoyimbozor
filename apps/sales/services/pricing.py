@@ -21,10 +21,10 @@ class PricedSale:
 
 
 def discount_buttons(subtotal: int, percents: list, cap: int) -> list[int]:
-    """O'zbekcha savdolashish tugmalari: chek summasining foizi, yaxlitlanган, cheklangан.
+    """O'zbekcha savdolashish tugmalari: chek summasining foizi, yaxlitlangan, cheklangan.
 
-    Har tugma = subtotal × foiz, pastga yaxlitlanadi (katta chekда 1000, kichikда 500 gacha),
-    va `cap` (ruxsat etilgan maks chegirma)дан oshmaydi. Shu bois "20 000 chekка 20 000
+    Har tugma = subtotal × foiz, pastga yaxlitlanadi (katta chekda 1000, kichikda 500 gacha),
+    va `cap` (ruxsat etilgan maks chegirma)дан oshmaydi. Shu bois "20 000 chekka 20 000
     chegirma" kabi bema'nilik bo'lmaydi — tugma qancha ko'rsatsa, shuncha qo'llanadi.
     """
     if subtotal <= 0:

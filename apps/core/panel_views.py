@@ -104,7 +104,7 @@ def user_toggle(request, pk):
                 .exists()
             )
             if not others:
-                messages.error(request, "Oxirgi faol super adminни bloklab bo'lmaydi.")
+                messages.error(request, "Oxirgi faol super adminni bloklab bo'lmaydi.")
                 return redirect("panel:users")
     user.is_active = not user.is_active
     user.save(update_fields=["is_active"])

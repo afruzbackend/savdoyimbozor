@@ -24,17 +24,22 @@
 
     <div class="card" style="background:var(--surface-sunken);margin-top:var(--sp-4)">
       <div class="card-title" style="margin-bottom:var(--sp-2)">Kassa (naqd sanoq — majburiy)</div>
-      <div class="grid grid-3" style="gap:var(--sp-3);margin-bottom:var(--sp-3)">
-        <div><small class="muted">Naqd savdo (kutilgan)</small><div class="num" style="font-weight:700">{{ reg.cash|intcomma }}</div></div>
+      <div class="grid grid-4" style="gap:var(--sp-3);margin-bottom:var(--sp-3)">
+        <div><small class="muted">Kutilgan naqd</small><div class="num" style="font-weight:700">{{ reg.expected_cash|intcomma }}</div>
+          {% if reg.opening or reg.debt_in_cash %}<small class="faint num">naqd savdo {{ reg.cash|intcomma }}{% if reg.opening %} + maydalik {{ reg.opening|intcomma }}{% endif %}{% if reg.debt_in_cash %} + nasiya {{ reg.debt_in_cash|intcomma }}{% endif %}</small>{% endif %}</div>
         <div><small class="muted">Karta</small><div class="num" style="font-weight:700">{{ reg.card|intcomma }}</div></div>
         <div><small class="muted">O'tkazma</small><div class="num" style="font-weight:700">{{ reg.transfer|intcomma }}</div></div>
+        <div><small class="muted">Nasiyaga</small><div class="num" style="font-weight:700">{{ reg.debt|intcomma }}</div></div>
       </div>
       <div class="field"><label class="label">Sandiqdagi sanalgan naqd (so'm)</label>
         {# Kutilgan summa bilan OLDINDAN TO'LDIRILMAYDI — sotuvchi haqiqatan sanab yozsin #}
         <input class="input num" type="number" name="counted_cash" min="0" required inputmode="numeric"
                placeholder="Sandiqdagi naqdni sanab yozing"
                value="{% if today_close %}{{ today_close.counted_cash }}{% endif %}"></div>
-      <small class="faint">Sandiqda yozilgan naqddan ko'p bo'lsa — yozilmagan savdo belgisi (nazoratchiga signal).</small>
+      <div class="field"><label class="label">Kassa izohi (ixtiyoriy)</label>
+        <input class="input" name="cash_note" value="{{ today_close.note|default:'' }}" placeholder="masalan: maydalik kiritishni unutdim — 100 000"></div>
+      <small class="faint">Sandiqda kutilgandan ko'p bo'lsa — yozilmagan savdo belgisi (nazoratchiga signal).
+        Ertalabki maydalik va qaytgan nasiya puli kutilgan summaga qo'shilgan.</small>
     </div>
 
     <button class="btn btn-lg" type="submit" style="margin-top:var(--sp-4)">Kunni yakunlash</button>

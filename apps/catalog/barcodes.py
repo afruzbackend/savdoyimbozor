@@ -2,7 +2,7 @@
 
 Barcha mahsulotga betakror 13 xonali EAN-13 barkod beriladi (200-prefiks — ichki
 foydalanish diapazoni). Barkod maydoni bo'sh bo'lsa avtomatik to'ldiriladi;
-sotuvchi barkodni chop etib, mahsulotга yopishtiradi va skanerда o'qiydi.
+sotuvchi barkodni chop etib, mahsulotga yopishtiradi va skanerda o'qiydi.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ def make_ean13(seed: int) -> str:
 
 
 def ensure_barcode(product) -> str:
-    """Mahsulotда barkod bo'lmasa — betakror EAN-13 beradi va saqlaydi."""
+    """Mahsulotda barkod bo'lmasa — betakror EAN-13 beradi va saqlaydi."""
     if product.barcode:
         return product.barcode
     from .models import Product

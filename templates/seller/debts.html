@@ -1,15 +1,16 @@
 {% extends 'seller/base.html' %}
-{% load humanize %}
+{% load static humanize %}
 {% block title %}Nasiya{% endblock %}
 {% block heading %}Nasiya daftari{% endblock %}
 {% block content %}
 <div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
   <div class="card">
-    <div class="card-title" style="margin-bottom:var(--sp-3)">Yangi nasiya</div>
+    <div class="card-title" style="margin-bottom:var(--sp-2)">Yangi nasiya</div>
+    <p class="hint" style="margin:0 0 var(--sp-3)">Hozir sotayotgan bo'lsangiz — sotuv ekranida «Nasiya» to'lovini tanlang: chek va nasiya birga yoziladi. Bu forma eski (daftardagi) nasiyalar uchun.</p>
     <form method="post">{% csrf_token %}
-      <div class="field"><label class="label">Xaridor</label><input class="input" name="customer_name" required></div>
-      <div class="field"><label class="label">Telefon</label><input class="input" name="customer_phone"></div>
-      <div class="field"><label class="label">Summa (so'm)</label><input class="input num" type="number" name="amount" required></div>
+      <div class="field"><label class="label">Xaridor</label><input class="input" name="customer_name" placeholder="Ism, mo'ljal" required></div>
+      <div class="field"><label class="label">Telefon</label><input class="input" name="customer_phone" placeholder="+998..." inputmode="tel"></div>
+      <div class="field"><label class="label">Summa (so'm)</label><input class="input num" type="number" name="amount" min="1" step="1000" inputmode="numeric" required></div>
       {% include 'components/_datefield.html' with name='due_date' label='Qaytarish sanasi' %}
       <div class="field"><label class="label">Izoh</label><input class="input" name="note"></div>
       <button class="btn btn-block" type="submit">Qo'shish</button>
@@ -17,24 +18,58 @@
   </div>
   <div class="stack gap-4">
     <div class="card" style="border-left:3px solid var(--warn)">
-      <small class="muted">Jami nasiya (to'lanmagan)</small>
+      <small class="muted">Jami nasiya (qoldiq)</small>
       <div class="truth-big num" style="font-size:var(--t-3)">{{ total|intcomma }} so'm</div>
+      <small class="muted">{{ debts|length }} ta xaridor</small>
     </div>
     <div class="card">
       <div class="card-title" style="margin-bottom:var(--sp-3)">Faol nasiyalar</div>
-      <div class="table-wrap"><table class="data">
-        <thead><tr><th>Xaridor</th><th>Telefon</th><th class="num">Summa</th><th class="num">Muddat</th><th></th></tr></thead>
+      <div class="stack">
+      {% for d in debts %}
+        <div class="debt-row {% if d.due_date and d.due_date <= today %}overdue{% endif %}" x-data="{open:false}">
+          <div class="row gap-2" style="justify-content:space-between;align-items:center;flex-wrap:wrap">
+            <div style="min-width:0">
+              <b>{{ d.customer_name }}</b>
+              {% if d.customer_phone %}<a class="muted num" href="tel:{{ d.customer_phone }}" style="margin-left:6px">{{ d.customer_phone }}</a>{% endif %}
+              <div class="muted" style="font-size:var(--t--1)">
+                {{ d.created_at|date:"d.m.Y" }}{% if d.sale_id %} · chek #{{ d.sale_id }}{% endif %}
+                {% if d.due_date %} · muddat <span {% if d.due_date <= today %}style="color:var(--bad);font-weight:600"{% endif %}>{{ d.due_date|date:"d.m.Y" }}</span>{% endif %}
+              </div>
+            </div>
+            <div class="row gap-2" style="align-items:center">
+              <div style="text-align:right">
+                <div class="num" style="font-weight:700">{{ d.remaining|intcomma }}</div>
+                {% if d.paid_amount %}<small class="faint num">{{ d.amount|intcomma }} dan</small>{% endif %}
+              </div>
+              <button type="button" class="btn btn-ghost" style="padding:6px 12px" @click="open=!open">To'lash</button>
+            </div>
+          </div>
+          <form method="post" class="debt-pay" x-show="open" x-cloak>{% csrf_token %}
+            <input type="hidden" name="pay" value="{{ d.pk }}">
+            <input class="input num" type="number" name="amount" min="1" max="{{ d.remaining }}" inputmode="numeric"
+                   value="{{ d.remaining }}" style="max-width:150px" aria-label="Summa">
+            <button class="btn" name="method" value="cash"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg> Naqd</button>
+            <button class="btn btn-ghost" name="method" value="card"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-credit-card"></use></svg> Karta</button>
+            <button class="btn btn-ghost" name="method" value="transfer"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-wallet"></use></svg> O'tkazma</button>
+            <small class="faint" style="flex-basis:100%">Qisman to'lasa — summani o'zgartiring. Naqd to'lov bugungi kassaga qo'shiladi.</small>
+          </form>
+        </div>
+      {% empty %}<p class="muted" style="margin:0">Nasiya yo'q.</p>{% endfor %}
+      </div>
+    </div>
+    {% if payments %}
+    <div class="card">
+      <div class="card-title" style="margin-bottom:var(--sp-3)">So'nggi to'lovlar</div>
+      <div class="table-wrap"><table class="data" style="font-size:var(--t--1)">
+        <thead><tr><th>Sana</th><th>Xaridor</th><th>To'lov</th><th class="num">Summa</th></tr></thead>
         <tbody>
-        {% for d in debts %}
-        <tr class="{% if d.due_date and d.due_date <= today %}row-warn{% endif %}">
-          <td>{{ d.customer_name }}</td><td class="muted num">{{ d.customer_phone|default:"—" }}</td>
-          <td class="num">{{ d.amount|intcomma }}</td>
-          <td class="num">{% if d.due_date %}<span {% if d.due_date <= today %}style="color:var(--bad);font-weight:600"{% endif %}>{{ d.due_date|date:"d.m.Y" }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
-          <td><form method="post">{% csrf_token %}<input type="hidden" name="pay" value="{{ d.pk }}">
-            <button class="btn btn-ghost" style="padding:6px 10px">To'landi</button></form></td></tr>
-        {% empty %}<tr><td colspan="5" class="muted">Nasiya yo'q.</td></tr>{% endfor %}
+        {% for p in payments %}
+          <tr><td class="num">{{ p.created_at|date:"d.m H:i" }}</td><td>{{ p.debt.customer_name }}</td>
+            <td>{{ p.get_method_display }}</td><td class="num">{{ p.amount|intcomma }}</td></tr>
+        {% endfor %}
         </tbody></table></div>
     </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

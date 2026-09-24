@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .models import Sale
-from .services.sales import InsufficientStock, create_sale
+from .services.sales import DebtorRequired, InsufficientStock, create_sale
 
 
 def _seller_shop(request):
@@ -100,10 +100,11 @@ def create_sale_api(request):
                 client_ts=client_ts,
                 note=str(data.get("note") or ""),
                 client_uid=client_uid,
+                debtor={"name": data.get("debtor_name"), "phone": data.get("debtor_phone")},
             )
             if sale.total <= 0:
                 raise _ZeroTotal  # nol summali chek bazada qolmasin (rollback)
-    except InsufficientStock as e:
+    except (InsufficientStock, DebtorRequired) as e:
         return Response({"detail": str(e)}, status=400)
     except _ZeroTotal:
         return Response({"detail": "Chek summasi 0 — sotuv qabul qilinmadi."}, status=400)

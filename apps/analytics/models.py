@@ -52,7 +52,7 @@ class DailyScore(TimeStampedModel):
         """Solishtirish uchun biror manba (kassa/kamera/qoldiq/narx) bormi.
 
         Hech biri bo'lmasa rostlik O'LCHANMAYDI — 0% (yashiruvchi) EMAS,
-        balki "ma'lumot yetarli emas" holati. Xarita/hisobotда kulrang ko'rsatiladi.
+        balki "ma'lumot yetarli emas" holati. Xarita/hisobotda kulrang ko'rsatiladi.
         """
         return any(v is not None for v in (self.parts or {}).values())
 
@@ -100,7 +100,7 @@ class Alert(TimeStampedModel):
 
 
 class Inspection(TimeStampedModel):
-    """Tekshiruvchi natijasi — signalни tasdiqlaydi yoki rad etadi (aniqlik o'lchovi)."""
+    """Tekshiruvchi natijasi — signalni tasdiqlaydi yoki rad etadi (aniqlik o'lchovi)."""
 
     class Result(models.TextChoices):
         CONFIRMED = "confirmed", _("Tasdiqlandi")

@@ -24,7 +24,7 @@ def test_ensure_barcode_assigns_valid_unique(shop):
     b2 = ensure_barcode(p2)
     assert _valid_ean13(b1) and _valid_ean13(b2)
     assert b1 != b2
-    # Ikkinchi marta chaqirilса o'zgarmaydi (barqaror)
+    # Ikkinchi marta chaqirilsa o'zgarmaydi (barqaror)
     assert ensure_barcode(p1) == b1
 
 

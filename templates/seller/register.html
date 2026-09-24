@@ -16,12 +16,14 @@
     <div class="truth-big" style="font-size:var(--t-3)">{{ t.cash|intcomma }}</div>
   </div>
   <div class="card" style="border-left:3px solid var(--brand-500)">
-    <small class="muted">Karta</small>
-    <div class="truth-big" style="font-size:var(--t-3)">{{ t.card|intcomma }}</div>
+    <small class="muted">Karta · O'tkazma</small>
+    <div class="truth-big" style="font-size:var(--t-3)">{{ t.card|add:t.transfer|intcomma }}</div>
+    <small class="muted num">{{ t.card|intcomma }} · {{ t.transfer|intcomma }}</small>
   </div>
   <div class="card" style="border-left:3px solid var(--clay-500)">
-    <small class="muted">O'tkazma</small>
-    <div class="truth-big" style="font-size:var(--t-3)">{{ t.transfer|intcomma }}</div>
+    <small class="muted">Nasiyaga</small>
+    <div class="truth-big" style="font-size:var(--t-3)">{{ t.debt|intcomma }}</div>
+    {% if t.debt_in_cash %}<small class="muted num">qaytdi (naqd): {{ t.debt_in_cash|intcomma }}</small>{% endif %}
   </div>
 </div>
 
@@ -32,9 +34,29 @@
     <p class="muted" style="margin:0 0 var(--sp-3);font-size:var(--t--1)">
       Kun oxirida sandiqdagi naqdni sanang. Tizim kutilgan naqd bilan solishtiradi.
       <br><span class="faint">Eslatma: kassa rasmiy ravishda "Kun yakuni"da ham yopiladi — bu yerda tez yopish uchun.</span></p>
-    <div class="row" style="justify-content:space-between;margin-bottom:var(--sp-2)">
-      <span class="muted">Kutilgan naqd</span><span class="num" style="font-weight:600">{{ t.cash|intcomma }} so'm</span>
+    {# Ertalabki maydalik — faqat birinchi sotuvdan oldin (keyin qulflanadi) #}
+    <div class="opening-box">
+      {% if can_open %}
+      <form method="post" class="row gap-2" style="align-items:flex-end">{% csrf_token %}
+        <input type="hidden" name="action" value="opening">
+        <div class="field grow" style="margin:0"><label class="label">Ertalabki maydalik (so'm)</label>
+          <input class="input num" type="number" name="opening_cash" min="0" inputmode="numeric"
+                 value="{{ t.opening|default:'' }}" placeholder="Sandiqdagi qaytim puli, bo'lmasa 0" required></div>
+        <button class="btn btn-ghost" type="submit">Saqlash</button>
+      </form>
+      <small class="faint">Birinchi sotuvdan keyin o'zgartirib bo'lmaydi.</small>
+      {% else %}
+      <div class="row" style="justify-content:space-between">
+        <span class="muted">Ertalabki maydalik</span><span class="num" style="font-weight:600">{{ t.opening|intcomma }} so'm</span>
+      </div>
+      {% endif %}
     </div>
+    <div class="row" style="justify-content:space-between;margin:var(--sp-2) 0">
+      <span class="muted">Kutilgan naqd</span><span class="num" style="font-weight:700">{{ t.expected_cash|intcomma }} so'm</span>
+    </div>
+    {% if t.opening or t.debt_in_cash %}
+    <small class="faint num" style="display:block;margin:-4px 0 var(--sp-3)">= naqd savdo {{ t.cash|intcomma }}{% if t.opening %} + maydalik {{ t.opening|intcomma }}{% endif %}{% if t.debt_in_cash %} + qaytgan nasiya {{ t.debt_in_cash|intcomma }}{% endif %}</small>
+    {% endif %}
     <form method="post" class="stack gap-3">{% csrf_token %}
       <div class="field"><label class="label">Sanalgan naqd (so'm)</label>
         {# Kutilgan summa bilan OLDINDAN TO'LDIRILMAYDI — aks holda sanamasdan "mos keldi" bo'lardi #}
@@ -46,7 +68,7 @@
       <button class="btn btn-block" type="submit">Kassani yopish</button>
     </form>
     {% if today_close %}
-    <div class="msg {% if today_close.difference == 0 %}ok{% else %}warn{% endif %}" style="margin-top:var(--sp-3)">
+    <div class="msg {% if today_close.difference == 0 %}success{% else %}warning{% endif %}" style="margin-top:var(--sp-3)">
       Bugun yopilgan · Sanalgan: <b class="num">{{ today_close.counted_cash|intcomma }}</b>
       {% if today_close.difference < 0 %}· Kamomad: <b class="num">{{ today_close.difference|intcomma }}</b>
       {% elif today_close.difference > 0 %}· Ortiqcha: <b class="num">+{{ today_close.difference|intcomma }}</b>
@@ -64,7 +86,7 @@
       {% for s in recent %}
         <tr>
           <td class="num">{{ s.created_at|date:"H:i" }}</td>
-          <td>{{ s.get_payment_type_display }}</td>
+          <td>{% if s.payment_type == 'debt' %}<span class="badge badge-warn">Nasiya</span>{% else %}{{ s.get_payment_type_display }}{% endif %}</td>
           <td class="num muted">{% if s.discount %}−{{ s.discount|intcomma }}{% else %}—{% endif %}</td>
           <td class="num">{{ s.total|intcomma }}</td>
         </tr>

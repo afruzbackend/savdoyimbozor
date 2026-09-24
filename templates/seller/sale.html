@@ -67,6 +67,12 @@
       <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-credit-card"></use></svg> Karta</button>
     <button type="button" :aria-selected="pay==='transfer'" @click="pay='transfer'">
       <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-wallet"></use></svg> O'tkazma</button>
+    <button type="button" :aria-selected="pay==='debt'" @click="pay='debt';setTimeout(()=>$refs.debtor&&$refs.debtor.focus(),60)">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Nasiya</button>
+  </div>
+  <div class="debtor-box" x-show="pay==='debt'" x-cloak>
+    <input class="input" x-ref="debtor" x-model="debtorName" placeholder="Xaridor ismi (majburiy)" :class="debtorErr&&'err'" @input="debtorErr=false">
+    <input class="input num" x-model="debtorPhone" placeholder="Telefon" inputmode="tel">
   </div>
   <label class="switch" style="margin-bottom:var(--sp-3)"><input type="checkbox" x-model="wholesale"><span class="track"></span><span class="thumb"></span>
     <span style="font-size:var(--t--1)">Ulgurji savdo</span></label>
@@ -96,6 +102,7 @@
       cfg: window.__PRICING__,
       amount: 0, discount: 0, rounding: 0, pay: 'cash', wholesale: false,
       saving: false, pending: 0, customOpen: false, customVal: '',
+      debtorName: '', debtorPhone: '', debtorErr: false,
       init() {
         this.syncQueue();
         window.addEventListener('online', () => this.syncQueue());
@@ -145,18 +152,28 @@
         const r = after % 1000;
         this.rounding = Math.min(r, this.cfg.rounding_max);
       },
-      reset() { this.amount = 0; this.discount = 0; this.rounding = 0; this.wholesale = false; },
+      reset() {
+        this.amount = 0; this.discount = 0; this.rounding = 0; this.wholesale = false;
+        // Nasiyadan keyin keyingi sotuv adashib nasiyaga ketmasin — naqdga qaytamiz
+        if (this.pay === 'debt') this.pay = 'cash';
+        this.debtorName = ''; this.debtorPhone = ''; this.debtorErr = false;
+      },
       payload() {
         // client_uid — offline navbatdan qayta yuborilsa server dublikat yaratmaydi
-        const uid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
-          : (Date.now() + '-' + Math.random().toString(36).slice(2));
+        const uid = window.saleQueue.uid();
         return { items: [{ name: 'Aralash', qty: 1, unit_price: this.subtotal }],
           discount: this.discount, rounding: this.rounding, payment_type: this.pay,
           is_wholesale: this.wholesale, mode: 'quick', client_uid: uid,
+          debtor_name: this.pay === 'debt' ? this.debtorName.trim() : '',
+          debtor_phone: this.pay === 'debt' ? this.debtorPhone.trim() : '',
           client_ts: new Date().toISOString() };
       },
       async submit() {
-        if (this.total <= 0) return;
+        if (this.total <= 0 || this.saving) return;
+        if (this.pay === 'debt' && !this.debtorName.trim()) {
+          this.debtorErr = true; this.$refs.debtor && this.$refs.debtor.focus();
+          window.toast('Nasiya uchun xaridor ismini yozing', 'bad'); return;
+        }
         this.saving = true;
         const body = this.payload();
         let r;
@@ -190,33 +207,11 @@
         clearTimeout(this._okT);
         this._okT = setTimeout(() => o.classList.remove('show'), 1250);
       },
-      // ---- Offline navbat (localStorage) ----
-      queue(body) {
-        const q = JSON.parse(localStorage.getItem('saleQueue') || '[]');
-        q.push(body); localStorage.setItem('saleQueue', JSON.stringify(q));
-        this.pending = q.length;
-      },
+      // ---- Offline navbat — umumiy window.saleQueue (skaner bilan bir xil) ----
+      queue(body) { this.pending = window.saleQueue.add(body); },
       async syncQueue() {
-        let q = JSON.parse(localStorage.getItem('saleQueue') || '[]');
-        this.pending = q.length;
-        if (!q.length || !navigator.onLine) return;
-        const rest = []; let dropped = 0;
-        for (const body of q) {
-          try {
-            const r = await fetch('/api/sales/', { method: 'POST',
-              headers: { 'Content-Type': 'application/json',
-                'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '' },
-              body: JSON.stringify(body) });
-            if (r.ok) continue;
-            // 4xx — server doimiy rad etdi: navbatda abadiy tiqilib qolmasin
-            if (r.status >= 400 && r.status < 500) { dropped++; continue; }
-            rest.push(body);  // 5xx — keyinroq qayta
-          } catch (e) { rest.push(body); }
-        }
-        localStorage.setItem('saleQueue', JSON.stringify(rest));
-        this.pending = rest.length;
-        if (dropped) window.toast(dropped + ' ta navbatdagi sotuv rad etildi', 'bad');
-        else if (q.length && !rest.length) window.toast('Navbatdagi sotuvlar yuborildi', 'ok');
+        this.pending = window.saleQueue.list().length;
+        this.pending = await window.saleQueue.sync();
       },
     }));
   });

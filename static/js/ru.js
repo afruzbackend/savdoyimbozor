@@ -613,7 +613,7 @@ window.RU_DICT = {
   "Sandiqdagi naqd vs yozilgan naqd savdo": "Наличные в кассе vs записанная наличная выручка",
   "Yozilgan naqd": "Записано наличными",
   "Sandiqda": "В кассе",
-  "Ortiqcha (qizil) = sandiqda yozilгандан ko'p naqd — yozilmagan savdo belgisi. Kamomad (sariq) = pul kam.":
+  "Ortiqcha (qizil) = sandiqda yozilgandan ko'p naqd — yozilmagan savdo belgisi. Kamomad (sariq) = pul kam.":
     "Излишек (красный) = в кассе больше записанного — признак несписанной выручки. Недостача (жёлтый) = денег меньше.",
   "Kun oxirida sandiqdagi naqdni sanang. Tizim kutilgan naqd bilan solishtiradi.":
     "В конце дня пересчитайте наличные в кассе. Система сравнит с ожидаемым.",
@@ -701,12 +701,51 @@ window.RU_DICT = {
   "STIR ni yozing (login shundan hosil bo'ladi).": "Укажите ИНН (из него формируется логин).",
   "Inspektorga bozor biriktirilmadi — u hech bir do'konni ko'rmaydi.":
     "Инспектору не назначен рынок — он не увидит ни одного магазина.",
+  // Kassa: maydalik, nasiyaga sotuv, nasiya to'lovi
+  "Xaridor ismi (majburiy)": "Имя покупателя (обязательно)",
+  "Nasiya uchun xaridor ismini yozing": "Для продажи в долг укажите имя покупателя",
+  "Nasiya uchun xaridor ismini yozing.": "Для продажи в долг укажите имя покупателя.",
+  "Kunni boshlang: sandiqda qancha maydalik bor?": "Начните день: сколько размена в кассе?",
+  "Qaytim uchun pul kechqurun \"ortiqcha\" bo'lib ko'rinmasligi uchun. Birinchi sotuvdan keyin o'zgartirib bo'lmaydi.":
+    "Чтобы деньги на сдачу вечером не выглядели «излишком». После первой продажи изменить нельзя.",
+  "masalan 100 000": "например 100 000", "Maydalik yo'q": "Размена нет",
+  "Ertalabki maydalik (so'm)": "Утренний размен (сум)", "Ertalabki maydalik": "Утренний размен",
+  "Sandiqdagi qaytim puli, bo'lmasa 0": "Деньги на сдачу в кассе, если нет — 0",
+  "Birinchi sotuvdan keyin o'zgartirib bo'lmaydi.": "После первой продажи изменить нельзя.",
+  "Karta · O'tkazma": "Карта · Перевод", "Nasiyaga": "В долг",
+  "Kassa izohi (ixtiyoriy)": "Примечание к кассе (необязательно)",
+  "masalan: maydalik kiritishni unutdim — 100 000": "например: забыл указать размен — 100 000",
+  "Ertalabki maydalik saqlandi.": "Утренний размен сохранён.",
+  "Maydalik summasini kiriting (bo'lmasa 0).": "Укажите сумму размена (если нет — 0).",
+  "Hozir sotayotgan bo'lsangiz — sotuv ekranida «Nasiya» to'lovini tanlang: chek va nasiya birga yoziladi. Bu forma eski (daftardagi) nasiyalar uchun.":
+    "Если продаёте сейчас — выберите оплату «В долг» на экране продажи: чек и долг запишутся вместе. Эта форма — для старых (тетрадных) долгов.",
+  "Ism, mo'ljal": "Имя, ориентир", "Jami nasiya (qoldiq)": "Всего долгов (остаток)",
+  "To'lash": "Оплатить", "So'nggi to'lovlar": "Последние платежи",
+  "Qisman to'lasa — summani o'zgartiring. Naqd to'lov bugungi kassaga qo'shiladi.":
+    "При частичной оплате измените сумму. Оплата наличными добавится в сегодняшнюю кассу.",
+  "Sandiqdagi naqd vs kutilgan naqd (savdo + maydalik + qaytgan nasiya)":
+    "Наличные в кассе и ожидаемые (продажи + размен + возвращённые долги)",
+  "Savatdan olib tashlash": "Убрать из корзины",
+  "Miqdor 0 dan katta bo'lsin": "Количество должно быть больше 0",
+  "Internet yo'q — navbatga saqlandi": "Нет интернета — сохранено в очередь",
+  "Navbatdagi sotuvlar yuborildi": "Продажи из очереди отправлены",
+  "Bu nasiya allaqachon to'langan.": "Этот долг уже оплачен.",
+  "To'lov summasi 0 dan katta bo'lsin.": "Сумма оплаты должна быть больше 0.",
+  "To'lov turini tanlang.": "Выберите способ оплаты.",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
    Tartib muhim — aniqroq/uzunroq bo'laklar oldin. Faqat RU rejimida qo'llanadi. */
 window.RU_FRAGMENTS = [
   [" — tahrirlash", " — редактирование"],
+  [": nasiya to'liq yopildi.", ": долг полностью погашен."],
+  [" so'm qabul qilindi, qoldiq ", " сум принято, остаток "],
+  ["Qoldiq ", "Остаток "],
+  [" so'm — undan ko'p to'lab bo'lmaydi.", " сум — больше оплатить нельзя."],
+  ["Bugun sotuv boshlangan — maydalikni endi o'zgartirib bo'lmaydi. Kerak bo'lsa kassa yopishda izohga yozing.",
+   "Сегодня продажи уже начались — размен изменить нельзя. При необходимости укажите в примечании при закрытии кассы."],
+  ["= naqd savdo ", "= нал. продажи "], ["naqd savdo ", "нал. продажи "], ["+ maydalik ", "+ размен "], ["+ qaytgan nasiya ", "+ возвращённый долг "],
+  ["maydalik ", "размен "], [" · nasiya ", " · долг "], ["qaytdi (naqd): ", "возвращено (нал.): "],
   ["To'ldiring: ", "Заполните: "],
   [" bu bozorda band — boshqa raqam tanlang.", " на этом рынке занят — выберите другой номер."],
   [" saqlandi.", " — сохранено."],

@@ -163,12 +163,16 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .segmented button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm)}
 
 /* To'lov turi tanlagichi — ikonkali, ko'rinarli (segmented o'rniga) */
-.pay-select{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pay-select{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+/* Nasiya tanlanganda — xaridor ma'lumoti */
+.debtor-box{display:grid;grid-template-columns:1.4fr 1fr;gap:8px;margin:-4px 0 var(--sp-3)}
+@media (max-width:420px){.debtor-box{grid-template-columns:1fr}}
 .pay-select button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
   min-height:92px;padding:16px 8px;border:2px solid var(--border-strong);border-radius:var(--r);
   background:var(--surface);color:var(--ink-muted);font:inherit;font-weight:700;
   font-size:var(--t-0);cursor:pointer;transition:border-color .12s,background .12s,color .12s}
 .pay-select button .icon{width:30px;height:30px}
+@media (max-width:420px){.pay-select button{padding:14px 4px;font-size:var(--t--1);gap:7px}}
 .pay-select button:hover{border-color:var(--primary)}
 .pay-select button[aria-selected="true"]{border-color:var(--primary);background:var(--brand-50);
   color:var(--primary);box-shadow:0 0 0 1px var(--primary) inset}
@@ -203,6 +207,12 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .switch input:focus-visible+.track{box-shadow:0 0 0 3px var(--ring)}
 
 /* ---------- Checkbox / radio ---------- */
+.debt-row{padding:10px 0;border-bottom:1px solid var(--border)}
+.debt-row:last-child{border-bottom:0}
+.debt-row.overdue{box-shadow:inset 3px 0 0 var(--bad);padding-left:10px}
+.debt-pay{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;padding:10px;
+  background:var(--surface-sunken);border-radius:var(--r-2)}
+.opening-box{background:var(--surface-sunken);border-radius:var(--r-2);padding:var(--sp-3);margin-bottom:var(--sp-2)}
 /* Hafta kuni tanlagich (Du..Ya) — bosiladigan pill, brauzer checkbox'i ko'rinmaydi */
 .day-pill{position:relative;cursor:pointer;user-select:none}
 .day-pill input{position:absolute;opacity:0;pointer-events:none}

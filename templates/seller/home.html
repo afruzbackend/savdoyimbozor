@@ -6,6 +6,24 @@
 <a class="btn" href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg> Yangi sotuv</a>
 {% endblock %}
 {% block content %}
+{% if need_opening %}
+<div class="card opening-card" style="margin-bottom:var(--sp-4)">
+  <div class="row gap-3" style="align-items:center;flex-wrap:wrap">
+    <span class="stat-ic" style="width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:var(--warn-bg);color:var(--warn-ink)">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-wallet"></use></svg></span>
+    <div style="flex:1 1 220px;min-width:0">
+      <div style="font-weight:700">Kunni boshlang: sandiqda qancha maydalik bor?</div>
+      <small class="muted">Qaytim uchun pul kechqurun "ortiqcha" bo'lib ko'rinmasligi uchun. Birinchi sotuvdan keyin o'zgartirib bo'lmaydi.</small>
+    </div>
+    <form method="post" action="{% url 'seller:register' %}" class="row gap-2" style="flex-wrap:wrap" data-no-validate>
+      {% csrf_token %}<input type="hidden" name="action" value="opening"><input type="hidden" name="next" value="{{ request.path }}">
+      <input class="input num" type="number" name="opening_cash" min="0" step="1000" inputmode="numeric" placeholder="masalan 100 000" style="width:150px">
+      <button class="btn" type="submit">Saqlash</button>
+      <button class="btn btn-ghost" type="submit" onclick="this.form.opening_cash.value='0'">Maydalik yo'q</button>
+    </form>
+  </div>
+</div>
+{% endif %}
 <div class="grid grid-2" style="margin-bottom:var(--sp-4)">
   <div class="card stat-pop stat-card">
     <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg></span>

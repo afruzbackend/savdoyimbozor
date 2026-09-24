@@ -405,7 +405,7 @@ def recompute_for_date(day) -> int:
         if day.weekday() in shop.closed_weekday_list():
             continue
 
-        # Nol-savdo: ochiq kun, tovari yoki kamera oqimи bor, lekin 0 savdo kiritilган
+        # Nol-savdo: ochiq kun, tovari yoki kamera oqimi bor, lekin 0 savdo kiritilgan
         has_activity = cam or (stock_val and stock_val > 0) or (shop.id in stock_shop_ids)
         if entered == 0 and has_activity:
             if (shop.id, Alert.Kind.ZERO_SALES) not in existing_alerts:
@@ -424,7 +424,7 @@ def recompute_for_date(day) -> int:
                     notify_alert(za)
                 except Exception:  # noqa: BLE001
                     pass
-            continue  # nol-savdода rostlik signali ortiqcha
+            continue  # nol-savdoda rostlik signali ortiqcha
 
         # Anomaliya: bugungi savdo 30-kunlik o'rtachadan keskin tushsa (batched tarix)
         if entered > 0 and (shop.id, Alert.Kind.ANOMALY) not in existing_alerts:

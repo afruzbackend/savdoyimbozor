@@ -102,7 +102,7 @@ def home(request):
         if shop
         else []
     )
-    # Savdo yo'nalishi (meva/kiyim/...) bo'yicha tayyor katalog — dashboardда ko'rinsin
+    # Savdo yo'nalishi (meva/kiyim/...) bo'yicha tayyor katalog — dashboardda ko'rinsin
     trade_catalog, product_count = [], 0
     if shop is not None:
         product_count = Product.objects.filter(shop=shop, is_active=True).count()
@@ -110,11 +110,18 @@ def home(request):
         if shop.category_id:
             cat_qs = cat_qs.filter(shop_category=shop.category)
         trade_catalog = list(cat_qs.order_by("name")[:12])
+    # Kun boshi: maydalik hali kiritilmagan va sotuv yo'q — eslatamiz
+    need_opening = False
+    if shop is not None and not agg["n"]:
+        from .models import CashOpen
+
+        need_opening = not CashOpen.objects.filter(shop=shop, date=today).exists()
     return render(
         request,
         "seller/home.html",
         {
             "shop": shop,
+            "need_opening": need_opening,
             "today_total": agg["total"] or 0,
             "today_count": agg["n"] or 0,
             "recent": sales.order_by("-created_at")[:8],
@@ -304,6 +311,8 @@ def daily_close(request):
         if counted is None or counted < 0:
             messages.error(request, "Sandiqdagi sanalgan naqdni kiriting (0 bo'lsa 0 yozing).")
             return redirect("seller:daily_close")
+        from .services.cash import close_register
+
         close, _ = DailyClose.objects.update_or_create(
             shop=shop, date=today, defaults={"seller": request.user}
         )
@@ -332,21 +341,10 @@ def daily_close(request):
         close.computed_sales = computed
         close.entered_sales = entered
         close.save()
-        # Kassa (Z-hisobot) — kun yakunining majburiy qismi
-        t = _register_totals(shop, today)
-        RegisterClose.objects.update_or_create(
-            shop=shop,
-            date=today,
-            defaults={
-                "seller": request.user,
-                "expected_cash": t["cash"],
-                "counted_cash": counted,
-                "card_total": t["card"],
-                "transfer_total": t["transfer"],
-                "checks_count": t["count"],
-            },
+        # Kassa (Z-hisobot) — kun yakunining majburiy qismi (maydalik + nasiya qaytishi hisobda)
+        _z, diff = close_register(
+            shop, today, counted, request.user, note=request.POST.get("cash_note", "")
         )
-        diff = counted - t["cash"]
         note = ""
         if diff > 0:
             note = f" · Kassada ortiqcha: {som(diff)} so'm"
@@ -358,7 +356,9 @@ def daily_close(request):
         )
         return redirect("seller:daily_close")
     existing = DailyClose.objects.filter(shop=shop, date=today).first()
-    reg = _register_totals(shop, today)
+    from .services.cash import register_totals
+
+    reg = register_totals(shop, today)
     today_close = RegisterClose.objects.filter(shop=shop, date=today).first()
 
     # "Ertalab" = kun BOSHIDAGI qoldiq. Joriy qoldiq emas — skaner sotuvlari uni kechgacha
@@ -507,11 +507,26 @@ def debts(request):
         return redirect("seller:home")
     if request.method == "POST":
         if request.POST.get("pay"):
+            # To'lov (qisman ham): naqd to'lov bugungi kassadagi kutilgan naqdga qo'shiladi
+            from .services.cash import CashError, pay_debt
+
             debt = get_object_or_404(Debt, pk=request.POST["pay"], shop=shop)
-            debt.is_paid = True
-            debt.paid_at = timezone.now()
-            debt.save(update_fields=["is_paid", "paid_at"])
-            messages.success(request, "Nasiya to'landi deb belgilandi.")
+            amount = to_int(request.POST.get("amount"))
+            if amount is None:
+                amount = debt.remaining  # summa yozilmasa — to'liq
+            try:
+                pay_debt(debt, amount, request.POST.get("method", "cash"), request.user)
+                debt.refresh_from_db()
+                if debt.is_paid:
+                    messages.success(request, f"{debt.customer_name}: nasiya to'liq yopildi.")
+                else:
+                    messages.success(
+                        request,
+                        f"{debt.customer_name}: {som(amount)} so'm qabul qilindi, "
+                        f"qoldiq {som(debt.remaining)} so'm.",
+                    )
+            except CashError as e:
+                messages.error(request, str(e))
         else:
             from datetime import datetime
 
@@ -541,15 +556,18 @@ def debts(request):
                 )
                 messages.success(request, "Nasiya qo'shildi.")
         return redirect("seller:debts")
-    active = Debt.objects.filter(shop=shop, is_paid=False)
+    active = list(Debt.objects.filter(shop=shop, is_paid=False).order_by("due_date", "created_at"))
+    from .models import DebtPayment
+
     return render(
         request,
         "seller/debts.html",
         {
             "shop": shop,
             "debts": active,
-            "total": sum(d.amount for d in active),
-            "paid": Debt.objects.filter(shop=shop, is_paid=True)[:10],
+            "total": sum(d.remaining for d in active),
+            "payments": DebtPayment.objects.filter(shop=shop)
+            .select_related("debt").order_by("-created_at")[:15],
             "today": timezone.localdate(),
         },
     )
@@ -741,64 +759,39 @@ def _product_ranks(shop, since):
     return ranks[:10]
 
 
-def _register_totals(shop, day):
-    """Kunlik kassa: to'lov turi bo'yicha jamlanma (Sale.payment_type asosida)."""
-    from django.db.models import Count
-
-    agg = {
-        r["payment_type"]: r
-        for r in Sale.objects.filter(shop=shop, created_at__date=day)
-        .values("payment_type")
-        .annotate(s=Sum("total"), n=Count("id"))
-    }
-    cash = agg.get("cash", {}).get("s") or 0
-    card = agg.get("card", {}).get("s") or 0
-    transfer = agg.get("transfer", {}).get("s") or 0
-    count = sum((agg.get(k, {}).get("n") or 0) for k in ("cash", "card", "transfer"))
-    total = cash + card + transfer
-    return {
-        "cash": cash,
-        "card": card,
-        "transfer": transfer,
-        "total": total,
-        "count": count,
-        "avg": int(total / count) if count else 0,
-    }
-
-
 @login_required
 def register(request):
-    """Kassa (POS): bugungi tushum to'lov turi bo'yicha + kunni yopish (Z-hisobot)."""
+    """Kassa (POS): bugungi tushum to'lov turi bo'yicha + maydalik + kunni yopish (Z-hisobot)."""
+    from .services.cash import (
+        CashError,
+        can_set_opening,
+        close_register,
+        register_totals,
+        set_opening,
+    )
+
     shop = _shop(request)
     if shop is None:
         return redirect("seller:home")
     today = timezone.localdate()
-    t = _register_totals(shop, today)
 
     if request.method == "POST":
-        counted = to_int(request.POST.get("counted_cash"))
-        if counted is None or counted < 0:
-            messages.error(request, "Sandiqdagi sanalgan naqdni kiriting (0 bo'lsa 0 yozing).")
+        try:
+            if request.POST.get("action") == "opening":
+                set_opening(shop, today, to_int(request.POST.get("opening_cash")), request.user)
+                messages.success(request, "Ertalabki maydalik saqlandi.")
+                from django.utils.http import url_has_allowed_host_and_scheme
+
+                nxt = request.POST.get("next", "")
+                ok = url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()})
+                return redirect(nxt if ok and nxt else "seller:register")
+            _z, diff = close_register(
+                shop, today, to_int(request.POST.get("counted_cash")), request.user,
+                note=request.POST.get("note", ""),
+            )
+        except CashError as e:
+            messages.error(request, str(e))
             return redirect("seller:register")
-        note = request.POST.get("note", "").strip()[:200]
-        prev = RegisterClose.objects.filter(shop=shop, date=today).first()
-        if prev and prev.counted_cash != counted:
-            # Qayta yopish — oldingi sanoq izsiz yo'qolmasin (inspektor ko'radi)
-            note = (f"Qayta yopildi (avval {som(prev.counted_cash)}). " + note)[:200]
-        RegisterClose.objects.update_or_create(
-            shop=shop,
-            date=today,
-            defaults={
-                "seller": request.user,
-                "expected_cash": t["cash"],
-                "counted_cash": counted,
-                "card_total": t["card"],
-                "transfer_total": t["transfer"],
-                "checks_count": t["count"],
-                "note": note,
-            },
-        )
-        diff = counted - t["cash"]
         if diff == 0:
             messages.success(request, "Kassa yopildi. Naqd to'liq mos keldi.")
         elif diff < 0:
@@ -807,6 +800,7 @@ def register(request):
             messages.warning(request, f"Kassa yopildi. Ortiqcha: {som(diff)} so'm.")
         return redirect("seller:register")
 
+    t = register_totals(shop, today)
     return render(
         request,
         "seller/register.html",
@@ -814,6 +808,7 @@ def register(request):
             "shop": shop,
             "t": t,
             "today_close": RegisterClose.objects.filter(shop=shop, date=today).first(),
+            "can_open": can_set_opening(shop, today),
             "recent": Sale.objects.filter(shop=shop, created_at__date=today).order_by(
                 "-created_at"
             )[:12],

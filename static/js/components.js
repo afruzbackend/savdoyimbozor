@@ -239,6 +239,58 @@
     }, ms || 30000);
   };
 
+  // ---- Offline sotuv navbati (umumiy: tez sotuv + skaner) ----
+  // Internet uzilsa sotuv localStorage'ga tushadi; har sahifa ochilganda va tarmoq
+  // qaytganda yuboriladi. client_uid tufayli qayta yuborish dublikat yaratmaydi.
+  window.saleQueue = {
+    KEY: "saleQueue",
+    list: function () {
+      try { return JSON.parse(localStorage.getItem(this.KEY) || "[]"); } catch (e) { return []; }
+    },
+    add: function (body) {
+      var q = this.list(); q.push(body);
+      try { localStorage.setItem(this.KEY, JSON.stringify(q)); } catch (e) { /* to'la */ }
+      return q.length;
+    },
+    uid: function () {
+      return (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+        : (Date.now() + "-" + Math.random().toString(36).slice(2));
+    },
+    _running: null,
+    sync: function () {
+      // Bir vaqtda bitta yuborish: parallel chaqiruv o'sha jarayon natijasini kutadi
+      if (!this._running) {
+        var self = this;
+        this._running = this._send().finally(function () { self._running = null; });
+      }
+      return this._running;
+    },
+    _send: async function () {
+      var q = this.list();
+      if (!q.length || !navigator.onLine) return q.length;
+      var rest = [], dropped = 0, csrf = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || "";
+      for (var i = 0; i < q.length; i++) {
+        try {
+          var r = await fetch("/api/sales/", { method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
+            body: JSON.stringify(q[i]) });
+          if (r.ok) continue;
+          if (r.status >= 400 && r.status < 500) { dropped++; continue; } // doimiy rad
+          rest.push(q[i]);
+        } catch (e) { rest.push(q[i]); }
+      }
+      try { localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) { /* ok */ }
+      if (dropped) window.toast && window.toast(dropped + " ta navbatdagi sotuv rad etildi", "bad");
+      else if (!rest.length) window.toast && window.toast("Navbatdagi sotuvlar yuborildi", "ok");
+      return rest.length;
+    },
+  };
+  // Navbatda sotuv qolgan bo'lsa — istalgan sahifa ochilganda / tarmoq qaytganda yuboriladi
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.saleQueue.list().length) window.saleQueue.sync();
+  });
+  window.addEventListener("online", function () { window.saleQueue.sync(); });
+
   // ---- Raqamlar 0 dan sanalib chiqadi (.count-up) — dashboard "jonli" ko'rinadi ----
   function countUp(el) {
     var node = null;
@@ -311,7 +363,7 @@
       });
   };
 
-  // ---- Custom fayl tanlash: tanlanган fayl nomini ko'rsatadi ----
+  // ---- Custom fayl tanlash: tanlangan fayl nomini ko'rsatadi ----
   document.addEventListener("change", (e) => {
     const inp = e.target;
     if (!inp.matches || !inp.matches('.file-drop input[type="file"]')) return;

@@ -138,15 +138,16 @@
     {% if register_closes %}
     <div class="card">
       <div class="card-header"><span class="card-title">Kassa yopish (Z-hisobot)</span>
-        <small class="faint">Sandiqdagi naqd vs yozilgan naqd savdo</small></div>
+        <small class="faint">Sandiqdagi naqd vs kutilgan naqd (savdo + maydalik + qaytgan nasiya)</small></div>
       <div class="table-wrap"><table class="data" style="font-size:var(--t--1)">
-        <thead><tr><th>Sana</th><th class="num">Yozilgan naqd</th><th class="num">Sandiqda</th><th class="num">Farq</th><th class="num">Karta</th><th class="num">Cheklar</th></tr></thead>
+        <thead><tr><th>Sana</th><th class="num">Kutilgan naqd</th><th class="num">Sandiqda</th><th class="num">Farq</th><th class="num">Karta</th><th class="num">Cheklar</th></tr></thead>
         <tbody>
         {% for z in register_closes %}
         <tr class="{% if z.difference > 0 %}row-bad{% elif z.difference < 0 %}row-warn{% endif %}">
           <td class="num">{{ z.date|date:"d.m.Y" }}</td>
-          <td class="num muted">{{ z.expected_cash|intcomma }}</td>
-          <td class="num">{{ z.counted_cash|intcomma }}</td>
+          <td class="num muted">{{ z.expected_cash|intcomma }}
+            {% if z.opening_cash or z.debt_cash_in %}<div class="faint" style="font-size:11px">{% if z.opening_cash %}maydalik {{ z.opening_cash|intcomma }}{% endif %}{% if z.debt_cash_in %} · nasiya {{ z.debt_cash_in|intcomma }}{% endif %}</div>{% endif %}</td>
+          <td class="num">{{ z.counted_cash|intcomma }}{% if z.note %}<div class="faint" style="font-size:11px;max-width:200px;white-space:normal">{{ z.note }}</div>{% endif %}</td>
           <td class="num" style="font-weight:600;{% if z.difference > 0 %}color:var(--bad){% elif z.difference < 0 %}color:var(--warn){% endif %}">
             {% if z.difference > 0 %}+{% endif %}{{ z.difference|intcomma }}</td>
           <td class="num muted">{{ z.card_total|intcomma }}</td>
@@ -154,7 +155,7 @@
         </tr>
         {% endfor %}
         </tbody></table></div>
-      <small class="faint">Ortiqcha (qizil) = sandiqda yozilгандан ko'p naqd — yozilmagan savdo belgisi. Kamomad (sariq) = pul kam.</small>
+      <small class="faint">Ortiqcha (qizil) = sandiqda yozilgandan ko'p naqd — yozilmagan savdo belgisi. Kamomad (sariq) = pul kam.</small>
     </div>
     {% endif %}
 
