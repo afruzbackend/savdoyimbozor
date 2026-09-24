@@ -38,12 +38,14 @@
             {% if u.must_change_password %}<span class="badge badge-warn">Parol</span>{% endif %}</td>
         <td style="white-space:nowrap">
           <a class="btn btn-ghost" style="padding:6px 10px" href="{% url 'panel:user_edit' u.pk %}">Tahrirlash</a>
-          <form method="post" action="{% url 'panel:user_reset' u.pk %}" style="display:inline">{% csrf_token %}
+          <form method="post" action="{% url 'panel:user_reset' u.pk %}" style="display:inline"
+                data-confirm="{{ u.username }} uchun yangi parol berilsinmi? Eski parol ishlamay qoladi." data-confirm-ok="Ha, yangi parol">{% csrf_token %}
             <button class="btn btn-ghost" style="padding:6px 10px">Parol tiklash</button></form>
           {% if u.pk == request.user.pk %}
             <span class="muted" style="padding:6px 10px;font-size:var(--t--1)">Bu — siz</span>
           {% else %}
-          <form method="post" action="{% url 'panel:user_toggle' u.pk %}" style="display:inline">{% csrf_token %}
+          <form method="post" action="{% url 'panel:user_toggle' u.pk %}" style="display:inline"
+                {% if u.is_active %}data-confirm="{{ u.username }} bloklansinmi? U tizimga kira olmaydi." data-confirm-ok="Ha, bloklash" data-danger{% endif %}>{% csrf_token %}
             <button class="btn btn-ghost" style="padding:6px 10px">{% if u.is_active %}Bloklash{% else %}Faollashtirish{% endif %}</button></form>
           {% endif %}
         </td>

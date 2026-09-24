@@ -42,7 +42,7 @@ def create_sale_api(request):
         if price is None or price < 0:
             return Response({"detail": "Narx manfiy bo'lmasin."}, status=400)
         clean.append({
-            "product_id": it.get("product_id") or None,
+            "product_id": to_int(it.get("product_id"), 0) or None,  # "abc" → 500 emas
             "name": str(it.get("name") or "")[:200],
             "qty": qty,
             "unit_price": price,

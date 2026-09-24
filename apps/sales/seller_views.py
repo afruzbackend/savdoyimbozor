@@ -6,6 +6,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Count, F, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -31,6 +32,23 @@ from .services import pricing
 
 def _shop(request):
     return getattr(request.user, "shop", None)
+
+
+def _pk(value) -> int:
+    """So'rovdan kelgan ID — raqam bo'lmasa 0 ("abc" bilan 500 xato bo'lmasin)."""
+    return to_int(value, 0) or 0
+
+
+def _photo_error(f):
+    from django.core.exceptions import ValidationError
+
+    from apps.core.media import validate_image_upload
+
+    try:
+        validate_image_upload(f)
+    except ValidationError as e:
+        return e.messages[0]
+    return None
 
 
 def _dec(val, default="0"):
@@ -164,7 +182,7 @@ def products(request):
     catalog = list(catalog_qs.order_by("name"))
 
     if request.method == "POST":
-        cat = ProductCategory.objects.filter(pk=request.POST.get("category") or 0).first()
+        cat = ProductCategory.objects.filter(pk=_pk(request.POST.get("category"))).first()
         # Nom: katalog nomi + ixtiyoriy nav/rang (masalan "Olma — qizil")
         variant = request.POST.get("variant", "").strip()
         base_name = cat.name if cat else request.POST.get("name", "").strip()
@@ -251,7 +269,7 @@ def stock_in(request):
             messages.error(request, "Kelish narxi manfiy bo'lmasin.")
             return redirect("seller:stock_in")
         # 2 xil: mavjud mahsulotni tanlash YOKI qo'lda yangi nom yozish (yangi mahsulot yaratiladi)
-        product = Product.objects.filter(pk=request.POST.get("product") or 0, shop=shop).first()
+        product = Product.objects.filter(pk=_pk(request.POST.get("product")), shop=shop).first()
         if product is None:
             name = request.POST.get("new_name", "").strip()
             if not name:
@@ -297,13 +315,46 @@ def stock_in(request):
     )
 
 
+def _morning_baselines(shop, today, prods, mv, existing):
+    """Har mahsulot uchun kun boshi qoldig'i: {pid: (miqdor, qulflanganmi)}.
+
+    Tartib: bugungi saqlangan sanoq > kechagi kechki sanoq > tizim hisobi.
+    Kechagi sanoq bo'lsa ertalabni sotuvchi O'ZGARTIRA OLMAYDI — aks holda ertalabni
+    kechqurunga tenglab "hech narsa sotilmadi" deb qoldiq nazoratini chetlab o'tish mumkin edi.
+    """
+    from .services.stock import system_morning
+
+    yesterday = today - timedelta(days=1)
+    y_evening = {
+        ln.product_id: ln.evening_qty
+        for ln in DailyCloseLine.objects.filter(
+            close__shop=shop, close__date=yesterday, product__isnull=False
+        )
+    }
+    saved = {ln.product_id: ln.morning_qty for ln in existing.lines.all()} if existing else {}
+    out = {}
+    for p in prods:
+        if p.id in saved:
+            out[p.id] = (saved[p.id], True)
+        elif p.id in y_evening:
+            out[p.id] = (y_evening[p.id], True)
+        else:
+            out[p.id] = (system_morning(p, mv), False)  # birinchi sanoq — tuzatish mumkin
+    return out
+
+
 @login_required
 def daily_close(request):
+    from .services.stock import day_movements, sold_qty
+
     shop = _shop(request)
     if shop is None:
         return redirect("seller:home")
     today = timezone.localdate()
-    prods = Product.objects.filter(shop=shop, is_active=True)
+    prods = list(Product.objects.filter(shop=shop, is_active=True).order_by("name"))
+    existing = DailyClose.objects.filter(shop=shop, date=today).first()
+    mv = day_movements(shop, today)
+    base = _morning_baselines(shop, today, prods, mv, existing)
     if request.method == "POST":
         # Sanalgan naqd MAJBURIY: bo'sh qolsa 0 deb yozilib, inspektorga noto'g'ri
         # "100% kamomad" signali ketardi.
@@ -313,34 +364,45 @@ def daily_close(request):
             return redirect("seller:daily_close")
         from .services.cash import close_register
 
-        close, _ = DailyClose.objects.update_or_create(
-            shop=shop, date=today, defaults={"seller": request.user}
-        )
-        close.lines.all().delete()
-        computed = 0
-        for p in prods:
-            raw_ev = request.POST.get(f"evening_{p.id}")
-            if raw_ev is None or str(raw_ev).strip() == "":
-                continue  # sanalmagan mahsulot — 0 deb olinsa "hammasi sotilgan" bo'lardi
-            morning = max(Decimal("0"), to_dec(request.POST.get(f"morning_{p.id}"), Decimal("0")))
-            evening = max(Decimal("0"), to_dec(raw_ev, Decimal("0")))
-            sold = max(Decimal("0"), morning - evening)
-            computed += int(sold * p.sell_price)
-            DailyCloseLine.objects.create(
-                close=close,
-                product=p,
-                product_name=p.name,
-                morning_qty=morning,
-                evening_qty=evening,
-                unit_price=p.sell_price,
+        with transaction.atomic():
+            close, _ = DailyClose.objects.update_or_create(
+                shop=shop, date=today, defaults={"seller": request.user}
             )
-        entered = (
-            Sale.objects.filter(shop=shop, created_at__date=today).aggregate(s=Sum("total"))["s"]
-            or 0
-        )
-        close.computed_sales = computed
-        close.entered_sales = entered
-        close.save()
+            close.lines.all().delete()
+            computed = 0
+            for p in prods:
+                raw_ev = request.POST.get(f"evening_{p.id}")
+                if raw_ev is None or str(raw_ev).strip() == "":
+                    continue  # sanalmagan mahsulot — 0 deb olinsa "hammasi sotilgan" bo'lardi
+                evening = to_dec(raw_ev)
+                if evening is None or evening < 0:
+                    continue
+                morning, locked = base[p.id]
+                if not locked:
+                    posted = to_dec(request.POST.get(f"morning_{p.id}"))
+                    if posted is not None and posted >= 0:
+                        morning = posted
+                computed += int(sold_qty(morning, evening, p.id, mv) * p.sell_price)
+                DailyCloseLine.objects.create(
+                    close=close,
+                    product=p,
+                    product_name=p.name,
+                    morning_qty=morning,
+                    evening_qty=evening,
+                    unit_price=p.sell_price,
+                )
+                # Sanoq = haqiqat: tizim qoldig'i jismoniy sanoqqa tenglashadi
+                # (tez sotuv mahsulotga bog'lanmaydi — aks holda qoldiq cheksiz o'sardi)
+                Product.objects.filter(pk=p.pk).update(stock=evening)
+            entered = (
+                Sale.objects.filter(shop=shop, created_at__date=today).aggregate(s=Sum("total"))[
+                    "s"
+                ]
+                or 0
+            )
+            close.computed_sales = computed
+            close.entered_sales = entered
+            close.save()
         # Kassa (Z-hisobot) — kun yakunining majburiy qismi (maydalik + nasiya qaytishi hisobda)
         _z, diff = close_register(
             shop, today, counted, request.user, note=request.POST.get("cash_note", "")
@@ -355,48 +417,19 @@ def daily_close(request):
             f"Kun yakunlandi. Hisoblangan: {som(computed)} · Kiritilgan: {som(entered)} so'm{note}",
         )
         return redirect("seller:daily_close")
-    existing = DailyClose.objects.filter(shop=shop, date=today).first()
+
     from .services.cash import register_totals
 
     reg = register_totals(shop, today)
     today_close = RegisterClose.objects.filter(shop=shop, date=today).first()
-
-    # "Ertalab" = kun BOSHIDAGI qoldiq. Joriy qoldiq emas — skaner sotuvlari uni kechgacha
-    # allaqachon kamaytirgan bo'ladi (aks holda sotilgan ≈ 0 chiqib, nazorat ma'nosiz edi).
-    # Avval kechagi kechki sanoq; bo'lmasa: joriy + bugun sotilgan − bugun kirim.
-    yesterday = today - timedelta(days=1)
-    y_evening = {
-        ln.product_id: ln.evening_qty
-        for ln in DailyCloseLine.objects.filter(
-            close__shop=shop, close__date=yesterday, product__isnull=False
-        )
-    }
-    sold_today = {
-        r["product"]: r["q"]
-        for r in SaleItem.objects.filter(
-            sale__shop=shop, sale__created_at__date=today, product__isnull=False
-        ).values("product").annotate(q=Sum("quantity"))
-    }
-    in_today = {
-        r["product"]: r["q"]
-        for r in StockIn.objects.filter(shop=shop, created_at__date=today)
-        .values("product").annotate(q=Sum("quantity"))
-    }
-    lines_today = {}
-    if existing:
-        lines_today = {ln.product_id: ln for ln in existing.lines.all()}
+    lines_today = {ln.product_id: ln for ln in existing.lines.all()} if existing else {}
     rows = []
     for p in prods:
-        if p.id in lines_today:  # bugun allaqachon yopilgan — kiritilganini ko'rsatamiz
-            morning = lines_today[p.id].morning_qty
-            evening = lines_today[p.id].evening_qty
-        else:
-            morning = y_evening.get(p.id)
-            if morning is None:
-                morning = max(Decimal("0"), p.stock + (sold_today.get(p.id) or 0)
-                              - (in_today.get(p.id) or 0))
-            evening = None
-        rows.append({"p": p, "morning": morning, "evening": evening})
+        morning, locked = base[p.id]
+        delta = mv["in"][p.id] - mv["out"][p.id]
+        evening = lines_today[p.id].evening_qty if p.id in lines_today else None
+        rows.append({"p": p, "morning": morning, "locked": locked, "delta": delta,
+                     "evening": evening})
     return render(
         request,
         "seller/daily_close.html",
@@ -417,7 +450,7 @@ def returns(request):
     if shop is None:
         return redirect("seller:home")
     if request.method == "POST":
-        product = Product.objects.filter(pk=request.POST.get("product") or 0, shop=shop).first()
+        product = Product.objects.filter(pk=_pk(request.POST.get("product")), shop=shop).first()
         qty = to_dec(request.POST.get("quantity"))
         reason = request.POST.get("reason", "").strip()[:200]
         amount = to_int(request.POST.get("amount"), 0)
@@ -440,11 +473,16 @@ def returns(request):
         else:
             if not amount:  # kiritilmagan bo'lsa — narx × miqdor
                 amount = int(qty * product.sell_price)
-            SaleReturn.objects.create(
-                shop=shop, seller=request.user, product=product,
-                quantity=qty, amount=amount, reason=reason,
-            )
-            Product.objects.filter(pk=product.pk).update(stock=F("stock") - qty)
+            with transaction.atomic():
+                locked = Product.objects.select_for_update().get(pk=product.pk)
+                if qty > locked.stock:
+                    messages.error(request, "Qoldiq o'zgardi — qayta urinib ko'ring.")
+                    return redirect("seller:returns")
+                SaleReturn.objects.create(
+                    shop=shop, seller=request.user, product=product,
+                    quantity=qty, amount=amount, reason=reason,
+                )
+                Product.objects.filter(pk=product.pk).update(stock=F("stock") - qty)
             messages.success(request, "Qaytarish qayd etildi. Qoldiq yangilandi.")
         return redirect("seller:returns")
     return render(
@@ -464,7 +502,7 @@ def writeoff(request):
     if shop is None:
         return redirect("seller:home")
     if request.method == "POST":
-        product = Product.objects.filter(pk=request.POST.get("product") or 0, shop=shop).first()
+        product = Product.objects.filter(pk=_pk(request.POST.get("product")), shop=shop).first()
         qty = to_dec(request.POST.get("quantity"), Decimal("0"))
         reason = request.POST.get("reason", "").strip()[:200]
         if product is None:
@@ -473,6 +511,8 @@ def writeoff(request):
             messages.error(request, "Sababni yozing — bu majburiy.")
         elif not request.FILES.get("photo"):
             messages.error(request, "Foto majburiy.")
+        elif (photo_err := _photo_error(request.FILES["photo"])):
+            messages.error(request, photo_err)
         elif qty <= 0:
             messages.error(request, "Miqdorni to'g'ri kiriting.")
         elif qty > product.stock:
@@ -482,11 +522,17 @@ def writeoff(request):
                 f"{product.get_unit_display()}, so'ralgan {qty:g}.",
             )
         else:
-            WriteOff.objects.create(
-                shop=shop, seller=request.user, product=product, product_name=product.name,
-                quantity=qty, photo=request.FILES["photo"], reason=reason,
-            )
-            Product.objects.filter(pk=product.pk).update(stock=F("stock") - qty)
+            with transaction.atomic():
+                # Qulflab qayta tekshiramiz — ikki parallel so'rov qoldiqdan oshirib yubormasin
+                locked = Product.objects.select_for_update().get(pk=product.pk)
+                if qty > locked.stock:
+                    messages.error(request, "Qoldiq o'zgardi — qayta urinib ko'ring.")
+                    return redirect("seller:writeoff")
+                WriteOff.objects.create(
+                    shop=shop, seller=request.user, product=product, product_name=product.name,
+                    quantity=qty, photo=request.FILES["photo"], reason=reason,
+                )
+                Product.objects.filter(pk=product.pk).update(stock=F("stock") - qty)
             messages.success(request, "Hisobdan chiqarish qayd etildi.")
         return redirect("seller:writeoff")
     return render(
@@ -510,7 +556,7 @@ def debts(request):
             # To'lov (qisman ham): naqd to'lov bugungi kassadagi kutilgan naqdga qo'shiladi
             from .services.cash import CashError, pay_debt
 
-            debt = get_object_or_404(Debt, pk=request.POST["pay"], shop=shop)
+            debt = get_object_or_404(Debt, pk=_pk(request.POST["pay"]), shop=shop)
             amount = to_int(request.POST.get("amount"))
             if amount is None:
                 amount = debt.remaining  # summa yozilmasa — to'liq
@@ -619,7 +665,7 @@ def report(request):
 
     chart = {
         "labels": [s.date.strftime("%d.%m") for s in scores],
-        "truth": [s.truth_pct for s in scores],
+        "truth": [s.truth_pct if s.measured else None for s in scores],
         "entered": [s.entered_sales for s in scores],
     }
 
@@ -831,7 +877,7 @@ def corrections(request):
     if request.method == "POST":
         # Faqat BUGUNGI sotuv — eski (hisoblangan) kunlarni orqaga o'zgartirib bo'lmasin
         sale = get_object_or_404(
-            Sale, pk=request.POST.get("sale") or 0, shop=shop, created_at__date=today
+            Sale, pk=_pk(request.POST.get("sale")), shop=shop, created_at__date=today
         )
         new_total = to_int(request.POST.get("new_total"), 0) or 0
         reason = request.POST.get("reason", "").strip()[:200]
@@ -871,9 +917,10 @@ def _pending_nosales(shop):
     """Tushuntirilmagan 'savdo yo'q' signallari (e'tiroz biriktirilmagan)."""
     from apps.analytics.models import Alert
 
+    # Faqat TUGAGAN kunlar: bugun hali savdo qilish mumkin — tushuntirish talab qilinmaydi
     return (
         Alert.objects.filter(shop=shop, kind=Alert.Kind.ZERO_SALES, status=Alert.Status.NEW)
-        .filter(appeals__isnull=True)
+        .filter(date__lt=timezone.localdate(), appeals__isnull=True)
         .order_by("-date")
     )
 
@@ -894,15 +941,15 @@ def appeals(request):
             return redirect("seller:appeals")
         if alert_id:  # nol-savdoni tushuntirish
             alert = Alert.objects.filter(
-                pk=alert_id, shop=shop, kind=Alert.Kind.ZERO_SALES
+                pk=_pk(alert_id), shop=shop, kind=Alert.Kind.ZERO_SALES
             ).first()
             if alert and msg:
+                # Signal OCHIQ qoladi — izoh nazoratchiga e'tiroz sifatida boradi.
+                # Ilgari sotuvchi istalgan matn yozib qizil signalni o'zi yopib yuborardi.
                 Appeal.objects.create(
                     shop=shop, alert=alert, author=request.user, message=msg[:2000]
                 )
-                alert.status = Alert.Status.RESOLVED
-                alert.save(update_fields=["status"])
-                messages.success(request, "Izoh yuborildi. Rahmat.")
+                messages.success(request, "Izoh yuborildi. Nazoratchi ko'rib chiqadi.")
         elif msg:
             Appeal.objects.create(shop=shop, author=request.user, message=msg[:2000])
             messages.success(request, "E'tiroz yuborildi. Inspektor ko'rib chiqadi.")

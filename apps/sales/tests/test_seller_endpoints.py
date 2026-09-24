@@ -6,11 +6,19 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from apps.sales.models import Debt, SaleReturn, WriteOff
 from conftest import SELLER_HOST
 
-# 1x1 shaffof PNG (ImageField validatsiyasidan o'tadi)
-_PNG = bytes.fromhex(
-    "89504e470d0a1a0a0000000d494844520000000100000001080600000"
-    "01f15c4890000000a49444154789c6360000002000154a24f5f0000000049454e44ae426082"
-)
+
+# Haqiqiy (Pillow bilan yaratilgan) PNG — foto tekshiruvidan (validate_image_upload) o'tadi
+def _make_png():
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (2, 2), (10, 120, 40)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+_PNG = _make_png()
 
 
 @pytest.mark.django_db

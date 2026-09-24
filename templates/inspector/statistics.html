@@ -54,7 +54,7 @@
           <td class="muted">{{ r.shop.category.name|default:"—" }}</td>
           <td class="num">{{ r.entered|intcomma }}</td>
           <td class="num">{{ r.cash|intcomma }}</td>
-          <td class="num"><span class="badge badge-{% if r.level == 'red' %}bad{% elif r.level == 'yellow' %}warn{% else %}ok{% endif %}">{{ r.avg_truth }}%</span></td>
+          <td class="num">{% if r.avg_truth is None %}<span class="badge badge-neutral" title="Solishtirish ma'lumoti yo'q">—</span>{% else %}<span class="badge badge-{% if r.level == 'red' %}bad{% elif r.level == 'yellow' %}warn{% else %}ok{% endif %}">{{ r.avg_truth }}%</span>{% endif %}</td>
           <td class="num">
             {% if r.trend is None %}<span class="muted">—</span>
             {% elif r.trend > 0 %}<span style="color:var(--ok)">▲ {{ r.trend }}</span>

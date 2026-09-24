@@ -4,23 +4,27 @@
 {% block heading %}Kun yakuni{% endblock %}
 {% block content %}
 <div class="card" style="max-width:720px">
-  <p class="muted">Har mahsulot bo'yicha ertalabki va kechki qoldiqni kiriting.
-     Tizim sotilgan miqdorni hisoblab, kiritilgan savdo bilan solishtiradi.</p>
+  <p class="muted">Kechqurun har mahsulotni sanab, <b>qolganini</b> yozing. Tizim sotilganini hisoblaydi:
+     <span class="num">ertalab + kirim − chiqarish − kechqurun</span> va kiritilgan savdo bilan solishtiradi.</p>
   {% if existing %}
   <div class="msg info">Bugun yakunlangan: hisoblangan <b class="num">{{ existing.computed_sales|intcomma }}</b> ·
      kiritilgan <b class="num">{{ existing.entered_sales|intcomma }}</b> so'm. Qayta yuborsangiz yangilanadi.</div>
   {% endif %}
   <form method="post">{% csrf_token %}
     <div class="table-wrap"><table class="data">
-      <thead><tr><th>Mahsulot</th><th class="num">Narx</th><th>Ertalab</th><th>Kechqurun</th></tr></thead>
+      <thead><tr><th>Mahsulot</th><th class="num">Narx</th><th class="num">Ertalab</th><th class="num" title="Bugungi kirim − hisobdan chiqarish/qaytarish">±</th><th>Kechqurun</th></tr></thead>
       <tbody>
       {% for r in rows %}
-      <tr><td>{{ r.p.name }}</td><td class="num muted">{{ r.p.sell_price|intcomma }}</td>
-        <td><input class="input num" style="width:100px" type="number" step="any" min="0" name="morning_{{ r.p.id }}" value="{{ r.morning|floatformat:'-3' }}"></td>
+      <tr><td>{{ r.p.name }} <small class="muted">{{ r.p.get_unit_display }}</small></td>
+        <td class="num muted">{{ r.p.sell_price|intcomma }}</td>
+        <td class="num">{% if r.locked %}<span title="Kechagi sanoqdan — o'zgartirilmaydi">{{ r.morning|floatformat:'-3' }}</span>
+          {% else %}<input class="input num" style="width:90px" type="number" step="any" min="0" name="morning_{{ r.p.id }}" value="{{ r.morning|floatformat:'-3' }}" title="Birinchi sanoq — kerak bo'lsa tuzating">{% endif %}</td>
+        <td class="num {% if r.delta > 0 %}ok-text{% elif r.delta < 0 %}bad-text{% else %}muted{% endif %}">{% if r.delta > 0 %}+{% endif %}{{ r.delta|floatformat:'-3' }}</td>
         <td><input class="input num" style="width:100px" type="number" step="any" min="0" name="evening_{{ r.p.id }}" placeholder="sanang"
                    value="{% if r.evening is not None %}{{ r.evening|floatformat:'-3' }}{% endif %}"></td></tr>
-      {% empty %}<tr><td colspan="4" class="muted">Mahsulot yo'q.</td></tr>{% endfor %}
+      {% empty %}<tr><td colspan="5" class="muted">Mahsulot yo'q.</td></tr>{% endfor %}
       </tbody></table></div>
+    <small class="faint">Sanalmagan (bo'sh) mahsulot hisobga olinmaydi. Kechagi sanoq bo'lsa ertalabki qoldiq qulflangan.</small>
 
     <div class="card" style="background:var(--surface-sunken);margin-top:var(--sp-4)">
       <div class="card-title" style="margin-bottom:var(--sp-2)">Kassa (naqd sanoq — majburiy)</div>

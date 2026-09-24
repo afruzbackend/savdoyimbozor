@@ -239,6 +239,59 @@
     }, ms || 30000);
   };
 
+  // ---- Tasdiqlash oynasi: <form data-confirm="Matn" data-confirm-ok="Ha, o'chirish"> ----
+  // Brauzerning standart confirm() oynasi o'rniga bizning dizayndagi modal.
+  function confirmModal(text, okLabel, danger) {
+    return new Promise(function (resolve) {
+      var bd = document.createElement("div");
+      bd.className = "modal-backdrop";
+      bd.innerHTML =
+        '<div class="modal-card center" role="alertdialog" aria-modal="true">' +
+        '<div class="card-title" style="margin:0 0 var(--sp-2)"></div>' +
+        '<p class="muted" style="margin:0 0 var(--sp-4)">Bu amalni tasdiqlaysizmi?</p>' +
+        '<div class="row gap-2" style="justify-content:center">' +
+        '<button type="button" class="btn btn-ghost" data-act="no">Bekor</button>' +
+        '<button type="button" class="btn ' + (danger ? "btn-danger" : "") + '" data-act="yes"></button>' +
+        "</div></div>";
+      bd.querySelector(".card-title").textContent = text;
+      bd.querySelector('[data-act="yes"]').textContent = okLabel || "Ha";
+      function done(v) {
+        document.removeEventListener("keydown", onKey, true);
+        bd.remove();
+        resolve(v);
+      }
+      function onKey(e) { if (e.key === "Escape") { e.preventDefault(); done(false); } }
+      bd.addEventListener("click", function (e) {
+        var act = e.target.closest("[data-act]");
+        if (act) done(act.dataset.act === "yes");
+        else if (e.target === bd) done(false);
+      });
+      document.addEventListener("keydown", onKey, true);
+      document.body.appendChild(bd);
+      if (window.i18nApply) window.i18nApply(bd);
+      bd.querySelector('[data-act="no"]').focus();
+    });
+  }
+  window.confirmModal = confirmModal;
+  document.addEventListener("submit", function (e) {
+    var form = e.target;
+    if (!form.matches || !form.matches("form[data-confirm]") || form.__confirmed) return;
+    e.preventDefault();
+    var submitter = e.submitter;
+    confirmModal(form.dataset.confirm, form.dataset.confirmOk, form.hasAttribute("data-danger"))
+      .then(function (ok) {
+        if (!ok) return;
+        form.__confirmed = true;
+        if (submitter && submitter.name) {
+          // Bosilgan tugma qiymati (name/value) yo'qolmasin
+          var h = document.createElement("input");
+          h.type = "hidden"; h.name = submitter.name; h.value = submitter.value;
+          form.appendChild(h);
+        }
+        form.submit();
+      });
+  }, true);
+
   // ---- Offline sotuv navbati (umumiy: tez sotuv + skaner) ----
   // Internet uzilsa sotuv localStorage'ga tushadi; har sahifa ochilganda va tarmoq
   // qaytganda yuboriladi. client_uid tufayli qayta yuborish dublikat yaratmaydi.

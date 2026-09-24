@@ -207,6 +207,7 @@ tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
 .switch input:focus-visible+.track{box-shadow:0 0 0 3px var(--ring)}
 
 /* ---------- Checkbox / radio ---------- */
+.ok-text{color:var(--ok-ink)}.bad-text{color:var(--bad)}
 .debt-row{padding:10px 0;border-bottom:1px solid var(--border)}
 .debt-row:last-child{border-bottom:0}
 .debt-row.overdue{box-shadow:inset 3px 0 0 var(--bad);padding-left:10px}

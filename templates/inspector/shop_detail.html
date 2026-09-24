@@ -81,7 +81,7 @@
   <div class="stack gap-4">
     <div class="card">
       <div class="card-header"><span class="card-title">Kiritilgan savdo vs Deklaratsiya (14 kun)</span>
-        {% if peer_count %}<small class="muted">O'xshashlar o'rtacha rostligi: <b class="num">{{ peer_avg }}%</b> ({{ peer_count }} do'kon)</small>{% endif %}
+        {% if peer_count %}<small class="muted">O'xshashlar o'rtacha rostligi: <b class="num">{% if peer_avg is not None %}{{ peer_avg }}%{% else %}—{% endif %}</b> ({{ peer_count }} do'kon)</small>{% endif %}
       </div>
       <canvas id="shopChart" height="90"></canvas>
     </div>

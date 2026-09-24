@@ -37,6 +37,9 @@ class DailyScore(TimeStampedModel):
     cash_amount = models.BigIntegerField(default=0)
     # Mustaqil manbalar yozilgandan qancha ko'p savdo ko'rsatdi = yashirilgan savdo (so'm)
     hidden_sales = models.BigIntegerField(_("Yashirilgan savdo (so'm)"), default=0)
+    # Rostlik O'LCHANDIMI (biror solishtirish manbasi bor). False bo'lsa truth_pct=0 bu
+    # "ma'lumot yo'q" — o'rtachalarga, reytingga, xavfli ro'yxatga KIRMAYDI.
+    measured = models.BooleanField(_("O'lchangan"), default=False, db_index=True)
 
     class Meta:
         verbose_name = _("Kunlik ball")

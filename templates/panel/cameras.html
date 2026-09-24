@@ -49,10 +49,14 @@
           <td class="num" style="white-space:nowrap">
             <form method="post" style="display:inline">{% csrf_token %}
               <input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="{{ c.pk }}">
-              <button class="btn-ghost" style="padding:4px 8px">{% if c.is_active %}O'chirish{% else %}Yoqish{% endif %}</button></form>
-            <form method="post" style="display:inline" onsubmit="return confirm('Kamera o\'chirilsinmi?')">{% csrf_token %}
+              <button class="btn-ghost" style="padding:4px 8px">{% if c.is_active %}Faolsizlantirish{% else %}Faollashtirish{% endif %}</button></form>
+            <form method="post" style="display:inline" data-confirm="{{ c.name }}: yangi token berilsinmi? Eski token darhol ishlamay qoladi." data-confirm-ok="Ha, yangilash">{% csrf_token %}
+              <input type="hidden" name="action" value="rotate"><input type="hidden" name="id" value="{{ c.pk }}">
+              <button class="btn-ghost" style="padding:4px 8px" title="Token sizib chiqsa — yangisini berish">Token yangilash</button></form>
+            <form method="post" style="display:inline" data-confirm="Kamera butunlay o'chirilsinmi? Hodisalari bo'lsa o'chirilmaydi." data-confirm-ok="Ha, o'chirish" data-danger>{% csrf_token %}
               <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ c.pk }}">
-              <button class="btn-ghost" style="padding:4px 8px;color:var(--bad)">×</button></form>
+              <button class="btn-ghost" style="padding:4px 8px;color:var(--bad)" title="Butunlay o'chirish" aria-label="Butunlay o'chirish">
+                <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-trash-2"></use></svg></button></form>
           </td>
         </tr>
       {% empty %}<tr><td colspan="5" class="muted">Kamera yo'q.</td></tr>{% endfor %}

@@ -70,6 +70,8 @@ MIDDLEWARE = [
     "django_htmx.middleware.HtmxMiddleware",
     # Foydalanuvchi ROLIga qarab ROOT_URLCONF tanlaydi (bitta host):
     "apps.core.middleware.HostRoutingMiddleware",
+    # Birinchi kirishda / tiklangan parolni almashtirish majburiy:
+    "apps.core.middleware.ForcePasswordChangeMiddleware",
     # Muhim amallarni audit jurnaliga yozadi:
     "apps.core.middleware.AuditMiddleware",
 ]
@@ -135,6 +137,10 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+# Prod (nginx): media'ni Django ruxsat tekshirib, nginx ichki location orqali beradi
+MEDIA_X_ACCEL = env.bool("MEDIA_X_ACCEL", default=False)
+# Yuklash chegarasi (fotolar 10 MB gacha — apps.core.media)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
 # WhiteNoise: collectstatic'siz ham finders orqali uzatadi (DEBUG=False lokal demo uchun)
 WHITENOISE_USE_FINDERS = True
 

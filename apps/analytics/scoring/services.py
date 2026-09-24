@@ -154,27 +154,17 @@ def _cash_declared(shop, day):
 def _stock_estimate(shop, day):
     """Qoldiq bo'yicha sotilgan qiymat: kun yakuni (DailyClose) asosida.
 
-    Σ(ertalab + kirim + qaytgan − chiqarilgan − kechqurun) × narx.
+    Σ(ertalab + kirim − chiqarilgan − qaytarilgan − kechqurun) × narx — apps.sales.services.stock.
     Kun yakuni kiritilmagan bo'lsa None (qoldiq qismi hisobga olinmaydi).
     """
-    from apps.sales.models import DailyClose, StockIn
+    from apps.sales.models import DailyClose
+    from apps.sales.services.stock import close_sold_value
 
     close = DailyClose.objects.filter(shop=shop, date=day).prefetch_related("lines").first()
     if not close:
         return None
-    value = 0
-    for line in close.lines.all():
-        sold_qty = float(line.morning_qty) - float(line.evening_qty)
-        if sold_qty > 0:
-            value += int(sold_qty * line.unit_price)
-    # Kun ichidagi kirim qo'shiladi, hisobdan chiqarish/qaytarish tuzatiladi
-    stock_in = sum(
-        int(float(s.quantity) * s.unit_price)
-        for s in StockIn.objects.filter(shop=shop, created_at__date=day)
-    )
-    value += stock_in
-    # (WriteOff/SaleReturn summasi kelajakda narx bilan aniqroq ulanadi)
-    return value if value > 0 else None
+    value = close_sold_value(close)
+    return value if value and value > 0 else None
 
 
 def _camera_estimate(shop, day, buyer_ratio, market_avg_check=0):
@@ -222,18 +212,44 @@ def refresh_today_if_stale(seconds: int = 12) -> bool:
     if newest is not None and (timezone.now() - newest) < timedelta(seconds=seconds):
         return False
     try:
+        ensure_finalized(today - timedelta(days=1))
         recompute_for_date(today)
         return True
     except Exception:  # noqa: BLE001 — sotuv baribir yozilsin
         return False
 
 
-def recompute_for_date(day) -> int:
+def ensure_finalized(day) -> bool:
+    """O'tgan kunni (signallari bilan) bir marta yakuniy hisoblaydi.
+
+    Celery beat (01:00) bo'lmagan muhitda ham kechagi signallar yo'qolmasin.
+    Idempotent: signal (do'kon, kun, tur) bo'yicha takrorlanmaydi.
+    """
+    from django.core.cache import cache
+
+    key = f"bn:finalized:{day.isoformat()}"
+    if cache.get(key):
+        return False
+    recompute_for_date(day, final=True)
+    cache.set(key, 1, 60 * 60 * 36)
+    return True
+
+
+def recompute_for_date(day, final: bool | None = None) -> int:
     """Berilgan kun uchun barcha faol do'kon rostlik ballarini qayta hisoblaydi.
 
     Har do'kon: kassa/kamera/narx (va qoldiq — mavjud bo'lsa) qismlari → weighted_truth →
     DailyScore. Yashil bo'lmasa va yopiq kun bo'lmasa → signal.
+
+    final: kun TUGAGANmi. Tugamagan kun (bugun) uchun faqat ball yangilanadi (xarita jonli),
+    SIGNAL YARATILMAYDI — ertalab hali sotmagan har do'konga "savdo yo'q", har kunlik
+    o'rtachaga yetmagan savdoga "keskin tushdi" degan soxta qizil signallar chiqardi.
+    None → avtomatik: kecha va undan oldingi kunlar yakuniy.
     """
+    from django.utils import timezone as _tz
+
+    if final is None:
+        final = day < _tz.localdate()
     from apps.analytics.models import Alert, DailyScore
     from apps.core.models import SystemSettings
     from apps.geo.models import Market
@@ -254,12 +270,12 @@ def recompute_for_date(day) -> int:
     from collections import defaultdict
     from datetime import timedelta
 
-    from django.db.models import Count, F, Sum
+    from django.db.models import Count, Sum
 
     from apps.cameras.models import CameraEvent
     from apps.cash.models import CashRecord
     from apps.catalog.models import Product
-    from apps.sales.models import DailyClose, Sale, StockIn
+    from apps.sales.models import DailyClose, Sale
 
     shops = list(Shop.objects.filter(is_active=True).select_related("market"))
     ids = [s.id for s in shops]
@@ -286,12 +302,15 @@ def recompute_for_date(day) -> int:
         .annotate(c=Count("id"))
     }
     # Bozor o'rtacha cheki (kamera mustaqilligi uchun) — do'kon jamlanmalaridan
+    # MUHIM: bir xil SAVDO TURI ichida (ko'kat sotuvchi cheki kiyim do'koni cheki bilan
+    # aralashsa, kamera bahosi o'n barobar oshib ketib, noto'g'ri ayblov bo'lardi).
     mkt_sum, mkt_cnt = defaultdict(int), defaultdict(int)
     for s in shops:
-        mkt_sum[s.market_id] += entered_by.get(s.id, 0)
-        mkt_cnt[s.market_id] += checks_by.get(s.id, 0)
+        key = (s.market_id, s.category_id)
+        mkt_sum[key] += entered_by.get(s.id, 0)
+        mkt_cnt[key] += checks_by.get(s.id, 0)
     avg_check_by_market = {
-        m: (mkt_sum[m] / mkt_cnt[m]) if mkt_cnt[m] else 0 for m in mkt_sum
+        k: (mkt_sum[k] / mkt_cnt[k]) if mkt_cnt[k] else 0 for k in mkt_sum
     }
     # Narx balli uchun mahsulotlar — 1 so'rov, do'kon bo'yicha guruh
     prices_by = defaultdict(list)
@@ -319,20 +338,14 @@ def recompute_for_date(day) -> int:
         if s.market_id not in insp_by_market:
             insp_by_market[s.market_id] = s.market.inspectors.first()
     # Qoldiq bahosi (DailyClose asosida) — 2 so'rov (close + lines), StockIn — 1 so'rov
+    from apps.sales.services.stock import close_sold_value
+
     stock_val_by, has_close = {}, set()
-    for c in DailyClose.objects.filter(shop_id__in=ids, date=day).prefetch_related("lines"):
+    for c in DailyClose.objects.filter(shop_id__in=ids, date=day).select_related(
+        "shop"
+    ).prefetch_related("lines"):
         has_close.add(c.shop_id)
-        v = 0
-        for line in c.lines.all():
-            sold = float(line.morning_qty) - float(line.evening_qty)
-            if sold > 0:
-                v += int(sold * line.unit_price)
-        stock_val_by[c.shop_id] = v
-    for r in StockIn.objects.filter(shop_id__in=ids, created_at__date=day).values("shop").annotate(
-        v=Sum(F("quantity") * F("unit_price"))
-    ):
-        if r["shop"] in stock_val_by:
-            stock_val_by[r["shop"]] += int(r["v"] or 0)
+        stock_val_by[c.shop_id] = close_sold_value(c) or 0
     # Mavjud signallar (do'kon,tur) — 1 so'rov (har do'konga .exists() o'rniga)
     existing_alerts = set(
         Alert.objects.filter(shop_id__in=ids, date=day).values_list("shop_id", "kind")
@@ -355,7 +368,9 @@ def recompute_for_date(day) -> int:
         cam = None
         if visits:
             own_avg = entered / checks_by[shop.id] if checks_by.get(shop.id) else 0
-            avg_check = max(own_avg, avg_check_by_market.get(shop.market_id, 0))
+            avg_check = max(
+                own_avg, avg_check_by_market.get((shop.market_id, shop.category_id), 0)
+            )
             cam = int(visits * float(cfg.buyer_ratio) * avg_check) if avg_check > 0 else None
         stock_val = stock_val_by.get(shop.id) if shop.id in has_close else None
         if stock_val is not None and stock_val <= 0:
@@ -397,12 +412,13 @@ def recompute_for_date(day) -> int:
                 "entered_sales": entered,
                 "cash_amount": cash,
                 "hidden_sales": hidden,
+                "measured": any(v is not None for v in parts.values()),
             },
         )
         count += 1
 
-        # Signal (yopiq kun bo'lmasa, ma'lumot bo'lsa)
-        if day.weekday() in shop.closed_weekday_list():
+        # Signal: faqat TUGAGAN kun uchun (yopiq kun bo'lmasa, ma'lumot bo'lsa)
+        if not final or day.weekday() in shop.closed_weekday_list():
             continue
 
         # Nol-savdo: ochiq kun, tovari yoki kamera oqimi bor, lekin 0 savdo kiritilgan
@@ -458,7 +474,8 @@ def recompute_for_date(day) -> int:
                 pass
 
     # Kassa nomuvofiqligi signali (Z-hisobot asosida, rostlik ballidan mustaqil)
-    _generate_cash_mismatch_alerts(day, cfg, existing_alerts, insp_by_market)
+    if final:
+        _generate_cash_mismatch_alerts(day, cfg, existing_alerts, insp_by_market)
     return count
 
 

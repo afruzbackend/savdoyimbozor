@@ -13,7 +13,32 @@ from apps.catalog.models import ShopCategory
 from apps.geo.models import Market, Region, Row
 from apps.shops.models import Shop
 
+from .format import to_int
 from .models import AuditLog, SystemSettings
+
+
+def _pk(value) -> int:
+    """So'rovdan kelgan ID — raqam bo'lmasa 0 (500 xato o'rniga "topilmadi")."""
+    return to_int(value, 0) or 0
+
+
+def _digits(value) -> str:
+    """STIR faqat raqam: "300 000 001" → "300000001" (login ham shundan)."""
+    return "".join(c for c in str(value or "") if c.isdigit())
+
+
+def _load_xlsx(request):
+    """Excel faylni ochadi; .xlsx bo'lmasa yoki buzuq bo'lsa — None (500 emas)."""
+    import openpyxl
+
+    f = request.FILES.get("file")
+    if f is None:
+        return None
+    try:
+        return openpyxl.load_workbook(f, data_only=True, read_only=True)
+    except Exception:  # noqa: BLE001 — BadZipFile, InvalidFileException va h.k.
+        messages.error(request, "Fayl ochilmadi — .xlsx formatidagi Excel fayl yuklang.")
+        return None
 
 
 def superadmin_required(view):
@@ -139,15 +164,15 @@ def account_create(request):
                 messages.error(request, "Mavjud do'konni tanlang.")
                 return redirect("panel:account_create")
             if existing:
-                shop = get_object_or_404(Shop, pk=existing)
+                shop = get_object_or_404(Shop, pk=_pk(existing))
             else:
                 # Yangi do'kon: STIR, bozor, savdo turi, manzil, lokatsiya (xaritadan)
-                market = get_object_or_404(Market, pk=request.POST.get("market"))
-                category = ShopCategory.objects.filter(pk=request.POST.get("category") or 0).first()
+                market = get_object_or_404(Market, pk=_pk(request.POST.get("market")))
+                category = ShopCategory.objects.filter(pk=_pk(request.POST.get("category"))).first()
                 if category is None:
                     messages.error(request, "Savdo turini tanlang.")
                     return redirect("panel:account_create")
-                if not any(c.isdigit() for c in request.POST.get("stir", "")):
+                if not _digits(request.POST.get("stir")):
                     messages.error(request, "STIR ni yozing (login shundan hosil bo'ladi).")
                     return redirect("panel:account_create")
 
@@ -159,7 +184,7 @@ def account_create(request):
                 shop = Shop.objects.create(
                     market=market,
                     number=number,
-                    stir=request.POST.get("stir", "").strip()[:15],
+                    stir=_digits(request.POST.get("stir"))[:15],
                     owner_name=request.POST.get("full_name", "").strip()[:200],
                     owner_phone=request.POST.get("phone", "").strip()[:20],
                     address=request.POST.get("address", "").strip()[:300],
@@ -174,7 +199,9 @@ def account_create(request):
                 phone=request.POST.get("phone", ""),
             )
         else:
-            markets = Market.objects.filter(pk__in=request.POST.getlist("markets"))
+            markets = Market.objects.filter(
+                pk__in=[_pk(x) for x in request.POST.getlist("markets")]
+            )
             if not markets.exists():
                 # Bozorsiz inspektor hech narsa ko'rmaydi — foydasiz hisob ochilmasin
                 messages.error(request, "Inspektorga kamida bitta bozor biriktiring.")
@@ -215,10 +242,12 @@ def cred_serializable(cred):
 def import_shops(request):
     """Excel'dan ommaviy do'kon + sotuvchi. Ustunlar: Raqam, STIR, Egasi, Telefon, Toifa, Qator."""
     if request.method == "POST" and request.FILES.get("file"):
-        import openpyxl
-
-        market = get_object_or_404(Market, pk=request.POST.get("market"))
-        wb = openpyxl.load_workbook(request.FILES["file"], data_only=True)
+        market = get_object_or_404(Market, pk=_pk(request.POST.get("market")))
+        # Ustunda savdo turi bo'lmasa — formada tanlangan standart tur olinadi
+        default_cat = ShopCategory.objects.filter(pk=_pk(request.POST.get("category"))).first()
+        wb = _load_xlsx(request)
+        if wb is None:
+            return redirect("panel:import_shops")
         ws = wb.active
         from apps.core.format import excel_str
 
@@ -231,14 +260,24 @@ def import_shops(request):
             try:
                 # Excel sonni float saqlaydi: 25.0 -> "25" (aks holda raqam "25.0" bo'lardi)
                 number = excel_str(row[0])
-                stir = excel_str(row[1]) if len(row) > 1 else ""
+                stir = _digits(excel_str(row[1]))[:15] if len(row) > 1 else ""
                 owner = excel_str(row[2]) if len(row) > 2 else ""
                 phone = excel_str(row[3]) if len(row) > 3 else ""
                 cat_name = excel_str(row[4]) if len(row) > 4 else ""
                 row_name = excel_str(row[5]) if len(row) > 5 else ""
                 if not number:
                     raise ValueError("raqam bo'sh")
-                category = ShopCategory.objects.filter(name=cat_name).first() if cat_name else None
+                if not stir:
+                    raise ValueError("STIR bo'sh")
+                if cat_name:
+                    category = ShopCategory.objects.filter(name__iexact=cat_name).first()
+                    if category is None:
+                        raise ValueError(f"savdo turi «{cat_name}» topilmadi")
+                else:
+                    category = default_cat
+                if category is None:
+                    # Turisiz do'kon o'xshashlar bilan solishtirilmaydi — jimgina o'tkazmaymiz
+                    raise ValueError("savdo turi yo'q (ustunga yozing yoki standartini tanlang)")
                 row_obj = (
                     Row.objects.get_or_create(market=market, label=row_name)[0]
                     if row_name
@@ -268,7 +307,11 @@ def import_shops(request):
             messages.warning(request, "Xato qatorlar: " + "; ".join(bad_rows[:10])
                              + (" ..." if len(bad_rows) > 10 else ""))
         return redirect("panel:login_sheet")
-    return render(request, "panel/import_shops.html", {"markets": Market.objects.all()})
+    return render(
+        request,
+        "panel/import_shops.html",
+        {"markets": Market.objects.all(), "categories": ShopCategory.objects.order_by("name")},
+    )
 
 
 @superadmin_required
@@ -285,20 +328,23 @@ def import_cash(request):
     if request.method == "POST" and request.FILES.get("file"):
         import datetime
 
-        import openpyxl
+        from django.utils import timezone
 
         from apps.cash.models import CashRecord
-        from apps.core.format import excel_str, to_int
+        from apps.core.format import excel_str
 
-        wb = openpyxl.load_workbook(request.FILES["file"], data_only=True)
+        wb = _load_xlsx(request)
+        if wb is None:
+            return redirect("panel:import_cash")
         ws = wb.active
+        today = timezone.localdate()
         added, skipped = 0, 0
         dates = set()
         reasons = []
         for idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
             if not row or not row[0]:
                 continue
-            stir = excel_str(row[0])
+            stir = _digits(excel_str(row[0]))
             number = excel_str(row[3]) if len(row) > 3 else ""
             qs = Shop.objects.filter(stir=stir)
             if number:
@@ -330,6 +376,8 @@ def import_cash(request):
                         raise ValueError("sana formati")
                 if not isinstance(d, datetime.date):
                     raise ValueError("sana yo'q")
+                if d > today:
+                    raise ValueError(f"sana kelajakda ({d:%d.%m.%Y})")
                 amount = to_int(row[2] if len(row) > 2 else None)
                 if amount is None or amount < 0:
                     raise ValueError("summa noto'g'ri")
@@ -377,8 +425,6 @@ def settings_edit(request):
             "anomaly_drop_pct",
             "cash_shortage_pct",
         ]
-        from apps.core.format import to_int
-
         # Har maydon uchun ruxsat etilgan oraliq (noto'g'ri qiymat tizimni buzmasin)
         limits = {
             "green_threshold": (1, 100), "yellow_threshold": (0, 99),
@@ -420,6 +466,27 @@ def settings_edit(request):
                    ("weight_cash", "weight_camera", "weight_stock", "weight_price")]
         if not errors and sum(weights) <= 0:
             errors.append("Og'irliklar yig'indisi 0 dan katta bo'lsin")
+        # Kamera: xaridorga aylanish ulushi (0.01–1.00) — panelda (django-adminsiz)
+        from decimal import Decimal
+
+        from .format import to_dec
+
+        raw_br = request.POST.get("buyer_ratio")
+        if raw_br not in (None, ""):
+            br = to_dec(raw_br)
+            if br is None or not (Decimal("0.01") <= br <= Decimal("1")):
+                errors.append("Xaridorga aylanish ulushi: 0.01–1.00 oralig'ida bo'lsin")
+            else:
+                new["buyer_ratio"] = br.quantize(Decimal("0.01"))
+        # Chegirma tugmalari: "5, 10, 15" — 1..5 ta, har biri 1..50 %
+        raw_dp = request.POST.get("discount_percents")
+        if raw_dp not in (None, ""):
+            parts = [x for x in raw_dp.replace(";", ",").split(",") if x.strip()]
+            vals = [to_int(x) for x in parts]
+            if not vals or len(vals) > 5 or any(v is None or not 1 <= v <= 50 for v in vals):
+                errors.append("Chegirma foizlari: 1–5 ta son, har biri 1–50 (masalan: 5, 10, 15)")
+            else:
+                new["discount_percents"] = sorted(set(vals))
         if errors:
             for e in errors:
                 messages.error(request, e)
@@ -427,10 +494,22 @@ def settings_edit(request):
         for f, v in new.items():
             setattr(s, f, v)
         s.save()
-        SystemSettings._cache = None
-        messages.success(request, "Sozlamalar saqlandi.")
+        # Bugungi ballar yangi og'irlik/chegaralar bilan darhol qayta hisoblansin
+        try:
+            from django.utils import timezone
+
+            from apps.analytics.scoring.services import recompute_for_date
+
+            recompute_for_date(timezone.localdate())
+        except Exception:  # noqa: BLE001 — sozlama baribir saqlandi
+            pass
+        messages.success(request, "Sozlamalar saqlandi. Bugungi ballar qayta hisoblandi.")
         return redirect("panel:settings")
-    return render(request, "panel/settings.html", {"s": s})
+    return render(
+        request,
+        "panel/settings.html",
+        {"s": s, "discount_percents": ", ".join(str(x) for x in (s.discount_percents or []))},
+    )
 
 
 @superadmin_required
@@ -464,7 +543,7 @@ def markets(request):
                 Region.objects.get_or_create(name=name)
                 messages.success(request, "Viloyat qo'shildi.")
         elif act == "save_market":
-            region = Region.objects.filter(pk=request.POST.get("region") or 0).first()
+            region = Region.objects.filter(pk=_pk(request.POST.get("region"))).first()
             name = request.POST.get("name", "").strip()[:150]
             if not (region and name):
                 messages.error(request, "Viloyat va nom kerak.")
@@ -526,7 +605,7 @@ def shop_edit(request, pk):
         owner = p.get("owner_name", "").strip()[:200]
         stir = "".join(c for c in p.get("stir", "") if c.isdigit())[:15]
         number = p.get("number", "").strip()[:20]
-        category = ShopCategory.objects.filter(pk=p.get("category") or 0).first()
+        category = ShopCategory.objects.filter(pk=_pk(p.get("category"))).first()
         errors = []
         if not owner:
             errors.append("Egasining F.I.O.")
@@ -548,7 +627,7 @@ def shop_edit(request, pk):
         shop.category = category
         shop.owner_phone = p.get("owner_phone", "").strip()[:20]
         shop.address = p.get("address", "").strip()[:300]
-        shop.row = Row.objects.filter(pk=p.get("row") or 0, market=shop.market).first()
+        shop.row = Row.objects.filter(pk=_pk(p.get("row")), market=shop.market).first()
         days = sorted({int(d) for d in p.getlist("closed") if d.isdigit() and 0 <= int(d) <= 6})
         shop.closed_weekdays = ",".join(str(d) for d in days)
         shop.is_active = p.get("is_active") == "on"
@@ -614,7 +693,7 @@ def categories(request):
                 ShopCategory.objects.get_or_create(name=name)
                 messages.success(request, "Savdo turi qo'shildi.")
         elif act == "delete":
-            cat = ShopCategory.objects.filter(pk=request.POST.get("id") or 0).first()
+            cat = ShopCategory.objects.filter(pk=_pk(request.POST.get("id"))).first()
             if cat is None:
                 messages.error(request, "Savdo turi topilmadi.")
             elif cat.shops.exists() or cat.product_categories.exists():
@@ -647,27 +726,52 @@ def cameras(request):
     if request.method == "POST":
         act = request.POST.get("action")
         if act == "add":
-            market = Market.objects.filter(pk=request.POST.get("market") or 0).first()
+            market = Market.objects.filter(pk=_pk(request.POST.get("market"))).first()
             if not market:
                 messages.error(request, "Bozorni tanlang.")
                 return redirect("panel:cameras")
-            shop = Shop.objects.filter(pk=request.POST.get("shop") or 0).first()
+            shop = None
+            if request.POST.get("shop"):
+                # Do'kon SHU bozorniki bo'lsin (boshqa bozor do'koniga hodisa yozilmasin)
+                shop = Shop.objects.filter(pk=_pk(request.POST.get("shop")), market=market).first()
+                if shop is None:
+                    messages.error(request, "Tanlangan do'kon bu bozorda emas.")
+                    return redirect("panel:cameras")
+            kind = request.POST.get("kind", "")
+            if kind not in Camera.Kind.values:
+                kind = Camera.Kind.values[0]
             Camera.objects.create(
                 name=request.POST.get("name", "").strip()[:120] or "Kamera",
                 market=market,
                 shop=shop,
-                kind=request.POST.get("kind", "counter"),
+                kind=kind,
                 rtsp_sub=request.POST.get("rtsp_sub", "").strip()[:500],
             )
             messages.success(request, "Kamera qo'shildi. Token ro'yxatda ko'rinadi.")
         elif act == "toggle":
-            cam = Camera.objects.filter(pk=request.POST.get("id") or 0).first()
+            cam = Camera.objects.filter(pk=_pk(request.POST.get("id"))).first()
             if cam:
                 cam.is_active = not cam.is_active
                 cam.save(update_fields=["is_active"])
+        elif act == "rotate":
+            # Token sizib chiqsa — yangisi beriladi, eskisi darhol ishlamay qoladi
+            from apps.cameras.models import make_token
+
+            cam = Camera.objects.filter(pk=_pk(request.POST.get("id"))).first()
+            if cam:
+                cam.token = make_token()
+                cam.save(update_fields=["token"])
+                messages.success(request, f"{cam.name}: yangi token berildi. Worker'ga yozing.")
         elif act == "delete":
-            Camera.objects.filter(pk=request.POST.get("id") or 0).delete()
-            messages.success(request, "Kamera o'chirildi.")
+            cam = Camera.objects.filter(pk=_pk(request.POST.get("id"))).first()
+            if cam and cam.events.exists():
+                # Hodisalar — dalil va o'tgan kunlar balli. O'chsa tarix o'zgarib ketardi.
+                messages.error(
+                    request, "Kamera hodisalari bor — o'chirib bo'lmaydi. Faolsizlantiring."
+                )
+            elif cam:
+                cam.delete()
+                messages.success(request, "Kamera o'chirildi.")
         return redirect("panel:cameras")
     from apps.cameras.models import Camera as Cam
 

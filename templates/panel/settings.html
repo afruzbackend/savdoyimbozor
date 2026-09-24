@@ -31,7 +31,16 @@
     <div class="grid grid-2">
       <div class="field"><label class="label">Tannarx noma'lum — maks chegirma (%)</label><input class="input num" type="number" name="max_discount_no_cost_pct" value="{{ s.max_discount_no_cost_pct }}"></div>
       <div class="field"><label class="label">Yaxlitlash maksimum (so'm)</label><input class="input num" type="number" name="rounding_max" value="{{ s.rounding_max }}"></div>
+      <div class="field"><label class="label">Chegirma tugmalari (chekdan %)</label>
+        <input class="input num" name="discount_percents" value="{{ discount_percents }}" placeholder="5, 10, 15">
+        <div class="hint">Sotuv ekranidagi tez chegirma tugmalari. 1–5 ta son, vergul bilan.</div></div>
     </div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Kamera bahosi</div>
+    <div class="field"><label class="label">Xaridorga aylanish ulushi (0.01–1.00)</label>
+      <input class="input num" name="buyer_ratio" value="{{ s.buyer_ratio }}" inputmode="decimal" style="max-width:160px">
+      <div class="hint">Peshtaxta oldida to'xtagan tashrifchilarning qancha qismi xarid qiladi. Kamera bahosi = tashrif × ulush × shu savdo turidagi o'rtacha chek.</div></div>
   </div>
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Soliq va jarima</div>

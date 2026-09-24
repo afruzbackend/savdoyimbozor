@@ -21,7 +21,7 @@
       {% for c in categories %}
         <tr><td>{{ c.name }}</td><td class="num">{{ c.nshops }}</td><td class="num">{{ c.nprod }}</td>
           <td class="num">
-            <form method="post" style="display:inline" onsubmit="return confirm('O\'chirilsinmi?')">{% csrf_token %}
+            <form method="post" style="display:inline" data-confirm="Savdo turi o'chirilsinmi?" data-confirm-ok="Ha, o'chirish" data-danger>{% csrf_token %}
               <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ c.pk }}">
               <button class="btn-ghost" style="padding:4px 10px;color:var(--bad)">O'chirish</button></form></td>
         </tr>

@@ -14,6 +14,13 @@
         {% for m in markets %}<option value="{{ m.pk }}">{{ m.name }} ({{ m.region.name }})</option>{% endfor %}
       </select>
     </div>
+    <div class="field"><label class="label">Standart savdo turi</label>
+      <select class="select-native" name="category">
+        <option value="">— faqat Excel'dagi "Toifa" ustunidan —</option>
+        {% for c in categories %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+      </select>
+      <div class="hint">"Toifa" ustuni bo'sh qatorlarga shu tur beriladi. Ikkalasi ham bo'lmasa qator o'tkazib yuboriladi.</div>
+    </div>
     <div class="field"><label class="label">Excel fayl (.xlsx)</label>
       <label class="file-drop">
         <input type="file" name="file" accept=".xlsx" required hidden>

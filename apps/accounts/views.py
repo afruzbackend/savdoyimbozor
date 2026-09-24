@@ -40,6 +40,10 @@ def login_view(request):
             return render(request, "registration/login.html", {"username": username})
 
         auth_user = authenticate(request, username=username, password=password)
+        if auth_user is None and user and not user.is_active and user.check_password(password):
+            # Parol to'g'ri, lekin admin bloklagan — "parol noto'g'ri" deb chalg'itmaymiz
+            messages.error(request, "Hisobingiz bloklangan. Administrator bilan bog'laning.")
+            return render(request, "registration/login.html", {"username": username})
         if auth_user is None:
             if user:
                 user.register_failed_login(
@@ -72,12 +76,24 @@ def logout_view(request):
 def password_change(request):
     """Birinchi kirishda majburiy, keyin ixtiyoriy."""
     if request.method == "POST":
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+
         p1 = request.POST.get("password1") or ""
         p2 = request.POST.get("password2") or ""
+        weak = None
+        try:
+            validate_password(p1, request.user)  # min 6 + keng tarqalgan ("123456") parollar
+        except ValidationError:
+            weak = True
         if len(p1) < 6:
             messages.error(request, "Parol kamida 6 belgidan iborat bo'lsin.")
         elif p1 != p2:
             messages.error(request, "Parollar mos kelmadi.")
+        elif weak:
+            messages.error(request, "Parol juda oddiy (masalan 123456) — murakkabroq tanlang.")
+        elif request.user.check_password(p1):
+            messages.error(request, "Yangi parol eskisi bilan bir xil bo'lmasin.")
         else:
             request.user.set_password_visible(p1)
             request.user.must_change_password = False

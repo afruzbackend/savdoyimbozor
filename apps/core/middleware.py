@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 
@@ -30,16 +32,46 @@ class HostRoutingMiddleware(MiddlewareMixin):
         # Standart: inspector urlconf (login/logout/api shu yerda ham bor).
         interface = "inspector"
         if user is not None and user.is_authenticated:
-            interface = ROLE_INTERFACE.get(getattr(user, "role", ""), "inspector")
+            if getattr(user, "is_superadmin", False):
+                # createsuperuser bilan ochilgan admin (rol standart "seller") ham panelga
+                interface = "panel"
+            else:
+                interface = ROLE_INTERFACE.get(getattr(user, "role", ""), "inspector")
         request.urlconf = settings.HOST_URLCONF[interface]
         request.interface = interface
         return None
 
 
-class AuditMiddleware(MiddlewareMixin):
-    """Muhim amallarni audit jurnaliga yozadi (POST va eksport ko'rishlari)."""
+class ForcePasswordChangeMiddleware(MiddlewareMixin):
+    """Birinchi kirishda (yoki admin parolni tiklagach) parol almashtirish MAJBURIY.
 
-    AUDITED_GET_PREFIXES = ("/reports/export", "/api/reports/export")
+    Ilgari faqat login'dan keyin yo'naltirilardi — "/" ni qo'lda ochib chetlab o'tish mumkin edi.
+    """
+
+    ALLOWED = ("/password/change/", "/logout/", "/login/", "/static/", "/prefs/")
+
+    def process_request(self, request):
+        user = getattr(request, "user", None)
+        if not (user and user.is_authenticated and getattr(user, "must_change_password", False)):
+            return None
+        if request.path.startswith(self.ALLOWED):
+            return None
+        if request.path.startswith("/api/"):
+            from django.http import JsonResponse
+
+            return JsonResponse({"detail": "Avval parolni almashtiring."}, status=403)
+        from django.shortcuts import redirect
+
+        return redirect("/password/change/")
+
+
+class AuditMiddleware(MiddlewareMixin):
+    """Muhim amallarni audit jurnaliga yozadi (POST, eksport, dalil ko'rish)."""
+
+    # Inspektor Excel eksporti (ilgari prefiks noto'g'ri edi — eksport yozilmasdi)
+    AUDITED_GET_PREFIXES = ("/hisobot/eksport/",)
+    # Nazoratchi do'kon ma'lumotini / dalil to'plamini ochgani (kim, qaysi do'kon)
+    VIEW_RE = re.compile(r"^/(dokon/\d+/(dalil/)?|tekshiruv/\d+/akt/)$")
 
     def process_response(self, request, response):
         try:
@@ -56,14 +88,28 @@ class AuditMiddleware(MiddlewareMixin):
         if path.startswith(("/static/", "/media/", "/prefs/")):
             return
         is_post = request.method == "POST"
-        is_export = any(path.startswith(p) for p in self.AUDITED_GET_PREFIXES)
-        if not (is_post or is_export):
+        is_export = request.method == "GET" and any(
+            path.startswith(p) for p in self.AUDITED_GET_PREFIXES
+        )
+        is_view = (
+            request.method == "GET"
+            and getattr(request, "interface", "") == "inspector"
+            and response.status_code == 200
+            and self.VIEW_RE.match(path)
+        )
+        if not (is_post or is_export or is_view):
             return
         from .models import AuditLog
 
+        if is_export:
+            action = AuditLog.Action.EXPORT
+        elif is_view:
+            action = AuditLog.Action.VIEW
+        else:
+            action = AuditLog.Action.WRITE
         AuditLog.objects.create(
             user=user,
-            action=AuditLog.Action.EXPORT if is_export else AuditLog.Action.WRITE,
+            action=action,
             method=request.method,
             path=path[:300],
             ip=self._ip(request),

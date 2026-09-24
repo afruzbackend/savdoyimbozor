@@ -41,10 +41,14 @@ def test_notification_open_marks_read(sclient, seller):
 @pytest.mark.django_db
 def test_zero_sales_forces_appeal(sclient, shop):
     """Tushuntirilmagan 'savdo yo'q' signali bo'lsa — home e'tirozga yo'naltiradi."""
+    from datetime import timedelta
+
     from apps.analytics.models import Alert
 
+    # Tugagan (kechagi) kun — bugungi kun uchun tushuntirish talab qilinmaydi
     Alert.objects.create(
-        shop=shop, date=timezone.localdate(), kind=Alert.Kind.ZERO_SALES, level="red", reason="test"
+        shop=shop, date=timezone.localdate() - timedelta(days=1), kind=Alert.Kind.ZERO_SALES,
+        level="red", reason="test",
     )
     r = sclient.get("/", HTTP_HOST=SELLER_HOST)
     assert r.status_code == 302
@@ -53,14 +57,19 @@ def test_zero_sales_forces_appeal(sclient, shop):
 
 @pytest.mark.django_db
 def test_zero_sales_explained_unblocks_home(sclient, shop):
+    from datetime import timedelta
+
     from apps.analytics.models import Alert
 
     al = Alert.objects.create(
-        shop=shop, date=timezone.localdate(), kind=Alert.Kind.ZERO_SALES, level="red", reason="test"
+        shop=shop, date=timezone.localdate() - timedelta(days=1), kind=Alert.Kind.ZERO_SALES,
+        level="red", reason="test",
     )
     sclient.post(
         "/e-tiroz/", {"nosales_alert": al.pk, "message": "bozor yopiq edi"}, HTTP_HOST=SELLER_HOST
     )
     al.refresh_from_db()
-    assert al.status == Alert.Status.RESOLVED
+    # Sotuvchi signalni O'ZI yopa olmaydi — qarorni nazoratchi qabul qiladi
+    assert al.status == Alert.Status.NEW
+    assert al.appeals.count() == 1
     assert sclient.get("/", HTTP_HOST=SELLER_HOST).status_code == 200

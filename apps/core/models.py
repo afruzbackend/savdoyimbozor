@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -82,18 +84,26 @@ class SystemSettings(models.Model):
     def __str__(self):
         return "Tizim sozlamalari"
 
+    # Jarayon keshi QISQA muddatli: prod'da bir nechta gunicorn worker + Celery bor —
+    # admin bittasida o'zgartirsa, qolganlari ham ko'pi bilan shu vaqtda yangisini oladi
+    # (ilgari qayta ishga tushirilmaguncha eski og'irlik/chegaralar bilan ishlardi).
+    CACHE_SECONDS = 20
+
     def save(self, *args, **kwargs):
         self.pk = 1  # yagona yozuv
         super().save(*args, **kwargs)
         SystemSettings._cache = self
+        SystemSettings._cache_at = time.monotonic()
 
     @classmethod
     def get_solo(cls) -> SystemSettings:
         cached = getattr(cls, "_cache", None)
-        if cached is not None:
+        at = getattr(cls, "_cache_at", 0.0)
+        if cached is not None and time.monotonic() - at < cls.CACHE_SECONDS:
             return cached
         obj, _created = cls.objects.get_or_create(pk=1, defaults=cls._defaults())
         cls._cache = obj
+        cls._cache_at = time.monotonic()
         return obj
 
     # Standart chegirma pog'onalari (bozorda savdolashish uchun tayyor tugmalar)

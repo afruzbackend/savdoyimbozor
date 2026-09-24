@@ -18,6 +18,13 @@ def _visible_shops(request):
     return request.user.visible_shops().select_related("market", "row", "category")
 
 
+def _pk(value) -> int:
+    """So'rovdan kelgan ID — raqam bo'lmasa 0 ("abc" bilan 500 xato bo'lmasin)."""
+    from apps.core.format import to_int
+
+    return to_int(value, 0) or 0
+
+
 
 
 def _level(truth, cfg):
@@ -42,7 +49,9 @@ def dashboard(request):
             "shop", "shop__category", "shop__market"
         )
     }
-    truths = [s.truth_pct for s in latest.values()]
+    # Faqat O'LCHANGAN ballar: ma'lumoti yo'q do'kon 0% bo'lib o'rtachani tushirmasin
+    measured = [s for s in latest.values() if s.measured]
+    truths = [s.truth_pct for s in measured]
     avg_truth = round(sum(truths) / len(truths)) if truths else None
 
     alerts = Alert.objects.filter(shop__in=shops).select_related("shop", "shop__market")
@@ -54,7 +63,7 @@ def dashboard(request):
     accuracy = round(confirmed / (confirmed + false_sig) * 100) if (confirmed + false_sig) else None
 
     # Eng xavfli do'konlar (bugungi ball bo'yicha)
-    risky = sorted(latest.values(), key=lambda s: s.truth_pct)[:8]
+    risky = sorted(measured, key=lambda s: s.truth_pct)[:8]
 
     # Yashirilgan savdo (oxirgi 30 kun) + potensial qo'shimcha soliq
     from django.db.models import Sum
@@ -182,19 +191,21 @@ def shop_detail(request, pk):
 
     scores = list(DailyScore.objects.filter(shop=shop, date__range=(start, today)).order_by("date"))
     latest = scores[-1] if scores else None
-    level = _level(latest.truth_pct, cfg) if latest else "none"
+    level = _level(latest.truth_pct, cfg) if latest and latest.measured else "none"
 
     chart = {
         "labels": [s.date.strftime("%d.%m") for s in scores],
         "entered": [s.entered_sales for s in scores],
         "cash": [s.cash_amount for s in scores],
-        "truth": [s.truth_pct for s in scores],
+        # O'lchanmagan kun grafikda uzilish (null), 0% emas
+        "truth": [s.truth_pct if s.measured else None for s in scores],
     }
 
     # O'xshash do'konlar (bir bozor + bir toifa) bilan solishtirish
     peers = shop.similar_shops()
-    peer_scores = DailyScore.objects.filter(shop__in=peers, date=today)
-    peer_avg = round(peer_scores.aggregate(a=Avg("truth_pct"))["a"] or 0)
+    peer_scores = DailyScore.objects.filter(shop__in=peers, date=today, measured=True)
+    _pa = peer_scores.aggregate(a=Avg("truth_pct"))["a"]
+    peer_avg = round(_pa) if _pa is not None else None
 
     part_labels = {
         "cash": "Kassa / deklaratsiya",
@@ -254,7 +265,7 @@ def shop_evidence(request, pk):
     ctx = {
         "shop": shop,
         "latest": latest,
-        "level": _level(latest.truth_pct, cfg) if latest else "none",
+        "level": _level(latest.truth_pct, cfg) if latest and latest.measured else "none",
         "start": start,
         "today": today,
         "hidden_sales": hidden,
@@ -322,7 +333,7 @@ def alert_action(request, pk):
 def inspection_create(request):
     shops = _visible_shops(request)
     alert_id = request.GET.get("alert")
-    alert = Alert.objects.filter(pk=alert_id, shop__in=shops).first() if alert_id else None
+    alert = Alert.objects.filter(pk=_pk(alert_id), shop__in=shops).first() if alert_id else None
     preselect = alert.shop if alert else None
 
     if request.method == "POST":
@@ -330,11 +341,11 @@ def inspection_create(request):
 
         from apps.core.format import to_int
 
-        shop = get_object_or_404(shops, pk=request.POST.get("shop") or 0)
+        shop = get_object_or_404(shops, pk=_pk(request.POST.get("shop")))
         # Signal FAQAT shu do'konniki bo'lsin (boshqa bozor signalini yopib bo'lmasin)
         post_alert = None
         if request.POST.get("alert"):
-            post_alert = Alert.objects.filter(pk=request.POST.get("alert"), shop=shop).first()
+            post_alert = Alert.objects.filter(pk=_pk(request.POST.get("alert")), shop=shop).first()
         result = request.POST.get("result") or Inspection.Result.PENDING
         if result not in Inspection.Result.values:
             result = Inspection.Result.PENDING
@@ -342,6 +353,17 @@ def inspection_create(request):
         if fine is not None and fine < 0:
             _msg.error(request, "Jarima manfiy bo'lmasin.")
             return redirect(request.get_full_path())
+        photo = request.FILES.get("photo")
+        if photo is not None:
+            from django.core.exceptions import ValidationError
+
+            from apps.core.media import validate_image_upload
+
+            try:
+                validate_image_upload(photo)
+            except ValidationError as e:
+                _msg.error(request, e.messages[0])
+                return redirect(request.get_full_path())
         insp = Inspection.objects.create(
             shop=shop,
             alert=post_alert,
@@ -350,7 +372,7 @@ def inspection_create(request):
             act_number=request.POST.get("act_number", "").strip()[:60],
             fine_amount=fine or None,
             notes=request.POST.get("notes", ""),
-            photo=request.FILES.get("photo"),
+            photo=photo,
         )
         if insp.alert_id:
             insp.alert.status = Alert.Status.RESOLVED
@@ -672,6 +694,10 @@ def _report_range(request):
         end = datetime.strptime(request.GET["end"], "%Y-%m-%d").date()
     except (KeyError, ValueError):
         end = today
+    if start > end:  # teskari tanlansa — almashtiramiz
+        start, end = end, start
+    if (end - start).days > 366:  # juda katta davr serverni qiynamasin
+        start = end - timedelta(days=366)
     return start, end
 
 
@@ -688,7 +714,9 @@ def reports(request):
         "end": end,
         "entered": sum(s.entered_sales for s in scores),
         "cash": sum(s.cash_amount for s in scores),
-        "avg_truth": round(scores.aggregate(a=Avg("truth_pct"))["a"] or 0),
+        "avg_truth": round(
+            scores.filter(measured=True).aggregate(a=Avg("truth_pct"))["a"] or 0
+        ),
         "alert_count": Alert.objects.filter(shop__in=shops, date__range=(start, end)).count(),
         "inspection_count": insp.count(),
         "confirmed": confirmed,
@@ -706,7 +734,7 @@ def statistics(request):
     """Sotuv dinamikasi (grafik) + sotuvchilar statistikasi (jadval, trend bilan)."""
     from collections import defaultdict
 
-    from django.db.models import Count, Sum
+    from django.db.models import Count, Q, Sum
 
     from apps.core.models import SystemSettings
 
@@ -724,14 +752,19 @@ def statistics(request):
         d = by_date[s.date]
         d["entered"] += s.entered_sales
         d["cash"] += s.cash_amount
-        d["truth"].append(s.truth_pct)
+        if s.measured:
+            d["truth"].append(s.truth_pct)
         d["count"] += 1
     days = sorted(by_date)
     dynamics = {
         "labels": [d.strftime("%d.%m") for d in days],
         "entered": [by_date[d]["entered"] for d in days],
         "cash": [by_date[d]["cash"] for d in days],
-        "truth": [round(sum(by_date[d]["truth"]) / len(by_date[d]["truth"])) for d in days],
+        "truth": [
+            round(sum(by_date[d]["truth"]) / len(by_date[d]["truth"])) if by_date[d]["truth"]
+            else None
+            for d in days
+        ],
     }
 
     # 2) Sotuvchilar statistikasi — har do'kon: savdo, o'rtacha rostlik, signal, trend
@@ -742,8 +775,9 @@ def statistics(request):
         p = per_shop[s.shop_id]
         p["entered"] += s.entered_sales
         p["cash"] += s.cash_amount
-        p["truth"].append(s.truth_pct)
-        half[s.shop_id]["b" if s.date >= mid else "a"].append(s.truth_pct)
+        if s.measured:
+            p["truth"].append(s.truth_pct)
+            half[s.shop_id]["b" if s.date >= mid else "a"].append(s.truth_pct)
 
     alert_counts = dict(
         Alert.objects.filter(shop__in=shops, date__range=(start, end))
@@ -757,7 +791,7 @@ def statistics(request):
         shop = shop_by_id.get(sid)
         if shop is None:
             continue
-        avg_truth = round(sum(p["truth"]) / len(p["truth"])) if p["truth"] else 0
+        avg_truth = round(sum(p["truth"]) / len(p["truth"])) if p["truth"] else None
         a, b = half[sid]["a"], half[sid]["b"]
         trend = None
         if a and b:
@@ -768,21 +802,24 @@ def statistics(request):
                 "entered": p["entered"],
                 "cash": p["cash"],
                 "avg_truth": avg_truth,
-                "level": _level(avg_truth, cfg),
+                "level": _level(avg_truth, cfg) if avg_truth is not None else "none",
                 "alerts": alert_counts.get(sid, 0),
                 "trend": trend,
             }
         )
     sort = request.GET.get("sort", "truth")
     keymap = {
-        "truth": lambda r: r["avg_truth"],
+        # O'lchanmaganlar oxirida (None 0% deb eng xavfli ko'rinmasin)
+        "truth": lambda r: (r["avg_truth"] is None, r["avg_truth"] or 0),
         "entered": lambda r: -r["entered"],
         "alerts": lambda r: -r["alerts"],
     }
     rows.sort(key=keymap.get(sort, keymap["truth"]))
 
     totals = DailyScore.objects.filter(shop__in=shops, date__range=(start, end)).aggregate(
-        e=Sum("entered_sales"), c=Sum("cash_amount"), t=Avg("truth_pct")
+        e=Sum("entered_sales"),
+        c=Sum("cash_amount"),
+        t=Avg("truth_pct", filter=Q(measured=True)),
     )
     from apps.core.pagination import paginate
 
@@ -824,21 +861,30 @@ def export_excel(request):
             "Deklaratsiya (so'm)",
         ]
     )
-    from django.db.models import Sum
+    from django.db.models import Q, Sum
 
     rows = (
         DailyScore.objects.filter(shop__in=shops, date__range=(start, end))
         .values("shop__market__name", "shop__number", "shop__stir", "shop__owner_name")
-        .annotate(t=Avg("truth_pct"), e=Sum("entered_sales"), c=Sum("cash_amount"))
+        .annotate(
+            t=Avg("truth_pct", filter=Q(measured=True)),
+            e=Sum("entered_sales"),
+            c=Sum("cash_amount"),
+        )
     )
+
+    def cell(v):
+        # Excel formula in'ektsiyasi: "=..." bilan boshlangan matn formula bo'lib ketmasin
+        return "'" + v if isinstance(v, str) and v[:1] in ("=", "+", "@") else v
+
     for r in rows:
         ws.append(
             [
-                r["shop__market__name"],
-                r["shop__number"],
-                r["shop__stir"],
-                r["shop__owner_name"],
-                round(r["t"] or 0),
+                cell(r["shop__market__name"]),
+                cell(r["shop__number"]),
+                cell(r["shop__stir"]),
+                cell(r["shop__owner_name"]),
+                round(r["t"]) if r["t"] is not None else "—",
                 int(r["e"] or 0),
                 int(r["c"] or 0),
             ]

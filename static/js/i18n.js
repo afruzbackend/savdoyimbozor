@@ -82,7 +82,9 @@
     if (!el.getAttribute) return;
     for (const a of ATTRS) {
       const v = el.getAttribute(a);
-      if (v && v.trim()) el.setAttribute(a, transform(v));
+      if (!v || !v.trim()) continue;
+      const t = transform(v);
+      if (t !== v) el.setAttribute(a, t); // bir xil qiymatni qayta yozmaymiz (observer sikli)
     }
   }
 
@@ -133,6 +135,41 @@
     walk(document.body, transform);
     // HTMX bilan kelgan yangi bo'laklarni ham
     document.body.addEventListener("htmx:afterSwap", (e) => walk(e.target, transform));
+    window.i18nApply = (node) => walk(node, transform);
+    window.i18nText = (s) => transform(String(s));
+    // Keyin JS qo'shgan/o'zgartirgan matnlar ham (toast, xato xabari, Alpine x-text,
+    // dropdown, tasdiqlash oynasi). transform idempotent: tarjima qilingan matn qayta
+    // o'zgarmaydi, shuning uchun cheksiz sikl bo'lmaydi.
+    const inNoloc = (n) => {
+      const el = n.nodeType === Node.ELEMENT_NODE ? n : n.parentElement;
+      return !el || !!el.closest("[data-noloc]") || SKIP_TAGS.has(el.tagName);
+    };
+    const mo = new MutationObserver((muts) => {
+      for (const m of muts) {
+        if (m.type === "characterData") {
+          const t = m.target;
+          if (inNoloc(t) || !t.nodeValue || !t.nodeValue.trim()) continue;
+          const v = transform(t.nodeValue);
+          if (v !== t.nodeValue) t.nodeValue = v;
+        } else if (m.type === "attributes") {
+          if (!inNoloc(m.target)) transformAttrs(m.target, transform);
+        } else {
+          for (const n of m.addedNodes) {
+            if (n.nodeType === Node.TEXT_NODE) {
+              if (inNoloc(n) || !n.nodeValue.trim()) continue;
+              const v = transform(n.nodeValue);
+              if (v !== n.nodeValue) n.nodeValue = v;
+            } else if (n.nodeType === Node.ELEMENT_NODE && !inNoloc(n)) {
+              walk(n, transform);
+            }
+          }
+        }
+      }
+    });
+    mo.observe(document.body, {
+      childList: true, subtree: true, characterData: true,
+      attributes: true, attributeFilter: ["placeholder", "title", "aria-label", "data-tip"],
+    });
   }
 
   if (document.readyState === "loading") {

@@ -21,6 +21,8 @@ Video bozordan chiqmaydi — faqat hodisa (raqam/JSON) yuboriladi. Shubhali
 hodisaning klipi `clip` sifatida keyin biriktiriladi (dalil uchun).
 """
 
+from datetime import timedelta
+
 from django.conf import settings
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -28,6 +30,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from apps.core.format import to_int
 from apps.shops.models import Shop
 
 from .models import Camera, CameraEvent
@@ -81,38 +84,81 @@ def ingest_events(request):
 
     data = request.data
     events = data.get("events") if isinstance(data, dict) and "events" in data else [data]
+    if not isinstance(events, list):
+        return Response({"detail": "events ro'yxat bo'lsin."}, status=400)
+    if len(events) > MAX_BATCH:
+        return Response({"detail": f"Bir so'rovda ko'pi bilan {MAX_BATCH} hodisa."}, status=400)
+    now = timezone.now()
     created = 0
+    skipped = 0
     tampered = False
     for ev in events:
+        if not isinstance(ev, dict):
+            skipped += 1
+            continue
         etype = ev.get("type")
         if etype not in dict(CameraEvent.Type.choices):
+            skipped += 1
             continue
-        ts = parse_datetime(ev["timestamp"]) if ev.get("timestamp") else timezone.now()
+        ts = _parse_ts(ev.get("timestamp"), now)
+        if ts is None:
+            # Kelajak yoki juda eski vaqt — kun ballarini orqaga/oldinga surib bo'lmasin
+            skipped += 1
+            continue
         # XAVFSIZLIK: hodisa do'koni kamera bozoriga/do'koniga bog'liq bo'lishi shart —
         # valid tokenli kamera boshqa do'kon uchun soxta hodisa yubora olmasin.
         if camera.shop_id:
             shop = camera.shop  # kameraga biriktirilgan do'kon (yuborilgan shop_id e'tiborsiz)
         elif ev.get("shop_id"):
-            shop = Shop.objects.filter(pk=ev["shop_id"], market_id=camera.market_id).first()
+            shop = Shop.objects.filter(
+                pk=to_int(ev["shop_id"], 0) or 0, market_id=camera.market_id
+            ).first()
         else:
             shop = None
         payload = ev.get("payload") or {}
+        if not isinstance(payload, dict):
+            payload = {}
         if etype == CameraEvent.Type.HEARTBEAT:
             continue  # heartbeat faqat last_seen ni yangilaydi (pastda)
         if etype == CameraEvent.Type.TAMPER:
             tampered = True
+        # Manfiy/ulkan son kamera bahosini (va rostlikni) buzmasin
+        count = to_int(payload.get("count", 1), 1)
+        count = max(0, min(count if count is not None else 1, MAX_COUNT))
         CameraEvent.objects.create(
             camera=camera,
             shop=shop,
             type=etype,
-            count=int(payload.get("count", 1)),
+            count=count,
             payload=payload,
             ts=ts,
         )
         created += 1
 
     _touch(camera, Camera.Status.TAMPERED if tampered else Camera.Status.ONLINE)
-    return Response({"status": "ok", "created": created}, status=201)
+    return Response({"status": "ok", "created": created, "skipped": skipped}, status=201)
+
+
+MAX_BATCH = 500  # bitta so'rovdagi hodisalar
+MAX_COUNT = 50  # bitta hodisadagi odam soni (peshtaxta oldida)
+TS_WINDOW = timedelta(days=1)  # qurilma vaqti server vaqtidan shuncha farq qilishi mumkin
+
+
+def _parse_ts(raw, now):
+    """Hodisa vaqti: bo'sh → hozir; noto'g'ri/juda uzoq → None (rad)."""
+    if not raw:
+        return now
+    try:
+        ts = parse_datetime(str(raw))
+    except (ValueError, TypeError):
+        return None
+    if ts is None:
+        return None
+    if timezone.is_naive(ts):
+        ts = timezone.make_aware(ts)
+    if ts > now + timedelta(minutes=10) or ts < now - TS_WINDOW:
+        return None
+    return ts
 
 
 @api_view(["POST"])

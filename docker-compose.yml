@@ -13,6 +13,8 @@ x-django-env: &django_env
   SESSION_COOKIE_SECURE: "False"
   CSRF_COOKIE_SECURE: "False"
   SECURE_HSTS_SECONDS: "0"
+  # Media nginx orqali, lekin Django ruxsat tekshiradi (X-Accel-Redirect)
+  MEDIA_X_ACCEL: "True"
 
 services:
   db:

@@ -7,5 +7,6 @@ urlpatterns = [
     path("logout/", views.logout_view, name="logout"),
     path("password/change/", views.password_change, name="password_change"),
     path("profile/", views.profile, name="profile"),
-    path("sozlamalar/", views.account_settings, name="account_settings"),
+    # "sozlamalar/" panelda TIZIM sozlamalari — to'qnashmasin (admin telefoni saqlanmasdi)
+    path("profil/sozlamalar/", views.account_settings, name="account_settings"),
 ]
