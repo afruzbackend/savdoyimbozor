@@ -161,7 +161,7 @@ def test_stock_in_packs_uses_coefficient(sclient, shop, product):
     product.pack_coeff = Decimal("20")
     product.stock = Decimal("0")
     product.save()
-    sclient.post("/kirim/", {"product": product.pk, "quantity": "2", "unit_price": "100000",
+    sclient.post("/kirim/", {"product": product.pk, "quantity": "2", "unit_price": "10000",
                              "in_packs": "on"}, HTTP_HOST=SELLER_HOST)
     product.refresh_from_db()
     assert product.stock == Decimal("40")
@@ -245,3 +245,32 @@ def test_extend_debt_due(sclient, shop):
     sclient.post("/nasiya/", {"extend": d.pk, "due_date": str(new)}, HTTP_HOST=SELLER_HOST)
     d.refresh_from_db()
     assert d.due_date == new
+
+
+@pytest.mark.django_db
+def test_large_stock_in_requires_invoice_photo(sclient, shop, product, settings, tmp_path):
+    import io
+    from decimal import Decimal
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from PIL import Image
+
+    from apps.sales.models import StockIn
+
+    settings.MEDIA_ROOT = str(tmp_path)
+    before = product.stock
+    # 100 × 20 000 = 2 mln > 1 mln — fotosiz rad etiladi
+    sclient.post("/kirim/", {"product": product.pk, "quantity": "100", "unit_price": "20000"},
+                 HTTP_HOST=SELLER_HOST)
+    product.refresh_from_db()
+    assert product.stock == before and not StockIn.objects.filter(shop=shop).exists()
+    buf = io.BytesIO()
+    Image.new("RGB", (3, 3), (0, 0, 0)).save(buf, format="JPEG")
+    photo = SimpleUploadedFile("n.jpg", buf.getvalue(), content_type="image/jpeg")
+    sclient.post("/kirim/", {"product": product.pk, "quantity": "100", "unit_price": "20000",
+                             "supplier_name": "Ota-bola MChJ", "supplier_stir": "305 111 222",
+                             "invoice_photo": photo}, HTTP_HOST=SELLER_HOST)
+    si = StockIn.objects.get(shop=shop)
+    assert si.invoice_photo and si.supplier_stir == "305111222"
+    product.refresh_from_db()
+    assert product.stock == before + Decimal("100")

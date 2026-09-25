@@ -31,6 +31,9 @@
     <div class="grid grid-2">
       <div class="field"><label class="label">Tannarx noma'lum — maks chegirma (%)</label><input class="input num" type="number" name="max_discount_no_cost_pct" value="{{ s.max_discount_no_cost_pct }}"></div>
       <div class="field"><label class="label">Yaxlitlash maksimum (so'm)</label><input class="input num" type="number" name="rounding_max" value="{{ s.rounding_max }}"></div>
+      <div class="field"><label class="label">Nakladnoy majburiy summa (so'm)</label>
+        <input class="input num" type="number" name="stockin_photo_min" value="{{ s.stockin_photo_min }}">
+        <div class="hint">Shu summadan katta kirimga yuk xati fotosi majburiy. 0 — hech qachon majburiy emas.</div></div>
       <div class="field"><label class="label">Chegirma tugmalari (chekdan %)</label>
         <input class="input num" name="discount_percents" value="{{ discount_percents }}" placeholder="5, 10, 15">
         <div class="hint">Sotuv ekranidagi tez chegirma tugmalari. 1–5 ta son, vergul bilan.</div></div>

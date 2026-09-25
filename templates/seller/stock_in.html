@@ -14,7 +14,7 @@
       <button type="button" :aria-selected="mode==='select'" @click="mode='select'">Ro'yxatdan</button>
       <button type="button" :aria-selected="mode==='manual'" @click="mode='manual'">Qo'lda (yangi)</button>
     </div>
-    <form method="post">{% csrf_token %}
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}
       <div class="field"><label class="label">Barkod</label>
         <div class="row gap-2">
           <input class="input grow" x-ref="bc" name="barcode" placeholder="Barkodni skanerlang yoki yozing"
@@ -50,17 +50,37 @@
         <input type="checkbox" name="in_packs"></label>
       <p class="faint" style="margin:0 0 var(--sp-3);font-size:var(--t--2)">Yoqilsa: kiritilgan son qop/quti soni deb olinadi va mahsulotning "1 qopda nechta" koeffitsientiga ko'paytiriladi.</p>
       <div class="field"><label class="label">Kelish narxi (1 birlik uchun, so'm)</label><input class="input num" type="number" name="unit_price" value="0"></div>
+      {# Kirim dalili — kompensatsiya/tekshiruvda nima qayerdan kelgani isbotlanadi #}
+      <div class="evidence-box">
+        <div class="grid grid-2" style="gap:var(--sp-2)">
+          <div class="field" style="margin:0"><label class="label">Yetkazib beruvchi</label>
+            <input class="input" name="supplier_name" placeholder="Ism yoki firma"></div>
+          <div class="field" style="margin:0"><label class="label">Uning STIR'i</label>
+            <input class="input num" name="supplier_stir" inputmode="numeric" maxlength="15" placeholder="ixtiyoriy"></div>
+        </div>
+        <div class="field" style="margin:var(--sp-2) 0 0"><label class="label">Nakladnoy (yuk xati) fotosi</label>
+          <label class="file-drop">
+            <input type="file" name="invoice_photo" accept="image/*" capture="environment" hidden>
+            <span class="file-btn"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-camera"></use></svg> Suratga olish</span>
+            <span class="file-name muted" data-noloc>Tanlanmagan</span>
+          </label>
+          <div class="hint">{% if photo_min %}{{ photo_min|intcomma }} so'mdan katta kirimga majburiy.{% else %}Ixtiyoriy.{% endif %} Yong'in yoki tekshiruvda tovar qayerdan kelganini isbotlaydi.</div>
+        </div>
+      </div>
       <button class="btn btn-block" type="submit">Kirim qo'shish</button>
     </form>
   </div>
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">So'nggi kirimlar</div>
     <div class="table-wrap"><table class="data">
-      <thead><tr><th>Sana</th><th>Mahsulot</th><th class="num">Miqdor</th><th class="num">Narx</th></tr></thead>
+      <thead><tr><th>Sana</th><th>Mahsulot</th><th class="num">Miqdor</th><th class="num">Narx</th><th>Dalil</th></tr></thead>
       <tbody>
       {% for s in recent %}<tr><td class="num">{{ s.created_at|date:"d.m H:i" }}</td><td>{{ s.product.name }}</td>
-        <td class="num">{{ s.quantity }}{% if s.in_packs %} qop{% endif %}</td><td class="num">{{ s.unit_price|intcomma }}</td></tr>
-      {% empty %}<tr><td colspan="4" class="muted">Kirim yo'q.</td></tr>{% endfor %}
+        <td class="num">{{ s.quantity }}{% if s.in_packs %} qop{% endif %}</td><td class="num">{{ s.unit_price|intcomma }}</td>
+        <td>{% if s.invoice_photo %}<a href="/media/{{ s.invoice_photo.name }}" target="_blank" rel="noopener">nakladnoy</a>{% endif %}
+          {% if s.supplier_name %}<div class="muted" style="font-size:var(--t--1)">{{ s.supplier_name }}</div>{% endif %}
+          {% if not s.invoice_photo and not s.supplier_name %}<span class="muted">—</span>{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="5" class="muted">Kirim yo'q.</td></tr>{% endfor %}
       </tbody></table></div>
   </div>
 </div>

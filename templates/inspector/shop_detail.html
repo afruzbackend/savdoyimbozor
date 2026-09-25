@@ -179,6 +179,26 @@
     </div>
     {% endif %}
 
+    {% if stock_ins %}
+    <div class="card">
+      <div class="card-header"><span class="card-title">Kirimlar va dalillar</span>
+        <small class="faint">Yetkazib beruvchi va nakladnoy — kirim oshirib yozilmaganini tekshirish uchun</small></div>
+      <div class="table-wrap"><table class="data" style="font-size:var(--t--1)">
+        <thead><tr><th>Sana</th><th>Mahsulot</th><th class="num">Miqdor</th><th class="num">Summa</th><th>Yetkazib beruvchi</th><th>Nakladnoy</th></tr></thead>
+        <tbody>
+        {% for si in stock_ins %}
+        <tr>
+          <td class="num">{{ si.created_at|date:"d.m H:i" }}</td><td>{{ si.product.name }}</td>
+          <td class="num">{{ si.quantity|floatformat:'-3' }}{% if si.in_packs %} qop{% endif %}</td>
+          <td class="num">{% widthratio si.quantity 1 si.unit_price as tot %}{{ tot|intcomma }}</td>
+          <td>{{ si.supplier_name|default:"—" }}{% if si.supplier_stir %}<div class="muted num" data-noloc>{{ si.supplier_stir }}</div>{% endif %}</td>
+          <td>{% if si.invoice_photo %}<a href="/media/{{ si.invoice_photo.name }}" target="_blank" rel="noopener">ko'rish</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody></table></div>
+    </div>
+    {% endif %}
+
     {% if writeoffs %}
     <div class="card">
       <div class="card-header"><span class="card-title">Hisobdan chiqarishlar</span>

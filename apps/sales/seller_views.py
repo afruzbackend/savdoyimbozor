@@ -423,6 +423,25 @@ def stock_in(request):
                     ensure_barcode(product)
         in_packs = bool(request.POST.get("in_packs"))
         real_qty = qty * product.pack_coeff if in_packs else qty
+        # Kirim DALILI: katta kirimga nakladnoy fotosi majburiy (kompensatsiya kutilganda
+        # kirimni oshirib yozishning oldini oladi); yetkazib beruvchi yoziladi
+        supplier = request.POST.get("supplier_name", "").strip()[:200]
+        supplier_stir = "".join(c for c in request.POST.get("supplier_stir", "") if c.isdigit())[:15]
+        photo = request.FILES.get("invoice_photo")
+        total = int(real_qty * price)
+        min_photo = SystemSettings.get_solo().stockin_photo_min
+        if photo is not None:
+            err = _photo_error(photo)
+            if err:
+                messages.error(request, err)
+                return redirect("seller:stock_in")
+        elif min_photo and total >= min_photo:
+            messages.error(
+                request,
+                f"Kirim summasi {som(total)} so'm — {som(min_photo)} so'mdan katta kirimga "
+                "nakladnoy (yuk xati) fotosi majburiy.",
+            )
+            return redirect("seller:stock_in")
         from .models import StockMove
         from .services.stock import record_move
 
@@ -434,6 +453,9 @@ def stock_in(request):
                 quantity=qty,
                 in_packs=in_packs,
                 unit_price=price,
+                supplier_name=supplier,
+                supplier_stir=supplier_stir,
+                invoice_photo=photo or "",
             )
             record_move(product, StockMove.Kind.IN, delta=real_qty, ref=f"StockIn#{si.pk}",
                         user=request.user)
@@ -446,7 +468,9 @@ def stock_in(request):
             "shop": shop,
             "products": Product.objects.filter(shop=shop, is_active=True),
             "units": Unit.choices,
-            "recent": StockIn.objects.filter(shop=shop).select_related("product")[:10],
+            "recent": StockIn.objects.filter(shop=shop).select_related("product")
+            .order_by("-created_at")[:10],
+            "photo_min": SystemSettings.get_solo().stockin_photo_min,
         },
     )
 

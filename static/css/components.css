@@ -748,3 +748,5 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 .kind-pill input:focus-visible+span{outline:2px solid var(--bad);outline-offset:2px}
 .field:has(.field-err) .kind-pill span{border-color:var(--bad)}
 @media print{.pkg-lines td{padding-top:0}}
+.evidence-box{border:1px dashed var(--border-strong);border-radius:var(--r-2);padding:var(--sp-3);margin-bottom:var(--sp-3);
+  background:color-mix(in srgb,var(--surface-sunken) 55%,transparent)}

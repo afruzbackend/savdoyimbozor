@@ -241,6 +241,7 @@ def shop_detail(request, pk):
         "corrections": shop.corrections.select_related("user")[:8],
         "register_closes": shop.register_closes.order_by("-date")[:10],
         "writeoffs": shop.writeoffs.select_related("seller").order_by("-created_at")[:10],
+        "stock_ins": shop.stock_ins.select_related("product").order_by("-created_at")[:10],
     }
     return render(request, "inspector/shop_detail.html", ctx)
 

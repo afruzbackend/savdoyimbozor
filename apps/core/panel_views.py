@@ -426,6 +426,7 @@ def settings_edit(request):
             "fine_penalty_percent",
             "anomaly_drop_pct",
             "cash_shortage_pct",
+            "stockin_photo_min",
         ]
         # Har maydon uchun ruxsat etilgan oraliq (noto'g'ri qiymat tizimni buzmasin)
         limits = {
@@ -438,6 +439,7 @@ def settings_edit(request):
             "login_max_attempts": (3, 20), "login_lock_minutes": (1, 1440),
             "tax_rate_percent": (0, 100), "fine_penalty_percent": (0, 500),
             "anomaly_drop_pct": (1, 100), "cash_shortage_pct": (1, 100),
+            "stockin_photo_min": (0, 1_000_000_000),
         }
         labels = {
             "green_threshold": "Yashil chegara", "yellow_threshold": "Sariq chegara",
@@ -448,6 +450,7 @@ def settings_edit(request):
             "login_max_attempts": "Kirish urinishlari", "login_lock_minutes": "Blok muddati",
             "tax_rate_percent": "Soliq stavkasi", "fine_penalty_percent": "Jarima ustamasi",
             "anomaly_drop_pct": "Anomaliya chegarasi", "cash_shortage_pct": "Kassa kamomadi chegarasi",
+            "stockin_photo_min": "Nakladnoy majburiy summa",
         }
         new, errors = {}, []
         for f in fields:
