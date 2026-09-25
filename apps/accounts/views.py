@@ -25,6 +25,23 @@ def _safe_next(request, fallback):
     return fallback
 
 
+def _audit_login(request, user, detail):
+    """Kirish urinishi audit jurnaliga: IP, rol interfeysi va natija bilan."""
+    from apps.core.middleware import ROLE_INTERFACE, AuditMiddleware
+
+    iface = ""
+    if user is not None:
+        iface = "panel" if user.is_superadmin else ROLE_INTERFACE.get(user.role, "")
+    AuditLog.objects.create(
+        user=user,
+        action=AuditLog.Action.LOGIN,
+        path=request.path,
+        ip=AuditMiddleware._ip(request),
+        interface=iface,
+        detail=detail[:300],
+    )
+
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect(_home_url_for(request))
@@ -36,12 +53,14 @@ def login_view(request):
 
         user = User.objects.filter(username__iexact=username).first()
         if user and user.is_locked:
+            _audit_login(request, user, "Rad: vaqtincha bloklangan hisobga urinish")
             messages.error(request, "Hisob vaqtincha bloklangan. Birozdan so'ng urinib ko'ring.")
             return render(request, "registration/login.html", {"username": username})
 
         auth_user = authenticate(request, username=username, password=password)
         if auth_user is None and user and not user.is_active and user.check_password(password):
             # Parol to'g'ri, lekin admin bloklagan — "parol noto'g'ri" deb chalg'itmaymiz
+            _audit_login(request, user, "Rad: admin bloklagan hisob")
             messages.error(request, "Hisobingiz bloklangan. Administrator bilan bog'laning.")
             return render(request, "registration/login.html", {"username": username})
         if auth_user is None:
@@ -49,17 +68,14 @@ def login_view(request):
                 user.register_failed_login(
                     settings_obj.login_max_attempts, settings_obj.login_lock_minutes
                 )
+            # Muvaffaqiyatsiz urinish ham yoziladi (parol terish hujumini ko'rish uchun)
+            _audit_login(request, user, f"Xato parol (login: {username[:40]})")
             messages.error(request, "Login yoki parol noto'g'ri.")
             return render(request, "registration/login.html", {"username": username})
 
         auth_user.reset_lockout()
         login(request, auth_user)
-        AuditLog.objects.create(
-            user=auth_user,
-            action=AuditLog.Action.LOGIN,
-            path=request.path,
-            interface=getattr(request, "interface", ""),
-        )
+        _audit_login(request, auth_user, "Muvaffaqiyatli kirish")
         if auth_user.must_change_password:
             return redirect("password_change")
         return redirect(_home_url_for(request))

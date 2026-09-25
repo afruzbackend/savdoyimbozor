@@ -550,11 +550,17 @@ def audit_log(request):
     )
 
 
-def _f(v):
+def _f(v, limit=None):
+    """Koordinata: son bo'lmasa, nan/inf yoki chegaradan tashqari bo'lsa — None."""
+    import math
+
     try:
-        return float(v)
+        x = float(str(v).replace(",", "."))
     except (TypeError, ValueError):
         return None
+    if not math.isfinite(x) or (limit is not None and abs(x) > limit):
+        return None
+    return x
 
 
 @superadmin_required
@@ -563,9 +569,13 @@ def markets(request):
     if request.method == "POST":
         act = request.POST.get("action")
         if act == "add_region":
-            name = request.POST.get("region_name", "").strip()[:120]
-            if name:
-                Region.objects.get_or_create(name=name)
+            name = " ".join(request.POST.get("region_name", "").split())[:120]
+            if not name:
+                messages.error(request, "Viloyat nomini yozing.")
+            elif Region.objects.filter(name__iexact=name).exists():
+                messages.error(request, f"«{name}» viloyati allaqachon bor.")
+            else:
+                Region.objects.create(name=name)
                 messages.success(request, "Viloyat qo'shildi.")
         elif act == "save_market":
             region = Region.objects.filter(pk=_pk(request.POST.get("region"))).first()
@@ -577,10 +587,14 @@ def markets(request):
                 "region": region,
                 "name": name,
                 "address": request.POST.get("address", "").strip()[:300],
-                "latitude": _f(request.POST.get("latitude")),
-                "longitude": _f(request.POST.get("longitude")),
+                "latitude": _f(request.POST.get("latitude"), 90),
+                "longitude": _f(request.POST.get("longitude"), 180),
             }
-            mid = request.POST.get("market_id")
+            mid = _pk(request.POST.get("market_id"))
+            dup = Market.objects.filter(region=region, name__iexact=name).exclude(pk=mid)
+            if dup.exists():
+                messages.error(request, f"«{name}» bozori bu viloyatda allaqachon bor.")
+                return redirect("panel:markets")
             if mid:
                 Market.objects.filter(pk=mid).update(**data)
                 messages.success(request, "Bozor yangilandi.")
@@ -719,9 +733,13 @@ def categories(request):
     if request.method == "POST":
         act = request.POST.get("action")
         if act == "add":
-            name = request.POST.get("name", "").strip()[:120]
-            if name:
-                ShopCategory.objects.get_or_create(name=name)
+            name = " ".join(request.POST.get("name", "").split())[:120]
+            if not name:
+                messages.error(request, "Savdo turi nomini yozing.")
+            elif ShopCategory.objects.filter(name__iexact=name).exists():
+                messages.error(request, f"«{name}» savdo turi allaqachon bor.")
+            else:
+                ShopCategory.objects.create(name=name)
                 messages.success(request, "Savdo turi qo'shildi.")
         elif act == "delete":
             cat = ShopCategory.objects.filter(pk=_pk(request.POST.get("id"))).first()

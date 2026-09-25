@@ -197,3 +197,15 @@ def test_appeal_respond_ignores_external_next(iclient, shop):
                      {"action": "accepted", "next": "https://evil.example/"},
                      HTTP_HOST=INSPECTOR_HOST)
     assert "evil" not in r["Location"]
+
+
+@pytest.mark.django_db
+def test_inspection_requires_explicit_result(iclient, shop):
+    """Natija tanlanmasa tekshiruv yozilmaydi (jim "Tasdiqlandi" ayblovi yo'q)."""
+    from apps.analytics.models import Inspection
+
+    iclient.post("/tekshiruv/yangi/", {"shop": shop.pk}, HTTP_HOST=INSPECTOR_HOST)
+    assert not Inspection.objects.filter(shop=shop).exists()
+    iclient.post("/tekshiruv/yangi/", {"shop": shop.pk, "result": "false"},
+                 HTTP_HOST=INSPECTOR_HOST)
+    assert Inspection.objects.filter(shop=shop, result="false").exists()

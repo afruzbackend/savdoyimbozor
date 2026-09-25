@@ -204,3 +204,17 @@ def test_alert_dismiss_audited_with_detail(iclient, shop):
     iclient.post(f"/signallar/{al.pk}/amal/", {"action": "dismiss"}, HTTP_HOST=INSPECTOR_HOST)
     log = AuditLog.objects.filter(path=f"/signallar/{al.pk}/amal/").latest("created_at")
     assert "e'tiborsiz" in log.detail and f"№{shop.number}" in log.detail
+
+
+@pytest.mark.django_db
+def test_login_attempts_audited_once_with_ip(seller):
+    from apps.core.models import AuditLog
+
+    c = Client()
+    c.post("/login/", {"username": seller.username, "password": "xato-parol"},
+           REMOTE_ADDR="10.0.0.7")
+    c.post("/login/", {"username": seller.username, "password": PW}, REMOTE_ADDR="10.0.0.7")
+    logs = list(AuditLog.objects.filter(path="/login/").order_by("created_at"))
+    assert len(logs) == 2  # har urinish bitta yozuv (ikki marta emas)
+    assert "Xato parol" in logs[0].detail and logs[0].ip == "10.0.0.7"
+    assert logs[1].detail == "Muvaffaqiyatli kirish" and logs[1].interface == "seller"

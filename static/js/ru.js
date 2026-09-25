@@ -804,11 +804,18 @@ window.RU_DICT = {
   "Ma'lumot yetarli emas": "Недостаточно данных",
   "Solishtirish ma'lumoti yo'q": "Нет данных для сравнения",
   "Avval parolni almashtiring.": "Сначала смените пароль.",
+  "Tekshiruv natijasini tanlang.": "Выберите результат проверки.",
+  "bo'sh — aktda avtomatik": "пусто — автоматически в акте",
+  "Viloyat nomini yozing.": "Укажите название области.",
+  "Savdo turi nomini yozing.": "Укажите название вида торговли.",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
    Tartib muhim — aniqroq/uzunroq bo'laklar oldin. Faqat RU rejimida qo'llanadi. */
 window.RU_FRAGMENTS = [
+  [" viloyati allaqachon bor.", " — такая область уже есть."],
+  [" savdo turi allaqachon bor.", " — такой вид торговли уже есть."],
+  [" bozori bu viloyatda allaqachon bor.", " — такой рынок в этой области уже есть."],
   [" uchun yangi parol berilsinmi? Eski parol ishlamay qoladi.", ": выдать новый пароль? Старый перестанет работать."],
   [" bloklansinmi? U tizimga kira olmaydi.", ": заблокировать? Пользователь не сможет войти."],
   [": yangi token berilsinmi? Eski token darhol ishlamay qoladi.", ": выдать новый токен? Старый сразу перестанет работать."],

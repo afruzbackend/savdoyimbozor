@@ -8,13 +8,23 @@
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% if alert %}<input type="hidden" name="alert" value="{{ alert.pk }}">{% endif %}
+    {% if alert %}
+    {# Signaldan kelganda do'kon qulflangan — tekshiruv boshqa do'konga yozilib ketmasin #}
+    <input type="hidden" name="shop" value="{{ alert.shop.pk }}">
+    <div class="field"><label class="label">Do'kon</label>
+      <div class="input" style="background:var(--surface-sunken)">№{{ alert.shop.number }} — {{ alert.shop.owner_name }} ({{ alert.shop.market.name }})</div></div>
+    {% else %}
     <div class="field"><label class="label">Do'kon</label>
       <select class="select-native" name="shop" required>
+        <option value="" disabled {% if not preselect %}selected{% endif %}>Tanlang</option>
         {% for s in shops %}<option value="{{ s.pk }}" {% if preselect and s.pk == preselect.pk %}selected{% endif %}>№{{ s.number }} — {{ s.owner_name }} ({{ s.market.name }})</option>{% endfor %}
       </select>
     </div>
+    {% endif %}
     <div class="field"><label class="label">Natija</label>
-      <select class="select-native" name="result">
+      {# Standart qiymat YO'Q: "Tasdiqlandi" tasodifan tanlanib, do'kon ayblanib qolmasin #}
+      <select class="select-native" name="result" required>
+        <option value="" disabled selected>Tanlang</option>
         {% for val, lbl in results %}<option value="{{ val }}">{{ lbl }}</option>{% endfor %}
       </select>
     </div>
@@ -22,7 +32,7 @@
       <div class="field"><label class="label">Dalolatnoma raqami</label>
         <input class="input" name="act_number" placeholder="A-2026-0142"></div>
       <div class="field"><label class="label">Jarima (so'm)</label>
-        <input class="input num" name="fine_amount" type="number" step="1000" placeholder="0"></div>
+        <input class="input num" name="fine_amount" type="number" min="0" step="1000" placeholder="bo'sh — aktda avtomatik"></div>
     </div>
     <div class="field"><label class="label">Izoh</label>
       <textarea class="textarea" name="notes" rows="3"></textarea></div>

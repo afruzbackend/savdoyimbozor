@@ -352,9 +352,11 @@ def inspection_create(request):
         post_alert = None
         if request.POST.get("alert"):
             post_alert = Alert.objects.filter(pk=_pk(request.POST.get("alert")), shop=shop).first()
-        result = request.POST.get("result") or Inspection.Result.PENDING
+        result = request.POST.get("result")
         if result not in Inspection.Result.values:
-            result = Inspection.Result.PENDING
+            # Natija aniq tanlanishi shart (jim standart ayblov bo'lmasin)
+            _msg.error(request, "Tekshiruv natijasini tanlang.")
+            return redirect(request.get_full_path())
         fine = to_int(request.POST.get("fine_amount"))
         if fine is not None and fine < 0:
             _msg.error(request, "Jarima manfiy bo'lmasin.")

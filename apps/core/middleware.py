@@ -85,7 +85,8 @@ class AuditMiddleware(MiddlewareMixin):
         if not user or not user.is_authenticated:
             return
         path = request.path
-        if path.startswith(("/static/", "/media/", "/prefs/")):
+        # /login/ — login_view o'zi batafsil yozadi (ikki marta yozilmasin)
+        if path.startswith(("/static/", "/media/", "/prefs/", "/login/", "/sw.js")):
             return
         is_post = request.method == "POST"
         is_export = request.method == "GET" and any(
