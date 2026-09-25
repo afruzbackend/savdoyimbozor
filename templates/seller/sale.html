@@ -73,6 +73,7 @@
   <div class="debtor-box" x-show="pay==='debt'" x-cloak>
     <input class="input" x-ref="debtor" x-model="debtorName" placeholder="Xaridor ismi (majburiy)" :class="debtorErr&&'err'" @input="debtorErr=false">
     <input class="input num" x-model="debtorPhone" placeholder="Telefon" inputmode="tel">
+    <div class="debtor-due" :class="dueErr&&'due-err'">{% include 'components/_duefield.html' with name='debtor_due' model='debtorDue' label='Qaytarish sanasi' %}</div>
   </div>
   <label class="switch" style="margin-bottom:var(--sp-3)"><input type="checkbox" x-model="wholesale"><span class="track"></span><span class="thumb"></span>
     <span style="font-size:var(--t--1)">Ulgurji savdo</span></label>
@@ -102,8 +103,9 @@
       cfg: window.__PRICING__,
       amount: 0, discount: 0, rounding: 0, pay: 'cash', wholesale: false,
       saving: false, pending: 0, customOpen: false, customVal: '',
-      debtorName: '', debtorPhone: '', debtorErr: false,
+      debtorName: '', debtorPhone: '', debtorErr: false, debtorDue: '', dueErr: false,
       init() {
+        this.$watch('debtorDue', (v) => { if (v) this.dueErr = false; });
         this.syncQueue();
         window.addEventListener('online', () => this.syncQueue());
         // Kompyuterda jismoniy klaviatura bilan yozish: raqamlar, Backspace, Enter, Esc.
@@ -157,6 +159,7 @@
         // Nasiyadan keyin keyingi sotuv adashib nasiyaga ketmasin — naqdga qaytamiz
         if (this.pay === 'debt') this.pay = 'cash';
         this.debtorName = ''; this.debtorPhone = ''; this.debtorErr = false;
+        this.debtorDue = ''; this.dueErr = false; window.dispatchEvent(new Event('due-reset'));
       },
       payload() {
         // client_uid — offline navbatdan qayta yuborilsa server dublikat yaratmaydi
@@ -166,6 +169,7 @@
           is_wholesale: this.wholesale, mode: 'quick', client_uid: uid,
           debtor_name: this.pay === 'debt' ? this.debtorName.trim() : '',
           debtor_phone: this.pay === 'debt' ? this.debtorPhone.trim() : '',
+          debtor_due: this.pay === 'debt' ? this.debtorDue : '',
           client_ts: new Date().toISOString() };
       },
       async submit() {
@@ -173,6 +177,9 @@
         if (this.pay === 'debt' && !this.debtorName.trim()) {
           this.debtorErr = true; this.$refs.debtor && this.$refs.debtor.focus();
           window.toast('Nasiya uchun xaridor ismini yozing', 'bad'); return;
+        }
+        if (this.pay === 'debt' && !this.debtorDue) {
+          this.dueErr = true; window.toast('Nasiya qaytarish sanasini tanlang', 'bad'); return;
         }
         this.saving = true;
         const body = this.payload();

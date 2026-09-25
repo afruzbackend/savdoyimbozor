@@ -41,7 +41,8 @@ def test_debt_sale_requires_name_and_creates_debt(sclient, shop):
     assert r.status_code == 400
     assert not Sale.objects.filter(shop=shop).exists()
     r = _sale(sclient, {"items": [{"name": "x", "qty": 1, "unit_price": 80000}],
-                        "payment_type": "debt", "debtor_name": "Vali aka", "debtor_phone": "+99890"})
+                        "payment_type": "debt", "debtor_name": "Vali aka", "debtor_phone": "+99890",
+                        "debtor_due": str(timezone.localdate())})
     assert r.status_code == 201
     sale = Sale.objects.get(shop=shop)
     d = Debt.objects.get(shop=shop)
@@ -169,7 +170,8 @@ def test_stock_in_packs_uses_coefficient(sclient, shop, product):
 @pytest.mark.django_db
 def test_correcting_debt_sale_updates_debt(sclient, shop):
     r = _sale(sclient, {"items": [{"name": "x", "qty": 1, "unit_price": 90000}],
-                        "payment_type": "debt", "debtor_name": "Vali"})
+                        "payment_type": "debt", "debtor_name": "Vali",
+                        "debtor_due": str(timezone.localdate())})
     sale_id = r.json()["id"]
     sclient.post("/tuzatish/", {"sale": sale_id, "new_total": "80000", "reason": "xato"},
                  HTTP_HOST=SELLER_HOST)
@@ -190,3 +192,56 @@ def test_evening_reminder_without_celery(seller, shop):
         assert cr.remind_if_due(seller) is True
         cr.remind_if_due(seller)  # ikkinchi marta — takrorlanmaydi
     assert Notification.objects.filter(user=seller, title="Kun yakunini yoping").count() == 1
+
+
+@pytest.mark.django_db
+def test_debt_sale_requires_due_date(sclient, shop):
+    r = _sale(sclient, {"items": [{"name": "x", "qty": 1, "unit_price": 5000}],
+                        "payment_type": "debt", "debtor_name": "Ali"})
+    assert r.status_code == 400 and "sana" in r.json()["detail"]
+    assert not Sale.objects.filter(shop=shop).exists()
+
+
+@pytest.mark.django_db
+def test_manual_debt_requires_future_due(sclient, shop):
+    from datetime import timedelta
+
+    sclient.post("/nasiya/", {"customer_name": "A", "amount": "1000"}, HTTP_HOST=SELLER_HOST)
+    past = timezone.localdate() - timedelta(days=1)
+    sclient.post("/nasiya/", {"customer_name": "B", "amount": "1000", "due_date": str(past)},
+                 HTTP_HOST=SELLER_HOST)
+    assert not Debt.objects.filter(shop=shop).exists()
+
+
+@pytest.mark.django_db
+def test_debt_reminders_day_before_and_on_day(seller, shop):
+    """1 kun oldin va o'sha kuni — alohida eslatma, har biri bir marta."""
+    from datetime import timedelta
+    from unittest import mock
+
+    from apps.core.models import Notification
+    from apps.sales.services import debts as ds
+
+    today = timezone.localdate()
+    Debt.objects.create(shop=shop, customer_name="Vali", amount=50000,
+                        due_date=today + timedelta(days=1))
+    assert ds.debt_reminders(seller, shop) == 1
+    assert ds.debt_reminders(seller, shop) == 0  # takrorlanmaydi
+    n = Notification.objects.get(user=seller)
+    assert n.title.startswith("Ertaga")
+    # Ertasi kun — "Bugun" eslatmasi
+    with mock.patch.object(ds.timezone, "localdate", return_value=today + timedelta(days=1)):
+        assert ds.debt_reminders(seller, shop) == 1
+    assert Notification.objects.filter(user=seller, title__startswith="Bugun").exists()
+
+
+@pytest.mark.django_db
+def test_extend_debt_due(sclient, shop):
+    from datetime import timedelta
+
+    d = Debt.objects.create(shop=shop, customer_name="Vali", amount=50000,
+                            due_date=timezone.localdate())
+    new = timezone.localdate() + timedelta(days=7)
+    sclient.post("/nasiya/", {"extend": d.pk, "due_date": str(new)}, HTTP_HOST=SELLER_HOST)
+    d.refresh_from_db()
+    assert d.due_date == new

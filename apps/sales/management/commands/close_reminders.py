@@ -65,4 +65,10 @@ class Command(BaseCommand):
                 key=f"close-reminder-{today}",  # kuniga bir marta
             )
             sent += 1
-        self.stdout.write(self.style.SUCCESS(f"{sent} ta eslatma yuborildi ({today})"))
+        # Nasiya eslatmalari (1 kun oldin / o'sha kuni / o'tgan) — hamma sotuvchiga
+        from apps.sales.services.debts import debt_reminders
+
+        debts = sum(debt_reminders(u, u.shop) for u in sellers.select_related("shop"))
+        self.stdout.write(
+            self.style.SUCCESS(f"{sent} ta kun yakuni, {debts} ta nasiya eslatmasi ({today})")
+        )

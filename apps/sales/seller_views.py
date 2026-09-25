@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from apps.catalog.models import Product, ProductCategory, Unit
 from apps.core.format import som, to_dec, to_int
-from apps.core.models import Notification, SystemSettings, notify
+from apps.core.models import SystemSettings
 
 from .models import (
     Correction,
@@ -59,21 +59,13 @@ def _dec(val, default="0"):
 
 
 def _gen_debt_notifications(user, shop):
-    """Muddati kelgan (yoki o'tgan) nasiyalar uchun bildirishnoma yaratadi."""
-    if shop is None:
-        return
-    today = timezone.localdate()
-    due = Debt.objects.filter(shop=shop, is_paid=False, due_date__lte=today).exclude(due_date=None)
-    for d in due:
-        when = "bugun" if d.due_date == today else f"{d.due_date:%d.%m.%Y} (muddati o'tgan)"
-        notify(
-            user,
-            Notification.Kind.DEBT_DUE,
-            f"Nasiya qaytarish: {d.customer_name or 'xaridor'}",
-            body=f"{som(d.amount)} so'm — {when}",
-            url="/nasiya/",
-            key=f"debt:{d.id}:{d.due_date}",
-        )
+    """Nasiya eslatmalari: 1 kun OLDIN, o'sha KUNI va muddati o'tgan bo'lsa.
+
+    Har bosqich bir marta (idempotent key). Sahifa ochilganda ishlaydi (Celery shart emas).
+    """
+    from .services.debts import debt_reminders
+
+    debt_reminders(user, shop)
 
 
 @login_required
@@ -613,6 +605,21 @@ def debts(request):
     if shop is None:
         return redirect("seller:home")
     if request.method == "POST":
+        if request.POST.get("extend"):
+            # Xaridor muddat so'radi — yangi sana (eslatmalar yangi sanaga qayta keladi)
+            from .services.debts import parse_due
+
+            debt = get_object_or_404(Debt, pk=_pk(request.POST["extend"]), shop=shop, is_paid=False)
+            due = parse_due(request.POST.get("due_date"))
+            if due is None or due < timezone.localdate():
+                messages.error(request, "Yangi qaytarish sanasini tanlang (bugun yoki keyin).")
+            else:
+                old = debt.due_date
+                debt.due_date = due
+                debt.note = (debt.note + f" · muddat {old:%d.%m}→{due:%d.%m}" if old else debt.note)[:200]
+                debt.save(update_fields=["due_date", "note"])
+                messages.success(request, f"{debt.customer_name}: yangi muddat {due:%d.%m.%Y}.")
+            return redirect("seller:debts")
         if request.POST.get("pay"):
             # To'lov (qisman ham): naqd to'lov bugungi kassadagi kutilgan naqdga qo'shiladi
             from .services.cash import CashError, pay_debt
@@ -635,23 +642,20 @@ def debts(request):
             except CashError as e:
                 messages.error(request, str(e))
         else:
-            from datetime import datetime
+            from .services.debts import parse_due
 
-            due = None
-            raw_due = request.POST.get("due_date", "").strip()
-            if raw_due:
-                for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
-                    try:
-                        due = datetime.strptime(raw_due, fmt).date()
-                        break
-                    except ValueError:
-                        continue
+            due = parse_due(request.POST.get("due_date"))
             name = request.POST.get("customer_name", "").strip()[:200]
             amount = to_int(request.POST.get("amount"))
             if not name:
                 messages.error(request, "Xaridor ismini yozing.")
             elif amount is None or amount <= 0:
                 messages.error(request, "Summa 0 dan katta bo'lsin.")
+            elif due is None:
+                # Qaytarish sanasi MAJBURIY — shunda bir kun oldin va o'sha kuni eslatiladi
+                messages.error(request, "Qaytarish sanasini tanlang.")
+            elif due < timezone.localdate():
+                messages.error(request, "Qaytarish sanasi o'tgan kun bo'lmasin.")
             else:
                 Debt.objects.create(
                     shop=shop,
@@ -673,6 +677,7 @@ def debts(request):
             "shop": shop,
             "debts": active,
             "total": sum(d.remaining for d in active),
+            "tomorrow": timezone.localdate() + timedelta(days=1),
             "payments": DebtPayment.objects.filter(shop=shop)
             .select_related("debt").order_by("-created_at")[:15],
             "today": timezone.localdate(),

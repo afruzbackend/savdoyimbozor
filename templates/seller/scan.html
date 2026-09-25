@@ -65,6 +65,7 @@
     <div class="debtor-box" x-show="pay==='debt'" x-cloak>
       <input class="input" x-ref="debtor" x-model="debtorName" placeholder="Xaridor ismi (majburiy)" :class="debtorErr&&'err'" @input="debtorErr=false">
       <input class="input num" x-model="debtorPhone" placeholder="Telefon" inputmode="tel">
+      <div class="debtor-due" :class="dueErr&&'due-err'">{% include 'components/_duefield.html' with name='debtor_due' model='debtorDue' label='Qaytarish sanasi' %}</div>
     </div>
     <button class="btn btn-lg btn-block" :disabled="total<=0||saving" @click="submit()">
       <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>
@@ -89,8 +90,9 @@
   document.addEventListener('alpine:init', () => {
     Alpine.data('scanSale', () => ({
       cfg: window.__PRICING__, q: '', results: [], cart: [], discount: 0, pay: 'cash', saving: false,
-      debtorName: '', debtorPhone: '', debtorErr: false,
+      debtorName: '', debtorPhone: '', debtorErr: false, debtorDue: '', dueErr: false,
       customOpen: false, customVal: '',
+      init(){ this.$watch('debtorDue', (v)=>{ if(v) this.dueErr=false; }); },
       setCustom(){ this.discount = Math.min(window.BN.unfmt(this.customVal), this.cap); this.customOpen=false; this.customVal=''; },
       fmt(n){ return window.BN.fmt(Math.round(n)); },
       fmtK(n){ return n>=1000 ? (n/1000)+'k' : n; },
@@ -113,16 +115,20 @@
       addDiscount(b){ this.discount=(this.discount===b)?0:Math.min(b,this.cap); },
       reset(){ this.cart=[]; this.discount=0; this.customOpen=false;
         if(this.pay==='debt') this.pay='cash'; this.debtorName=''; this.debtorPhone=''; this.debtorErr=false;
+        this.debtorDue=''; this.dueErr=false; window.dispatchEvent(new Event('due-reset'));
         this.$refs.scan.focus(); },
       async submit(){ if(this.total<=0||this.saving) return;
         if(this.cart.some(i=>!(i.qty>0))){ window.toast('Miqdor 0 dan katta bo\'lsin','bad'); return; }
         if(this.pay==='debt' && !this.debtorName.trim()){ this.debtorErr=true; this.$refs.debtor&&this.$refs.debtor.focus();
           window.toast('Nasiya uchun xaridor ismini yozing','bad'); return; }
+        if(this.pay==='debt' && !this.debtorDue){ this.dueErr=true;
+          window.toast('Nasiya qaytarish sanasini tanlang','bad'); return; }
         this.saving=true;
         const body={ items:this.cart.map(i=>({product_id:i.id,name:i.name,qty:i.qty,unit_price:i.price})),
           discount:this.discount, rounding:0, payment_type:this.pay, mode:'scan',
           client_uid:window.saleQueue.uid(), client_ts:new Date().toISOString(),
-          debtor_name:this.pay==='debt'?this.debtorName.trim():'', debtor_phone:this.pay==='debt'?this.debtorPhone.trim():'' };
+          debtor_name:this.pay==='debt'?this.debtorName.trim():'', debtor_phone:this.pay==='debt'?this.debtorPhone.trim():'',
+          debtor_due:this.pay==='debt'?this.debtorDue:'' };
         let r;
         try{ r=await fetch('/api/sales/',{method:'POST',headers:{'Content-Type':'application/json',
           'X-CSRFToken':document.cookie.match(/csrftoken=([^;]+)/)?.[1]||''},body:JSON.stringify(body)}); }

@@ -46,8 +46,16 @@ def create_sale(
 
     debtor = debtor or {}
     debtor_name = str(debtor.get("name") or "").strip()[:200]
-    if payment_type == "debt" and not debtor_name:
-        raise DebtorRequired("Nasiya uchun xaridor ismini yozing.")
+    debtor_due = None
+    if payment_type == "debt":
+        from .debts import parse_due
+
+        if not debtor_name:
+            raise DebtorRequired("Nasiya uchun xaridor ismini yozing.")
+        debtor_due = parse_due(debtor.get("due"))
+        if debtor_due is None:
+            # Qaytarish sanasi MAJBURIY — eslatma (1 kun oldin / o'sha kuni) shunga bog'liq
+            raise DebtorRequired("Nasiya qaytarish sanasini tanlang.")
 
     from apps.catalog.models import Product
 
@@ -148,6 +156,7 @@ def create_sale(
             customer_name=debtor_name,
             customer_phone=str(debtor.get("phone") or "").strip()[:20],
             amount=sale.total,
+            due_date=debtor_due,
             note=f"Chek #{sale.pk}",
         )
     return sale

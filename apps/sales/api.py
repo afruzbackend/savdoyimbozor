@@ -100,7 +100,8 @@ def create_sale_api(request):
                 client_ts=client_ts,
                 note=str(data.get("note") or ""),
                 client_uid=client_uid,
-                debtor={"name": data.get("debtor_name"), "phone": data.get("debtor_phone")},
+                debtor={"name": data.get("debtor_name"), "phone": data.get("debtor_phone"),
+                        "due": data.get("debtor_due")},
             )
             if sale.total <= 0:
                 raise _ZeroTotal  # nol summali chek bazada qolmasin (rollback)

@@ -11,7 +11,7 @@
       <div class="field"><label class="label">Xaridor</label><input class="input" name="customer_name" placeholder="Ism, mo'ljal" required></div>
       <div class="field"><label class="label">Telefon</label><input class="input" name="customer_phone" placeholder="+998..." inputmode="tel"></div>
       <div class="field"><label class="label">Summa (so'm)</label><input class="input num" type="number" name="amount" min="1" step="1000" inputmode="numeric" required></div>
-      {% include 'components/_datefield.html' with name='due_date' label='Qaytarish sanasi' %}
+      {% include 'components/_duefield.html' with name='due_date' label='Qaytarish sanasi' %}
       <div class="field"><label class="label">Izoh</label><input class="input" name="note"></div>
       <button class="btn btn-block" type="submit">Qo'shish</button>
     </form>
@@ -26,14 +26,16 @@
       <div class="card-title" style="margin-bottom:var(--sp-3)">Faol nasiyalar</div>
       <div class="stack">
       {% for d in debts %}
-        <div class="debt-row {% if d.due_date and d.due_date <= today %}overdue{% endif %}" x-data="{open:false}">
+        <div class="debt-row {% if d.due_date and d.due_date < today %}overdue{% elif d.due_date == today %}due-today{% endif %}" x-data="{open:false}">
           <div class="row gap-2" style="justify-content:space-between;align-items:center;flex-wrap:wrap">
             <div style="min-width:0">
               <b>{{ d.customer_name }}</b>
               {% if d.customer_phone %}<a class="muted num" href="tel:{{ d.customer_phone }}" style="margin-left:6px">{{ d.customer_phone }}</a>{% endif %}
               <div class="muted" style="font-size:var(--t--1)">
                 {{ d.created_at|date:"d.m.Y" }}{% if d.sale_id %} · chek #{{ d.sale_id }}{% endif %}
-                {% if d.due_date %} · muddat <span {% if d.due_date <= today %}style="color:var(--bad);font-weight:600"{% endif %}>{{ d.due_date|date:"d.m.Y" }}</span>{% endif %}
+                {% if d.due_date %} · muddat <span {% if d.due_date < today %}style="color:var(--bad);font-weight:600"{% elif d.due_date == today %}style="color:var(--warn-ink);font-weight:600"{% endif %}>{{ d.due_date|date:"d.m.Y" }}</span>
+                  {% if d.due_date < today %}<span class="badge badge-bad">muddati o'tdi</span>{% elif d.due_date == today %}<span class="badge badge-warn">bugun</span>{% elif d.due_date == tomorrow %}<span class="badge badge-neutral">ertaga</span>{% endif %}
+                {% else %} · <span class="badge badge-neutral">muddat yo'q</span>{% endif %}
               </div>
             </div>
             <div class="row gap-2" style="align-items:center">
@@ -52,6 +54,11 @@
             <button class="btn btn-ghost" name="method" value="card"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-credit-card"></use></svg> Karta</button>
             <button class="btn btn-ghost" name="method" value="transfer"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-wallet"></use></svg> O'tkazma</button>
             <small class="faint" style="flex-basis:100%">Qisman to'lasa — summani o'zgartiring. Naqd to'lov bugungi kassaga qo'shiladi.</small>
+          </form>
+          <form method="post" class="debt-pay" x-show="open" x-cloak style="margin-top:6px">{% csrf_token %}
+            <input type="hidden" name="extend" value="{{ d.pk }}">
+            <div style="flex:1 1 100%">{% include 'components/_duefield.html' with name='due_date' label='Yangi qaytarish sanasi' %}</div>
+            <button class="btn btn-ghost" type="submit">Muddatni o'zgartirish</button>
           </form>
         </div>
       {% empty %}<p class="muted" style="margin:0">Nasiya yo'q.</p>{% endfor %}

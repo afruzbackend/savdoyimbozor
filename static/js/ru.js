@@ -808,11 +808,36 @@ window.RU_DICT = {
   "bo'sh — aktda avtomatik": "пусто — автоматически в акте",
   "Viloyat nomini yozing.": "Укажите название области.",
   "Savdo turi nomini yozing.": "Укажите название вида торговли.",
+  // Nasiya qaytarish sanasi va eslatmalar
+  "Ertaga": "Завтра",
+  "3 kun": "3 дня",
+  "1 hafta": "1 неделя",
+  "2 hafta": "2 недели",
+  "1 oy": "1 месяц",
+  "Sanani tanlang": "Выберите дату",
+  "Bir kun oldin va o'sha kuni eslatma keladi.": "Напоминание придёт за день и в этот день.",
+  "Yangi qaytarish sanasi": "Новая дата возврата",
+  "Muddatni o'zgartirish": "Изменить срок",
+  "muddati o'tdi": "просрочен",
+  "bugun": "сегодня",
+  "ertaga": "завтра",
+  "muddat yo'q": "без срока",
+  "Nasiya qaytarish sanasini tanlang": "Выберите дату возврата долга",
+  "Nasiya qaytarish sanasini tanlang.": "Выберите дату возврата долга.",
+  "Qaytarish sanasini tanlang.": "Выберите дату возврата.",
+  "Qaytarish sanasi o'tgan kun bo'lmasin.": "Дата возврата не может быть в прошлом.",
+  "Yangi qaytarish sanasini tanlang (bugun yoki keyin).": "Выберите новую дату возврата (сегодня или позже).",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
    Tartib muhim — aniqroq/uzunroq bo'laklar oldin. Faqat RU rejimida qo'llanadi. */
 window.RU_FRAGMENTS = [
+  ["Ertaga nasiya qaytarish kuni: ", "Завтра день возврата долга: "],
+  ["Bugun nasiya qaytarish kuni: ", "Сегодня день возврата долга: "],
+  ["Nasiya muddati o'tdi: ", "Срок долга истёк: "],
+  [" — bugun olinishi kerak", " — нужно получить сегодня"],
+  [": yangi muddat ", ": новый срок "],
+  [" · muddat", " · срок"],
   [" viloyati allaqachon bor.", " — такая область уже есть."],
   [" savdo turi allaqachon bor.", " — такой вид торговли уже есть."],
   [" bozori bu viloyatda allaqachon bor.", " — такой рынок в этой области уже есть."],

@@ -55,3 +55,5 @@ class Row(TimeStampedModel):
 
     def __str__(self):
         return f"{self.market.name} — {self.label}"
+
+

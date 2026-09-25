@@ -209,6 +209,14 @@ tr.row-muted td{color:var(--ink-faint)}
 
 /* ---------- Checkbox / radio ---------- */
 .ok-text{color:var(--ok-ink)}.bad-text{color:var(--bad)}
+/* Nasiya qaytarish sanasi: tez tugmalar + kalendar */
+.due-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.debtor-due{grid-column:1/-1;text-align:left}
+.debtor-due .field{margin:0}
+.due-err .dropdown-trigger{border-color:var(--bad);box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 18%,transparent)}
+.due-err .label{color:var(--bad)}
+.cal-day:disabled{opacity:.28;cursor:not-allowed}
+.debt-row.due-today{box-shadow:inset 3px 0 0 var(--warn);padding-left:10px}
 .debt-row{padding:10px 0;border-bottom:1px solid var(--border)}
 .debt-row:last-child{border-bottom:0}
 .debt-row.overdue{box-shadow:inset 3px 0 0 var(--bad);padding-left:10px}
@@ -651,3 +659,50 @@ img.emblem{object-fit:contain;border-radius:9px}
 /* Custom select (native yashirin, JS enhancer) */
 .nice-select{position:relative}
 .ns-native{display:none}
+
+/* =============================================================================
+   IKONKA MIKRO-ANIMATSIYALARI — belgi O'Z QUTISI ICHIDA harakatlanadi (svg chegarasi
+   kesadi): menyu elementi, matn va qo'shni tugmalar QIMIRLAMAYDI.
+   Qachon: kursor ustida (sichqonchali qurilma), klaviatura fokusi, faol sahifa
+   ochilganda bir marta, tanlangan to'lov turi. Har belgining o'z ma'nosi bor:
+   pul yondan keladi, quti tushadi, qaytarish orqaga aylanadi, qo'ng'iroq jiringlaydi...
+   ============================================================================= */
+.icon{overflow:hidden}
+.icon use{transform-box:fill-box;transform-origin:center}
+use[href$="#i-banknote"],use[href$="#i-map"]{--ic:icSlideL}
+use[href$="#i-wallet"],use[href$="#i-credit-card"],use[href$="#i-log-out"]{--ic:icSlideR}
+use[href$="#i-package"],use[href$="#i-store"],use[href$="#i-home"],use[href$="#i-download"]{--ic:icDrop}
+use[href$="#i-users"],use[href$="#i-user"],use[href$="#i-file-text"],use[href$="#i-receipt"]{--ic:icRise}
+use[href$="#i-rotate-ccw"]{--ic:icSpinBack}
+use[href$="#i-trash-2"],use[href$="#i-triangle-alert"]{--ic:icShake}
+use[href$="#i-notebook-pen"]{--ic:icWrite}
+use[href$="#i-bar-chart-3"]{--ic:icGrowUp;transform-origin:center bottom}
+use[href$="#i-trending-up"]{--ic:icDiag}
+use[href$="#i-bell"]{--ic:icRing;transform-origin:center top}
+use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
+@keyframes icSlideL{0%{transform:translateX(-115%);opacity:0}100%{transform:none;opacity:1}}
+@keyframes icSlideR{0%{transform:translateX(115%);opacity:0}100%{transform:none;opacity:1}}
+@keyframes icDrop{0%{transform:translateY(-115%);opacity:0}65%{transform:translateY(8%);opacity:1}100%{transform:none}}
+@keyframes icRise{0%{transform:translateY(115%);opacity:0}100%{transform:none;opacity:1}}
+@keyframes icSpinBack{0%{transform:rotate(0)}100%{transform:rotate(-360deg)}}
+@keyframes icShake{0%,100%{transform:none}20%{transform:rotate(-14deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(4deg)}}
+@keyframes icWrite{0%,100%{transform:none}30%{transform:rotate(-9deg) translateX(-6%)}60%{transform:rotate(7deg) translateX(6%)}}
+@keyframes icGrowUp{0%{transform:scaleY(0)}70%{transform:scaleY(1.08)}100%{transform:none}}
+@keyframes icDiag{0%{transform:translate(-70%,70%);opacity:0}100%{transform:none;opacity:1}}
+@keyframes icRing{0%,100%{transform:none}15%{transform:rotate(16deg)}30%{transform:rotate(-14deg)}45%{transform:rotate(10deg)}60%{transform:rotate(-6deg)}75%{transform:rotate(3deg)}}
+@keyframes icScan{0%,100%{transform:none}35%{transform:translateY(-22%)}70%{transform:translateY(22%)}}
+@keyframes icPop{0%{transform:scale(.35);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:none}}
+/* Faol sahifa ochilganda — bir marta; tanlangan to'lov turi — tanlanganda */
+.navlink.active .icon use,.bottom-nav a.active .icon use,
+.pay-select button[aria-selected="true"] .icon use,
+.navlink:focus-visible .icon use,.btn:focus-visible .icon use{
+  animation:var(--ic,icPop) .6s cubic-bezier(.2,.8,.3,1) both}
+@media (hover:hover){
+  .navlink:hover .icon use,.bottom-nav a:hover .icon use,.btn:hover .icon use,
+  .chip:hover .icon use,.stat-card:hover .stat-ic .icon use{
+    animation:var(--ic,icPop) .6s cubic-bezier(.2,.8,.3,1) both}
+}
+/* Sozlama (tishli g'ildirak) o'z aylanishiga ega — ustiga boshqasi qo'shilmasin */
+.user-gear .icon use{animation:none!important}
+@media (prefers-reduced-motion:reduce){.icon use{animation:none!important}}
+.no-anim .navlink.active .icon use,.no-anim .bottom-nav a.active .icon use{animation:none}

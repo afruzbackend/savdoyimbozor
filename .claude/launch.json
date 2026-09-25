@@ -7,6 +7,12 @@
       "runtimeArgs": ["manage.py", "runserver", "127.0.0.1:8000", "--noreload"],
       "port": 8000,
       "url": "http://sotuvchi.localhost:8000"
+    },
+    {
+      "name": "bozor-test",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set DEBUG=False&& python manage.py runserver 127.0.0.1:8001 --noreload"],
+      "port": 8001
     }
   ]
 }

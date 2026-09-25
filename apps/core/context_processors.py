@@ -29,6 +29,9 @@ def ui_context(request):
                 from apps.sales.management.commands.close_reminders import remind_if_due
 
                 remind_if_due(user)
+                from apps.sales.services.debts import debt_reminders
+
+                debt_reminders(user, getattr(user, "shop", None))
             except Exception:  # noqa: BLE001 — sahifa ochilishini buzmasin
                 pass
         try:

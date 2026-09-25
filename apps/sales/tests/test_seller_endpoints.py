@@ -129,7 +129,8 @@ def test_writeoff_requires_photo(sclient, shop, product):
 @pytest.mark.django_db
 def test_debt_added(sclient, shop):
     r = sclient.post(
-        "/nasiya/", {"customer_name": "Vali", "amount": "50000"}, HTTP_HOST=SELLER_HOST
+        "/nasiya/", {"customer_name": "Vali", "amount": "50000", "due_date": "2099-01-01"},
+        HTTP_HOST=SELLER_HOST,
     )
     assert r.status_code == 302
     assert Debt.objects.filter(shop=shop, customer_name="Vali").exists()

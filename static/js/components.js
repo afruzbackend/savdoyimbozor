@@ -134,6 +134,7 @@
   function errTarget(el) {
     // Maxsus dropdownga aylantirilgan select uchun — ko'rinadigan trigger qizil bo'lsin
     var wrap = el.closest && el.closest(".dropdown");
+    if (!wrap && el.type === "hidden") wrap = el.closest(".field"); // sana va h.k. maxsus maydon
     return (wrap && wrap.querySelector(".dropdown-trigger")) || el;
   }
   function clearErr(el) {
@@ -431,24 +432,43 @@
 
   document.addEventListener("alpine:init", () => {
     // ---- Custom sana maydoni (o'zbekcha kalendar, hidden inputga yozadi) ----
-    Alpine.data("dateField", (initialIso = "") => ({
+    // future=true: bo'sh boshlanadi (jimgina "bugun" bo'lib qolmasin) va o'tgan kun tanlanmaydi
+    Alpine.data("dateField", (initialIso = "", future = false) => ({
       open: false,
+      future: future,
       months: calMonths(),
       wd: calWd(),
-      value: initialIso ? new Date(initialIso + "T00:00:00") : new Date(),
+      value: initialIso ? new Date(initialIso + "T00:00:00") : (future ? null : new Date()),
       view: initialIso ? new Date(initialIso + "T00:00:00") : new Date(),
       get iso() {
         const d = this.value;
+        if (!d) return "";
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
           d.getDate()
         ).padStart(2, "0")}`;
       },
       get display() {
         const d = this.value;
+        if (!d) return "Sanani tanlang";
         return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(
           2,
           "0"
         )}.${d.getFullYear()}`;
+      },
+      isPast(d) {
+        if (!this.future) return false;
+        const t = new Date(); t.setHours(0, 0, 0, 0);
+        return d < t;
+      },
+      addDays(n) {
+        const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n);
+        this.value = d; this.view = new Date(d); this.open = false;
+        this._fire();
+      },
+      daysFromToday(n) {
+        if (!this.value) return false;
+        const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n);
+        return this.isoOf(d) === this.iso;
       },
       get title() {
         return `${this.months[this.view.getMonth()]} ${this.view.getFullYear()}`;
@@ -478,7 +498,14 @@
       },
       isSel(d) { return this.isoOf(d) === this.iso; },
       isToday(d) { return this.isoOf(d) === this.isoOf(new Date()); },
-      pick(d) { this.value = d; this.open = false; },
+      pick(d) { if (this.isPast(d)) return; this.value = d; this.open = false; this._fire(); },
+      _fire() {
+        // Majburiy maydon xatosi (qizil) sana tanlangach darhol yo'qolsin
+        this.$nextTick(() => {
+          const h = this.$root.querySelector('input[type="hidden"]');
+          if (h) h.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+      },
       today() { this.value = new Date(); this.view = new Date(); this.open = false; },
     }));
 

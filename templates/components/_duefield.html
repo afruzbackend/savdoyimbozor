@@ -1,0 +1,38 @@
+{% load static %}
+{# Nasiya qaytarish sanasi — MAJBURIY, bo'sh boshlanadi, tez tugmalar bilan (bozorda tez).
+   Parametrlar: name (standart "due_date"), label, model (Alpine x-model uchun ixtiyoriy nom). #}
+<div class="field due-field" x-data="dateField('', true)" @click.outside="open=false"
+     @due-reset.window="value=null"
+     {% if model %}x-effect="{{ model }} = iso"{% endif %}>
+  <label class="label">{{ label|default:"Qaytarish sanasi" }}</label>
+  <input type="hidden" name="{{ name|default:'due_date' }}" :value="iso" {% if not model %}required{% endif %}>
+  <div class="due-chips">
+    <button type="button" class="chip" :aria-pressed="daysFromToday(1)" @click="addDays(1)">Ertaga</button>
+    <button type="button" class="chip" :aria-pressed="daysFromToday(3)" @click="addDays(3)">3 kun</button>
+    <button type="button" class="chip" :aria-pressed="daysFromToday(7)" @click="addDays(7)">1 hafta</button>
+    <button type="button" class="chip" :aria-pressed="daysFromToday(14)" @click="addDays(14)">2 hafta</button>
+    <button type="button" class="chip" :aria-pressed="daysFromToday(30)" @click="addDays(30)">1 oy</button>
+  </div>
+  <div class="dropdown">
+    <button type="button" class="dropdown-trigger" style="min-width:180px" @click="open=!open" :aria-expanded="open">
+      <span class="num" :class="!value && 'muted'" x-text="display"></span>
+      <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-calendar"></use></svg>
+    </button>
+    <div class="dropdown-panel cal" x-show="open" x-transition x-cloak>
+      <div class="cal-head">
+        <button type="button" class="btn-quiet btn-icon" @click="prev()"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-chevron-left"></use></svg></button>
+        <span class="m" x-text="title"></span>
+        <button type="button" class="btn-quiet btn-icon" @click="next()"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-chevron-right"></use></svg></button>
+      </div>
+      <div class="cal-grid">
+        <template x-for="w in wd" :key="w"><div class="wd" x-text="w"></div></template>
+        <template x-for="day in days" :key="day.d.toISOString()">
+          <button type="button" class="cal-day num" :disabled="isPast(day.d)"
+                  :class="{out:day.out, today:isToday(day.d), sel:isSel(day.d)}"
+                  @click="pick(day.d)" x-text="day.d.getDate()"></button>
+        </template>
+      </div>
+    </div>
+  </div>
+  <div class="hint">Bir kun oldin va o'sha kuni eslatma keladi.</div>
+</div>
