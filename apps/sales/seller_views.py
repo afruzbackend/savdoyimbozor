@@ -191,11 +191,17 @@ def products(request):
         if buy is None or sell is None or buy < 0 or sell < 0 or low < 0:
             messages.error(request, "Narx va miqdor manfiy bo'lmasin.")
             return redirect("seller:products")
+        if unit not in Unit.values:
+            unit = Unit.PIECE
+        # Variantlar (kiyim/poyabzal): o'lcham × rang — har biri alohida mahsulot (qoldiq, barkod)
+        sizes = _clean_list(request.POST.getlist("sizes"), 20, upper=True)
+        colors = _clean_list(request.POST.get("colors", "").replace(";", ",").split(","), 40)
+        if sizes or colors:
+            return _create_variants(request, shop, cat, name, unit, sizes or [""], colors or [""],
+                                    buy, sell, low)
         if Product.objects.filter(shop=shop, name__iexact=name[:200], is_active=True).exists():
             messages.error(request, f"«{name}» allaqachon ro'yxatda bor — boshqa nav/rang yozing.")
             return redirect("seller:products")
-        if unit not in Unit.values:
-            unit = Unit.PIECE
         barcode = request.POST.get("barcode", "").strip()[:64]
         if barcode and Product.objects.filter(shop=shop, barcode=barcode, is_active=True).exists():
             messages.error(request, "Bu barkod boshqa mahsulotda bor — skaner adashmasin.")
@@ -226,9 +232,19 @@ def products(request):
     ]
     from apps.core.pagination import paginate
 
-    # Faollar avval, arxivdagilar oxirida
-    page = paginate(
-        request, Product.objects.filter(shop=shop).order_by("-is_active", "name"), per_page=50
+    # Faollar avval, arxivdagilar oxirida; nom va o'lcham bo'yicha filtr
+    qs = Product.objects.filter(shop=shop)
+    q = (request.GET.get("q") or "").strip()
+    size = (request.GET.get("size") or "").strip()
+    if q:
+        qs = qs.filter(name__icontains=q)
+    if size:
+        qs = qs.filter(size__iexact=size)
+    page = paginate(request, qs.order_by("-is_active", "base_name", "name"), per_page=50)
+    shop_sizes = sorted(
+        set(Product.objects.filter(shop=shop, is_active=True).exclude(size="")
+            .values_list("size", flat=True)),
+        key=_size_key,
     )
     return render(
         request,
@@ -240,8 +256,70 @@ def products(request):
             "catalog": catalog,
             "catalog_json": catalog_json,  # json_script o'zi kodlaydi (ikki marta EMAS)
             "units": Unit.choices,
+            "q": q,
+            "size": size,
+            "shop_sizes": shop_sizes,
+            "querystring": f"q={q}&size={size}",
+            "size_presets": SIZE_PRESETS,
         },
     )
+
+
+# O'lcham tayyor to'plamlari (bir bosishda tanlash)
+SIZE_PRESETS = {
+    "Kiyim": ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
+    "Poyabzal": ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
+    "Bolalar": ["92", "98", "104", "110", "116", "122", "128", "134", "140"],
+}
+_SIZE_ORDER = {s: i for i, s in enumerate(["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL"])}
+
+
+def _size_key(s):
+    """O'lchamlarni mantiqiy tartibda: XS < S < M ... ; raqamlar son bo'yicha."""
+    if s.upper() in _SIZE_ORDER:
+        return (0, _SIZE_ORDER[s.upper()], "")
+    try:
+        return (1, float(s.replace(",", ".")), "")
+    except ValueError:
+        return (2, 0, s)
+
+
+def _clean_list(values, maxlen, upper=False):
+    """Bo'shlarni olib tashlaydi, takrorlanmasin, tartib saqlanadi: ["M", " l ", "M"] → ["M", "L"]."""
+    out = []
+    for v in values:
+        v = " ".join(str(v).split())[:maxlen]
+        if upper:
+            v = v.upper()
+        if v and v.lower() not in {x.lower() for x in out}:
+            out.append(v)
+    return out[:30]
+
+
+def _create_variants(request, shop, cat, base, unit, sizes, colors, buy, sell, low):
+    """Model × o'lcham × rang → alohida mahsulotlar (har biri o'z qoldig'i va barkodi bilan)."""
+    from apps.catalog.barcodes import ensure_barcode
+
+    created, skipped = 0, []
+    for size in sizes:
+        for color in colors:
+            label = ", ".join(x for x in (size, color.lower() if color else "") if x)
+            name = f"{base} — {label}"[:200]
+            if Product.objects.filter(shop=shop, name__iexact=name, is_active=True).exists():
+                skipped.append(label)
+                continue
+            p = Product.objects.create(
+                shop=shop, name=name, base_name=base[:200], size=size, color=color,
+                category=cat, unit=unit, buy_price=buy, sell_price=sell,
+                low_stock_threshold=low,
+            )
+            ensure_barcode(p)
+            created += 1
+    if created:
+        messages.success(request, f"«{base}»: {created} ta variant qo'shildi (har biriga barkod).")
+    if skipped:
+        messages.warning(request, "Allaqachon bor: " + ", ".join(skipped[:10]))
+    return redirect("seller:products")
 
 
 def _product_edit(request, shop):

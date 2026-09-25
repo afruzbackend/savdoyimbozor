@@ -480,17 +480,38 @@ def inspection_act(request, pk):
 @login_required
 def shop_search(request):
     """Do'kon qidirish: raqam yoki STIR bo'yicha. Bitta topilsa — to'g'ridan sahifaga."""
+    from django.db.models import Q
+
+    from apps.catalog.models import Product
+
     q = request.GET.get("q", "").strip()
     results = []
     if q:
-        from django.db.models import Q
-
         results = list(
             _visible_shops(request).filter(Q(number__icontains=q) | Q(stir__icontains=q))[:50]
         )
         if len(results) == 1:
             return redirect("inspector:shop_detail", pk=results[0].pk)
-    return render(request, "inspector/shop_search.html", {"q": q, "results": results})
+    # Mahsulot bo'yicha: "M o'lchamli ko'ylak qaysi do'konda bor" — joriy qoldiq bilan
+    pq = request.GET.get("p", "").strip()
+    psize = request.GET.get("size", "").strip()
+    items = []
+    if pq or psize:
+        qs = Product.objects.filter(shop__in=_visible_shops(request), is_active=True, stock__gt=0)
+        if pq:
+            qs = qs.filter(Q(name__icontains=pq) | Q(base_name__icontains=pq) | Q(barcode=pq))
+        if psize:
+            qs = qs.filter(size__iexact=psize)
+        items = list(
+            qs.select_related("shop", "shop__market").order_by("shop__market__name", "shop__number",
+                                                              "name")[:300]
+        )
+    return render(
+        request,
+        "inspector/shop_search.html",
+        {"q": q, "results": results, "pq": pq, "psize": psize, "items": items,
+         "total_qty": sum(p.stock for p in items)},
+    )
 
 
 @login_required

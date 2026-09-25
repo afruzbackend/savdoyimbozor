@@ -1,14 +1,29 @@
 {% extends 'inspector/base.html' %}
-{% block title %}Do'kon qidirish{% endblock %}
-{% block heading %}Do'kon qidirish{% endblock %}
+{% load static humanize %}
+{% block title %}Qidiruv{% endblock %}
+{% block heading %}Qidiruv{% endblock %}
 {% block content %}
-<form method="get" class="card" style="display:flex;gap:var(--sp-2);margin-bottom:var(--sp-4)">
-  <input class="input" name="q" value="{{ q }}" autofocus
-         placeholder="Do'kon raqami yoki STIR..." style="max-width:360px">
-  <button class="btn">Qidirish</button>
-</form>
+<div class="grid grid-2" style="margin-bottom:var(--sp-4);align-items:start">
+  <form method="get" class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Do'kon</div>
+    <div class="row gap-2">
+      <input class="input" name="q" value="{{ q }}" placeholder="Do'kon raqami yoki STIR">
+      <button class="btn" type="submit">Qidirish</button>
+    </div>
+  </form>
+  <form method="get" class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Mahsulot — qaysi do'konda bor</div>
+    <div class="row gap-2" style="flex-wrap:wrap">
+      <input class="input" name="p" value="{{ pq }}" placeholder="Nomi yoki barkod (masalan: ko'ylak)" style="flex:1 1 180px">
+      <input class="input num" name="size" value="{{ psize }}" placeholder="O'lcham (M, 42)" style="flex:0 0 120px" maxlength="20">
+      <button class="btn" type="submit">Topish</button>
+    </div>
+    <div class="hint">Faqat hozir qoldiqda bor mahsulotlar ko'rsatiladi.</div>
+  </form>
+</div>
+
 {% if q %}
-<div class="card">
+<div class="card" style="margin-bottom:var(--sp-4)">
   <div class="table-wrap"><table class="data">
     <thead><tr><th>Do'kon</th><th>Bozor</th><th>STIR</th><th>Egasi</th></tr></thead>
     <tbody>
@@ -16,6 +31,25 @@
     <tr><td><a href="{% url 'inspector:shop_detail' s.pk %}">№{{ s.number }}</a></td>
       <td class="muted">{{ s.market.name }}</td><td class="num">{{ s.stir }}</td><td>{{ s.owner_name }}</td></tr>
     {% empty %}<tr><td colspan="4" class="muted">Hech nima topilmadi.</td></tr>{% endfor %}
+    </tbody></table></div>
+</div>
+{% endif %}
+
+{% if pq or psize %}
+<div class="card">
+  <div class="card-header"><span class="card-title">{{ items|length }} ta natija</span>
+    {% if items %}<small class="muted">Jami qoldiq: <b class="num">{{ total_qty|floatformat:'-3' }}</b></small>{% endif %}</div>
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>Do'kon</th><th>Mahsulot</th><th>O'lcham</th><th>Rang</th><th class="num">Qoldiq</th><th class="num">Narx</th></tr></thead>
+    <tbody>
+    {% for p in items %}
+    <tr><td><a href="{% url 'inspector:shop_inventory' p.shop.pk %}">№{{ p.shop.number }}</a>
+        <div class="muted" style="font-size:var(--t--1)">{{ p.shop.market.name }} · {{ p.shop.owner_name }}</div></td>
+      <td>{{ p.base_name|default:p.name }}</td>
+      <td class="num" data-noloc>{{ p.size|default:"—" }}</td><td>{{ p.color|default:"—" }}</td>
+      <td class="num"><b>{{ p.stock|floatformat:'-3' }}</b> {{ p.get_unit_display }}</td>
+      <td class="num">{{ p.sell_price|intcomma }}</td></tr>
+    {% empty %}<tr><td colspan="6" class="muted">Hech bir do'konda qoldiqda topilmadi.</td></tr>{% endfor %}
     </tbody></table></div>
 </div>
 {% endif %}

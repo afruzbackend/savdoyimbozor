@@ -76,6 +76,11 @@ class Product(TimeStampedModel):
         related_name="products",
     )
     name = models.CharField(_("Nomi"), max_length=200)
+    # Variant (kiyim/poyabzal): bitta model — har o'lcham/rang alohida qoldiq va barkod bilan.
+    # "Qaysi do'konda M o'lcham ko'ylak bor" degan savolga javob shu maydonlardan.
+    base_name = models.CharField(_("Model"), max_length=200, blank=True, db_index=True)
+    size = models.CharField(_("O'lcham"), max_length=20, blank=True, db_index=True)
+    color = models.CharField(_("Rang"), max_length=40, blank=True)
     unit = models.CharField(_("Birlik"), max_length=10, choices=Unit.choices, default=Unit.PIECE)
     barcode = models.CharField(_("Barkod"), max_length=64, blank=True, db_index=True)
     buy_price = models.BigIntegerField(_("Tannarx (so'm)"), default=0)  # pul = butun son

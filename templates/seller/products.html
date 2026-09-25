@@ -9,6 +9,16 @@
   <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Barkod yorliqlari</a>
 {% endblock %}
 {% block content %}
+<form method="get" class="row gap-2 wrap-flex" style="margin-bottom:var(--sp-3);align-items:center">
+  <input class="input" name="q" value="{{ q }}" placeholder="Nomi bo'yicha qidirish" style="max-width:260px">
+  {% if size %}<input type="hidden" name="size" value="{{ size }}">{% endif %}
+  <button class="btn btn-ghost" type="submit" aria-label="Qidirish"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-search"></use></svg></button>
+  {% if shop_sizes %}
+  <span class="muted" style="font-size:var(--t--1);margin-left:var(--sp-2)">O'lcham:</span>
+  <a class="chip" href="?{% if q %}q={{ q|urlencode }}{% endif %}" {% if not size %}aria-pressed="true"{% endif %}>Barchasi</a>
+  {% for sz in shop_sizes %}<a class="chip" href="?size={{ sz|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}" {% if size|upper == sz|upper %}aria-pressed="true"{% endif %} data-noloc>{{ sz }}</a>{% endfor %}
+  {% endif %}
+</form>
 <div class="card">
   <div class="table-wrap"><table class="data">
     <thead><tr><th>Nomi</th><th>Barkod</th><th class="num">Tannarx</th><th class="num">Narx</th><th class="num">Qoldiq</th><th></th></tr></thead>
@@ -105,7 +115,26 @@
       <div class="field"><label class="label">Nav / rang / xil (ixtiyoriy)</label>
         <input class="input" name="variant" placeholder="masalan: qizil, mahalliy, katta"></div>
       <div class="field"><label class="label">Birlik</label>
-        <select class="select-native" name="unit" x-ref="unit">{% for v,l in units %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+        <select class="select-native" name="unit" x-ref="unit" @change="unit=$event.target.value">{% for v,l in units %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+      {# O'lcham × rang — kiyim/poyabzal: har biri alohida qoldiq va barkod #}
+      <div class="variant-box" x-show="unit==='dona'" x-cloak>
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <label class="label" style="margin:0">O'lchamlar <small class="muted">(ixtiyoriy — kiyim, poyabzal)</small></label>
+          <div class="row gap-1">
+            {% for grp in size_presets %}<button type="button" class="chip chip-sm" @click="preset('{{ grp }}')">{{ grp }}</button>{% endfor %}
+          </div>
+        </div>
+        <div class="size-grid">
+          <template x-for="sz in sizeOptions" :key="sz">
+            <button type="button" class="size-pill" :aria-pressed="sizes.includes(sz)" @click="toggleSize(sz)" x-text="sz"></button>
+          </template>
+          <input class="input num size-add" x-model="customSize" @keydown.enter.prevent="addSize()" placeholder="+ boshqa" maxlength="20">
+        </div>
+        <template x-for="sz in sizes" :key="'h'+sz"><input type="hidden" name="sizes" :value="sz"></template>
+        <div class="field" style="margin:var(--sp-2) 0 0"><label class="label">Ranglar <small class="muted">(vergul bilan)</small></label>
+          <input class="input" name="colors" x-model="colors" placeholder="masalan: qora, oq, ko'k"></div>
+        <div class="hint" x-show="variantCount>1">Har biri alohida qoldiq va barkod bilan <b x-text="variantCount"></b> ta variant yaratiladi.</div>
+      </div>
       <div class="field"><label class="label">Barkod</label>
         <div class="row gap-2">
           <input class="input grow" name="barcode" x-ref="bc">
@@ -130,6 +159,7 @@
 {% block extra_js %}
 <script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>
 {{ catalog_json|json_script:"catalog-data" }}
+{{ size_presets|json_script:"size-presets" }}
 <script>
   window.openProdEdit = function (b) {
     var d = b.dataset, $ = function (id) { return document.getElementById(id); };
@@ -145,6 +175,16 @@
     Alpine.data('prodForm', () => ({
       items: JSON.parse(document.getElementById('catalog-data').textContent),
       q: '', open: false, picked: null,
+      unit: 'dona', sizes: [], colors: '', customSize: '',
+      presets: JSON.parse(document.getElementById('size-presets').textContent),
+      sizeOptions: ['XS','S','M','L','XL','XXL','3XL'],
+      get variantCount(){ const c=this.colors.split(',').map(x=>x.trim()).filter(Boolean).length;
+        return Math.max(1,this.sizes.length) * Math.max(1,c); },
+      preset(g){ this.sizeOptions=[...new Set([...this.sizes, ...this.presets[g]])]; },
+      toggleSize(sz){ const i=this.sizes.indexOf(sz); if(i>=0) this.sizes.splice(i,1); else this.sizes.push(sz); },
+      addSize(){ const v=this.customSize.trim().toUpperCase(); if(!v) return;
+        if(!this.sizeOptions.includes(v)) this.sizeOptions.push(v);
+        if(!this.sizes.includes(v)) this.sizes.push(v); this.customSize=''; },
       init(){
         const id = new URLSearchParams(location.search).get('add');
         if(id){ const c = this.items.find(x=>String(x.id)===String(id)); if(c){ this.pick(c);
@@ -152,7 +192,7 @@
       },
       get filtered(){ const s=this.q.toLowerCase();
         return this.items.filter(i=>i.name.toLowerCase().includes(s)); },
-      pick(c){ this.picked=c; this.open=false; this.q='';
+      pick(c){ this.picked=c; this.open=false; this.q=''; this.unit=c.unit;
         // change hodisasi — maxsus dropdown yorlig'i ham yangilansin (aks holda eski birlik ko'rinardi)
         this.$nextTick(()=>{ const u=this.$refs.unit; if(u){ u.value=c.unit;
           u.dispatchEvent(new Event('change', {bubbles:true})); } }); },

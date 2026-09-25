@@ -90,3 +90,30 @@ def test_inventory_at_time_pages(iclient, sclient, shop, product):
     assert r.status_code == 200
     assert r.context["chain_ok"] is True
     assert any(ln["p"].pk == product.pk for ln in r.context["lines"])
+
+
+@pytest.mark.django_db
+def test_create_size_color_variants(sclient, shop):
+    from apps.catalog.models import Product
+
+    sclient.post("/mahsulotlar/", {"name": "Ko'ylak", "unit": "dona", "sell_price": "120000",
+                                   "buy_price": "80000", "sizes": ["m", "L", "M"],
+                                   "colors": "qora, oq"}, HTTP_HOST=SELLER_HOST)
+    vs = Product.objects.filter(shop=shop, base_name="Ko'ylak")
+    assert vs.count() == 4  # (M, L) × (qora, oq); takror "M" bitta
+    m_black = vs.get(size="M", color="qora")
+    assert m_black.name == "Ko'ylak — M, qora" and m_black.barcode  # har variantga barkod
+    assert len(set(vs.values_list("barcode", flat=True))) == 4
+
+
+@pytest.mark.django_db
+def test_inspector_finds_size_across_shops(iclient, shop):
+    from apps.catalog.models import Product
+
+    Product.objects.create(shop=shop, name="Ko'ylak — M", base_name="Ko'ylak", size="M",
+                           stock=Decimal("3"), sell_price=100000)
+    Product.objects.create(shop=shop, name="Ko'ylak — L", base_name="Ko'ylak", size="L",
+                           stock=Decimal("0"), sell_price=100000)
+    r = iclient.get("/qidiruv/?p=ko'ylak&size=m", HTTP_HOST=INSPECTOR_HOST)
+    items = r.context["items"]
+    assert [p.size for p in items] == ["M"]  # L qoldiqda yo'q — chiqmaydi
