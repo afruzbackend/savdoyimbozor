@@ -133,3 +133,60 @@ def test_morning_locked_after_previous_count(sclient, shop, product):
                                   "counted_cash": "0"}, HTTP_HOST=SELLER_HOST)
     ln = DailyClose.objects.get(shop=shop, date=timezone.localdate()).lines.get()
     assert ln.morning_qty == Decimal("80")  # kechagi kechki sanoq, 10 emas
+
+
+@pytest.mark.django_db
+def test_product_price_edit_logged_and_archive(sclient, shop, product):
+    from apps.sales.models import Correction
+
+    old = product.sell_price
+    sclient.post("/mahsulotlar/", {"action": "edit", "id": product.pk, "buy_price": "5000",
+                                   "sell_price": str(old + 3000), "low_stock_threshold": "2",
+                                   "pack_coeff": "20"}, HTTP_HOST=SELLER_HOST)
+    product.refresh_from_db()
+    assert product.sell_price == old + 3000 and product.pack_coeff == 20
+    c = Correction.objects.get(shop=shop, target_model="Product", field="sell_price")
+    assert c.old_value == str(old)
+    sclient.post("/mahsulotlar/", {"action": "archive", "id": product.pk}, HTTP_HOST=SELLER_HOST)
+    product.refresh_from_db()
+    assert product.is_active is False
+
+
+@pytest.mark.django_db
+def test_stock_in_packs_uses_coefficient(sclient, shop, product):
+    """Qopda kirim: 2 qop × 20 kg = 40 kg (ilgari koeffitsiyent kiritib bo'lmasdi)."""
+    from decimal import Decimal
+
+    product.pack_coeff = Decimal("20")
+    product.stock = Decimal("0")
+    product.save()
+    sclient.post("/kirim/", {"product": product.pk, "quantity": "2", "unit_price": "100000",
+                             "in_packs": "on"}, HTTP_HOST=SELLER_HOST)
+    product.refresh_from_db()
+    assert product.stock == Decimal("40")
+
+
+@pytest.mark.django_db
+def test_correcting_debt_sale_updates_debt(sclient, shop):
+    r = _sale(sclient, {"items": [{"name": "x", "qty": 1, "unit_price": 90000}],
+                        "payment_type": "debt", "debtor_name": "Vali"})
+    sale_id = r.json()["id"]
+    sclient.post("/tuzatish/", {"sale": sale_id, "new_total": "80000", "reason": "xato"},
+                 HTTP_HOST=SELLER_HOST)
+    assert Debt.objects.get(shop=shop).amount == 80000
+
+
+@pytest.mark.django_db
+def test_evening_reminder_without_celery(seller, shop):
+    from datetime import datetime
+    from unittest import mock
+
+    from apps.core.models import Notification
+    from apps.sales.management.commands import close_reminders as cr
+
+    late = timezone.make_aware(datetime.combine(timezone.localdate(), datetime.min.time())
+                               .replace(hour=21))
+    with mock.patch.object(cr.timezone, "localtime", return_value=late):
+        assert cr.remind_if_due(seller) is True
+        cr.remind_if_due(seller)  # ikkinchi marta — takrorlanmaydi
+    assert Notification.objects.filter(user=seller, title="Kun yakunini yoping").count() == 1

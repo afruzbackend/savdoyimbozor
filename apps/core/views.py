@@ -45,6 +45,19 @@ def healthz(request):
     return HttpResponse("ok")
 
 
+def service_worker(request):
+    """SW ildizdan beriladi — shunda butun ilovani (sotuv sahifasini offline) boshqaradi."""
+    from django.conf import settings
+    from django.contrib.staticfiles import finders
+
+    path = finders.find("sw.js") or str(settings.STATIC_ROOT / "sw.js")
+    with open(path, encoding="utf-8") as f:
+        resp = HttpResponse(f.read(), content_type="application/javascript; charset=utf-8")
+    resp["Service-Worker-Allowed"] = "/"
+    resp["Cache-Control"] = "no-cache"  # yangi versiya darrov olinsin
+    return resp
+
+
 @login_required
 def panel_home(request):
     """Super admin bosh sahifasi (P4'da to'ldiriladi)."""

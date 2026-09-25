@@ -1,26 +1,33 @@
 {% extends 'panel/base.html' %}
+{% load static %}
 {% block title %}Audit jurnali{% endblock %}
 {% block heading %}Audit jurnali{% endblock %}
 {% block content %}
-<div class="row gap-2 wrap-flex" style="margin-bottom:var(--sp-4)">
-  <a class="chip" href="?" {% if not action %}aria-pressed="true"{% endif %}>Barchasi</a>
-  {% for val, lbl in actions %}<a class="chip" href="?action={{ val }}" {% if action == val %}aria-pressed="true"{% endif %}>{{ lbl }}</a>{% endfor %}
-</div>
+<form method="get" class="row gap-2 wrap-flex" style="margin-bottom:var(--sp-4);align-items:center">
+  <a class="chip" href="?{% if q %}q={{ q|urlencode }}{% endif %}" {% if not action %}aria-pressed="true"{% endif %}>Barchasi</a>
+  {% for val, lbl in actions %}<a class="chip" href="?action={{ val }}{% if q %}&q={{ q|urlencode }}{% endif %}" {% if action == val %}aria-pressed="true"{% endif %}>{{ lbl }}</a>{% endfor %}
+  <input type="hidden" name="action" value="{{ action }}">
+  <div style="margin-left:auto;display:flex;gap:6px">
+    <input class="input" name="q" value="{{ q }}" placeholder="Login, yo'l yoki tafsilot" style="min-width:220px">
+    <button class="btn btn-ghost" type="submit" aria-label="Qidirish"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-search"></use></svg></button>
+  </div>
+</form>
 <div class="card">
   <div class="table-wrap">
     <table class="data">
-      <thead><tr><th>Vaqt</th><th>Foydalanuvchi</th><th>Amal</th><th>Interfeys</th><th>Yo'l</th><th>IP</th></tr></thead>
+      <thead><tr><th>Vaqt</th><th>Foydalanuvchi</th><th>Amal</th><th>Tafsilot</th><th>Yo'l</th><th>IP</th></tr></thead>
       <tbody>
       {% for a in logs %}
-      <tr><td class="num">{{ a.created_at|date:"d.m.Y H:i" }}</td>
-        <td>{{ a.user.username|default:"—" }}</td>
-        <td><span class="badge badge-neutral">{{ a.get_action_display }}</span></td>
-        <td class="muted">{{ a.interface }}</td>
-        <td class="muted num" style="font-size:var(--t--1)">{{ a.path }}</td>
-        <td class="muted num">{{ a.ip|default:"—" }}</td></tr>
+      <tr><td class="num" style="white-space:nowrap">{{ a.created_at|date:"d.m.Y H:i" }}</td>
+        <td data-noloc>{{ a.user.username|default:"—" }}<div class="muted" style="font-size:var(--t--2)">{{ a.interface }}</div></td>
+        <td><span class="badge badge-{% if a.action == 'export' %}warn{% elif a.action == 'settings' %}bad{% else %}neutral{% endif %}">{{ a.get_action_display }}</span></td>
+        <td style="max-width:360px">{{ a.detail|default:"—" }}</td>
+        <td class="muted num" style="font-size:var(--t--1)" data-noloc>{{ a.path }}</td>
+        <td class="muted num" data-noloc>{{ a.ip|default:"—" }}</td></tr>
       {% empty %}<tr><td colspan="6" class="muted">Yozuv yo'q.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+{% include 'components/_pagination.html' %}
 {% endblock %}

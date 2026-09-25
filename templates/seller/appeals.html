@@ -29,6 +29,13 @@
     <div class="card-title" style="margin-bottom:var(--sp-3)">Yangi e'tiroz</div>
     <p class="hint">Signalga rozi bo'lmasangiz, sababini yozing. Inspektor ko'rib chiqadi.</p>
     <form method="post">{% csrf_token %}
+      {% if my_alerts %}
+      <div class="field"><label class="label">Qaysi signalga (ixtiyoriy)</label>
+        <select class="select-native" name="alert">
+          <option value="">— umumiy e'tiroz —</option>
+          {% for al in my_alerts %}<option value="{{ al.pk }}">{{ al.date|date:"d.m.Y" }} · {{ al.get_kind_display }}</option>{% endfor %}
+        </select></div>
+      {% endif %}
       <div class="field"><label class="label">Matn</label>
         <textarea class="textarea" name="message" rows="4" required
           placeholder="Masalan: bugun ta'til edi, savdo bo'lmadi"></textarea></div>
@@ -43,6 +50,7 @@
         <small class="muted num">{{ a.created_at|date:"d.m.Y H:i" }}</small>
         <span class="badge badge-{% if a.status == 'accepted' %}ok{% elif a.status == 'rejected' %}bad{% else %}neutral{% endif %}">{{ a.get_status_display }}</span>
       </div>
+      {% if a.alert %}<small class="muted">{{ a.alert.date|date:"d.m.Y" }} · {{ a.alert.get_kind_display }}</small>{% endif %}
       <div>{{ a.message }}</div>
       {% if a.response %}<div class="msg info" style="margin-top:8px"><b>Javob:</b> {{ a.response }}</div>{% endif %}
     </div>

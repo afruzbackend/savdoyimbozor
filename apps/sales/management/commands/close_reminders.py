@@ -13,6 +13,33 @@ from apps.accounts.models import Role, User
 from apps.core.models import Notification, notify
 from apps.sales.models import RegisterClose
 
+REMIND_HOUR = 20  # 20:00 dan keyin
+
+
+def remind_if_due(user) -> bool:
+    """Bitta sotuvchi uchun eslatma (Celery beat bo'lmasa ham — sahifa ochilganda).
+
+    20:00 dan keyin, kassa yopilmagan, do'kon dam olish kuni bo'lmasa. Kuniga bir marta.
+    """
+    now = timezone.localtime()
+    shop = getattr(user, "shop", None)
+    if now.hour < REMIND_HOUR or shop is None or not shop.is_active:
+        return False
+    today = now.date()
+    if today.weekday() in shop.closed_weekday_list():
+        return False
+    if RegisterClose.objects.filter(shop=shop, date=today).exists():
+        return False
+    notify(
+        user,
+        Notification.Kind.INFO,
+        "Kun yakunini yoping",
+        body="Mahsulotlarni sanang va kassani yoping — bugungi hisobni yakunlang.",
+        url="/kun-yakuni/",
+        key=f"close-reminder-{today}",
+    )
+    return True
+
 
 class Command(BaseCommand):
     help = "Sotuvchilarga kun yakuni/kassa yopishni eslatuvchi bildirishnoma yuboradi."
@@ -24,9 +51,11 @@ class Command(BaseCommand):
         )
         sellers = User.objects.filter(role=Role.SELLER, is_active=True, shop__isnull=False)
         sent = 0
-        for u in sellers:
+        for u in sellers.select_related("shop"):
             if u.shop_id in closed_shop_ids:
                 continue  # bugun allaqachon yopgan
+            if not u.shop.is_active or today.weekday() in u.shop.closed_weekday_list():
+                continue  # dam olish kuni / nofaol do'kon
             notify(
                 u,
                 Notification.Kind.INFO,

@@ -131,13 +131,17 @@ def account_settings(request):
     """Foydalanuvchi sozlamalari: parol, telefon, bildirishnoma afzalliklari."""
     user = request.user
     if request.method == "POST":
-        phone = request.POST.get("phone", "").strip()[:20]
-        if phone:
-            user.phone = phone
-        user.notify_telegram = bool(request.POST.get("notify_telegram"))
-        user.save(update_fields=["phone", "notify_telegram"])
-        from django.contrib import messages
-
+        user.phone = request.POST.get("phone", "").strip()[:20]  # bo'sh qoldirsa — o'chiriladi
+        fields = ["phone"]
+        if "telegram_id" in request.POST:  # faqat bot sozlangan bo'lsa formada bor
+            tg = request.POST.get("telegram_id", "").strip()
+            if tg and not tg.lstrip("-").isdigit():
+                messages.error(request, "Telegram ID faqat raqam bo'lsin (botdan oling).")
+                return redirect(_safe_next(request, "account_settings"))
+            user.telegram_id = tg[:40]
+            user.notify_telegram = bool(request.POST.get("notify_telegram"))
+            fields += ["telegram_id", "notify_telegram"]
+        user.save(update_fields=fields)
         messages.success(request, "Sozlamalar saqlandi.")
         return redirect(_safe_next(request, "account_settings"))
     return render(

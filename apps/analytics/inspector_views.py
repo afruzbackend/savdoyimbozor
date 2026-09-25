@@ -316,6 +316,7 @@ def alert_action(request, pk):
     shops = _visible_shops(request)
     alert = get_object_or_404(Alert, pk=pk, shop__in=shops)
     action = request.POST.get("action")
+    labels = {"assign_me": "o'ziga oldi", "dismiss": "e'tiborsiz qoldirdi", "reopen": "qayta ochdi"}
     if action == "assign_me":
         alert.assigned_to = request.user
         alert.status = Alert.Status.ASSIGNED
@@ -324,6 +325,11 @@ def alert_action(request, pk):
     elif action == "reopen":
         alert.status = Alert.Status.NEW
     alert.save()
+    # Audit: kim qaysi signalni nima qildi (jimgina yopish izsiz qolmasin)
+    request.audit_detail = (
+        f"Signal #{alert.pk} ({alert.get_level_display()}, №{alert.shop.number}, "
+        f"{alert.date:%d.%m.%Y}) — {labels.get(action, action)}"
+    )
     if request.htmx:
         return render(request, "inspector/_alert_row.html", {"a": alert})
     return redirect("inspector:alerts")
@@ -377,6 +383,10 @@ def inspection_create(request):
         if insp.alert_id:
             insp.alert.status = Alert.Status.RESOLVED
             insp.alert.save(update_fields=["status"])
+        request.audit_detail = (
+            f"Tekshiruv #{insp.pk}: №{shop.number} — {insp.get_result_display()}"
+            + (f", jarima {fine}" if fine else "")
+        )
         from django.contrib import messages
 
         messages.success(request, "Tekshiruv natijasi saqlandi.")
@@ -576,6 +586,7 @@ def appeal_respond(request, pk):
         messages.error(request, "Rad etish sababini yozing.")
         return back
     if action in ("accepted", "rejected"):
+        request.audit_detail = f"E'tiroz #{appeal.pk} (№{appeal.shop.number}) — {action}"
         appeal.status = action
         appeal.response = response or ("Qabul qilindi." if action == "accepted" else "")
         appeal.save(update_fields=["status", "response"])

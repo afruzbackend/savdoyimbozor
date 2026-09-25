@@ -103,6 +103,7 @@ def user_list(request):
 def user_reset(request, pk):
     user = get_object_or_404(User, pk=pk)
     pw = reset_password(user)
+    request.audit_detail = f"Parol tiklandi: {user.username}"
     messages.success(
         request, f"{user.username} uchun yangi parol: {pw} (birinchi kirishda almashtiriladi)"
     )
@@ -133,6 +134,7 @@ def user_toggle(request, pk):
                 return redirect("panel:users")
     user.is_active = not user.is_active
     user.save(update_fields=["is_active"])
+    request.audit_detail = f"{user.username}: {'faollashtirildi' if user.is_active else 'bloklandi'}"
     messages.success(request, f"{user.username}: {'faol' if user.is_active else 'bloklandi'}")
     return redirect("panel:users")
 
@@ -491,9 +493,12 @@ def settings_edit(request):
             for e in errors:
                 messages.error(request, e)
             return redirect("panel:settings")
+        changed = [f"{f}: {getattr(s, f)}→{v}" for f, v in new.items() if getattr(s, f) != v]
         for f, v in new.items():
             setattr(s, f, v)
         s.save()
+        request.audit_detail = ("Sozlama: " + "; ".join(changed))[:300] if changed else ""
+        request.audit_action = AuditLog.Action.SETTINGS
         # Bugungi ballar yangi og'irlik/chegaralar bilan darhol qayta hisoblansin
         try:
             from django.utils import timezone
@@ -514,14 +519,34 @@ def settings_edit(request):
 
 @superadmin_required
 def audit_log(request):
+    from django.db.models import Q
+
+    from .pagination import paginate
+
     logs = AuditLog.objects.select_related("user").all()
-    action = request.GET.get("action")
+    action = request.GET.get("action") or ""
+    if action not in AuditLog.Action.values:
+        action = ""
     if action:
         logs = logs.filter(action=action)
+    q = (request.GET.get("q") or "").strip()
+    if q:
+        # Foydalanuvchi logini, yo'l yoki tafsilot bo'yicha (masalan do'kon raqami)
+        logs = logs.filter(
+            Q(user__username__icontains=q) | Q(path__icontains=q) | Q(detail__icontains=q)
+        )
+    page = paginate(request, logs, per_page=100)
     return render(
         request,
         "panel/audit.html",
-        {"logs": logs[:400], "action": action or "", "actions": AuditLog.Action.choices},
+        {
+            "logs": page.object_list,
+            "page": page,
+            "querystring": f"action={action}&q={q}",
+            "action": action,
+            "q": q,
+            "actions": AuditLog.Action.choices,
+        },
     )
 
 
@@ -631,7 +656,8 @@ def shop_edit(request, pk):
         days = sorted({int(d) for d in p.getlist("closed") if d.isdigit() and 0 <= int(d) <= 6})
         shop.closed_weekdays = ",".join(str(d) for d in days)
         shop.is_active = p.get("is_active") == "on"
-        shop.save()  # audit — AuditMiddleware POST'ni o'zi yozadi
+        shop.save()
+        request.audit_detail = f"Do'kon №{shop.number} tahrirlandi (STIR {shop.stir})"
         messages.success(request, f"Do'kon №{shop.number} saqlandi.")
         return redirect("panel:market_detail", pk=shop.market_id)
     return render(
@@ -660,7 +686,12 @@ def user_edit(request, pk):
         u.first_name = full[0][:150]
         u.last_name = " ".join(full[1:])[:150]
         u.phone = request.POST.get("phone", "").strip()[:20]
-        u.save(update_fields=["first_name", "last_name", "phone"])
+        tg = request.POST.get("telegram_id", "").strip()
+        if tg and not tg.lstrip("-").isdigit():
+            messages.error(request, "Telegram ID faqat raqam bo'lsin.")
+            return redirect("panel:user_edit", pk=u.pk)
+        u.telegram_id = tg[:40]
+        u.save(update_fields=["first_name", "last_name", "phone", "telegram_id"])
         if u.is_inspector:
             ids = request.POST.getlist("markets")
             markets = list(Market.objects.filter(pk__in=ids))

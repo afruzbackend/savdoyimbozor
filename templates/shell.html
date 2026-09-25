@@ -115,9 +115,13 @@
         {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
         <div class="field"><label class="label">Telefon</label>
           <input class="input" name="phone" value="{{ user.phone }}" placeholder="+998..."></div>
+        {% if telegram_enabled %}
+        <div class="field"><label class="label">Telegram ID</label>
+          <input class="input num" name="telegram_id" value="{{ user.telegram_id }}" inputmode="numeric" placeholder="botga /start yozib oling"></div>
         <label class="switch-row">
           <span>Telegram bildirishnoma</span>
           <input type="checkbox" name="notify_telegram" {% if user.notify_telegram %}checked{% endif %}></label>
+        {% endif %}
         <button class="btn btn-block" type="submit" style="margin-top:var(--sp-2)">Saqlash</button>
       </form>
 

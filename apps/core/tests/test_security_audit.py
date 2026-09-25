@@ -191,3 +191,16 @@ def test_seller_cannot_self_resolve_alert(sclient, shop):
                  HTTP_HOST=SELLER_HOST)
     al.refresh_from_db()
     assert al.status == "new"
+
+
+@pytest.mark.django_db
+def test_alert_dismiss_audited_with_detail(iclient, shop):
+    from django.utils import timezone
+
+    from apps.analytics.models import Alert
+    from apps.core.models import AuditLog
+
+    al = Alert.objects.create(shop=shop, date=timezone.localdate(), level="red", reason="x")
+    iclient.post(f"/signallar/{al.pk}/amal/", {"action": "dismiss"}, HTTP_HOST=INSPECTOR_HOST)
+    log = AuditLog.objects.filter(path=f"/signallar/{al.pk}/amal/").latest("created_at")
+    assert "e'tiborsiz" in log.detail and f"№{shop.number}" in log.detail

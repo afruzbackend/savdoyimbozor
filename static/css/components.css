@@ -154,6 +154,7 @@ table.data tbody tr:hover td{background:var(--surface-2)}
 table.data .num{text-align:right}
 tr.row-bad td{box-shadow:inset 3px 0 var(--bad)}
 tr.row-warn td{box-shadow:inset 3px 0 var(--warn)}
+tr.row-muted td{color:var(--ink-faint)}
 
 /* ---------- Segment / Tab ---------- */
 .segmented{display:inline-flex;background:var(--surface-sunken);border-radius:var(--r-sm);

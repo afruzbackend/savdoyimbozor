@@ -34,6 +34,8 @@ def notify_alert(alert) -> bool:
     inspector = alert.assigned_to
     if not inspector or not getattr(inspector, "telegram_id", ""):
         return False
+    if not getattr(inspector, "notify_telegram", True) or not inspector.is_active:
+        return False  # foydalanuvchi o'chirgan / bloklangan
     emoji = "🔴" if alert.level == "red" else "🟡"
     text = (
         f"{emoji} <b>Yangi signal</b>\n"

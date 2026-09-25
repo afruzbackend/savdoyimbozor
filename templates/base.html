@@ -40,7 +40,7 @@
   <style>[x-cloak]{display:none!important}</style>
   <script>
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("{% static 'sw.js' %}").catch(() => {});
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
     }
   </script>
   {% block extra_js %}{% endblock %}

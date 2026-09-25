@@ -161,14 +161,15 @@
 
     {% if corrections %}
     <div class="card">
-      <div class="card-header"><span class="card-title">Sotuv tuzatishlari</span>
-        <small class="faint">Sotuvchi o'zgartirgan summalar — izsiz o'chmaydi</small></div>
+      <div class="card-header"><span class="card-title">Tuzatishlar va narx o'zgarishlari</span>
+        <small class="faint">Sotuvchi o'zgartirgan chek summalari va mahsulot narxlari — izsiz o'chmaydi</small></div>
       <div class="table-wrap"><table class="data" style="font-size:var(--t--1)">
-        <thead><tr><th>Sana</th><th class="num">Eski</th><th class="num">Yangi</th><th>Sabab</th></tr></thead>
+        <thead><tr><th>Sana</th><th>Nima</th><th class="num">Eski</th><th class="num">Yangi</th><th>Sabab</th></tr></thead>
         <tbody>
         {% for c in corrections %}
         <tr class="{% if c.new_value|add:0 < c.old_value|add:0 %}row-warn{% endif %}">
           <td class="num">{{ c.created_at|date:"d.m H:i" }}</td>
+          <td>{% if c.target_model == "Product" %}{% if c.field == "buy_price" %}Tannarx{% else %}Sotish narxi{% endif %}{% else %}Chek #{{ c.target_id }}{% endif %}</td>
           <td class="num muted">{{ c.old_value|intcomma }}</td>
           <td class="num">{{ c.new_value|intcomma }}</td>
           <td>{{ c.reason|default:"—" }}</td>

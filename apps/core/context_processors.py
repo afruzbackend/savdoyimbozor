@@ -1,5 +1,7 @@
 import time
 
+from django.conf import settings
+
 # Statik fayllar versiyasi — kesh-buster. Har server ishga tushganda yangilanadi (dev);
 # prod'da ManifestStaticFilesStorage o'zi hashlaydi, lekin bu ham zarar qilmaydi.
 ASSET_V = str(int(time.time()))
@@ -17,9 +19,18 @@ def ui_context(request):
         "theme": theme,  # "light" | "dark"
         "uilang": request.COOKIES.get("uilang", ""),  # "" lotin / "cyrl" kirill
         "asset_v": ASSET_V,
+        # Telegram bot sozlanmagan bo'lsa — sozlamalarda foydasiz tugma ko'rsatilmaydi
+        "telegram_enabled": bool(getattr(settings, "TELEGRAM_BOT_TOKEN", "")),
     }
     if user and user.is_authenticated:
         ctx["current_role"] = getattr(user, "role", "")
+        if ctx["current_role"] == "seller":
+            try:  # 20:00 eslatmasi Celery beat'siz ham (kuniga bir marta)
+                from apps.sales.management.commands.close_reminders import remind_if_due
+
+                remind_if_due(user)
+            except Exception:  # noqa: BLE001 — sahifa ochilishini buzmasin
+                pass
         try:
             ctx["unread_notifications"] = user.notifications.filter(is_read=False).count()
         except Exception:

@@ -11,14 +11,66 @@
 {% block content %}
 <div class="card">
   <div class="table-wrap"><table class="data">
-    <thead><tr><th>Nomi</th><th>Barkod</th><th class="num">Narx</th><th class="num">Qoldiq</th></tr></thead>
+    <thead><tr><th>Nomi</th><th>Barkod</th><th class="num">Tannarx</th><th class="num">Narx</th><th class="num">Qoldiq</th><th></th></tr></thead>
     <tbody>
     {% for p in products %}
-    <tr class="{% if p.is_low_stock %}row-warn{% endif %}"><td>{{ p.name }}</td><td class="num muted">{{ p.barcode|default:"—" }}</td>
-      <td class="num">{{ p.sell_price|intcomma }}</td><td class="num">{{ p.stock|floatformat:'-3' }}</td></tr>
-    {% empty %}<tr><td colspan="4" class="muted">Mahsulot yo'q. «Yangi mahsulot» tugmasi bilan qo'shing.</td></tr>{% endfor %}
+    <tr class="{% if not p.is_active %}row-muted{% elif p.is_low_stock %}row-warn{% endif %}">
+      <td>{{ p.name }} <small class="muted">{{ p.get_unit_display }}</small>
+        {% if not p.is_active %}<span class="badge badge-neutral">Arxivda</span>{% endif %}</td>
+      <td class="num muted" data-noloc>{{ p.barcode|default:"—" }}</td>
+      <td class="num muted">{% if p.buy_price %}{{ p.buy_price|intcomma }}{% else %}—{% endif %}</td>
+      <td class="num">{{ p.sell_price|intcomma }}</td><td class="num">{{ p.stock|floatformat:'-3' }}</td>
+      <td style="white-space:nowrap;text-align:right">
+        {% if p.is_active %}
+        <button type="button" class="btn btn-ghost" style="padding:6px 10px"
+                data-id="{{ p.pk }}" data-name="{{ p.name }}" data-buy="{{ p.buy_price }}" data-sell="{{ p.sell_price }}"
+                data-low="{{ p.low_stock_threshold|floatformat:'-3' }}" data-coeff="{{ p.pack_coeff|floatformat:'-3' }}"
+                data-barcode="{{ p.barcode }}" data-unit="{{ p.get_unit_display }}" onclick="openProdEdit(this)">Tahrirlash</button>
+        {% else %}
+        <form method="post" style="display:inline">{% csrf_token %}
+          <input type="hidden" name="action" value="restore"><input type="hidden" name="id" value="{{ p.pk }}">
+          <button class="btn btn-ghost" style="padding:6px 10px">Qaytarish</button></form>
+        {% endif %}
+      </td></tr>
+    {% empty %}<tr><td colspan="6" class="muted">Mahsulot yo'q. «Yangi mahsulot» tugmasi bilan qo'shing.</td></tr>{% endfor %}
     </tbody></table></div>
   {% include 'components/_pagination.html' %}
+</div>
+
+{# Mahsulotni tahrirlash — narx o'zgarishi tarixga yoziladi (nazoratchi ko'radi) #}
+<div id="edit-prod" class="modal-backdrop" hidden onclick="if(event.target===this)this.hidden=true">
+  <div class="modal-card" style="max-width:460px">
+    <div class="settings-head">
+      <div class="settings-title" id="ep-title">Tahrirlash</div>
+      <button type="button" class="settings-x" title="Yopish" onclick="document.getElementById('edit-prod').hidden=true">
+        <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg></button>
+    </div>
+    <form method="post" id="ep-form">{% csrf_token %}
+      <input type="hidden" name="action" value="edit"><input type="hidden" name="id" id="ep-id">
+      <div class="grid grid-2">
+        <div class="field"><label class="label">Tannarx</label><input class="input num" type="number" name="buy_price" id="ep-buy" min="0" step="any" required></div>
+        <div class="field"><label class="label">Sotish narxi</label><input class="input num" type="number" name="sell_price" id="ep-sell" min="0" step="any" required></div>
+      </div>
+      <div class="grid grid-2">
+        <div class="field"><label class="label">Kam qoldiq chegarasi</label><input class="input num" type="number" name="low_stock_threshold" id="ep-low" min="0" step="any"></div>
+        <div class="field"><label class="label">1 qopda (<span id="ep-unit"></span>)</label><input class="input num" type="number" name="pack_coeff" id="ep-coeff" min="0.001" step="any"></div>
+      </div>
+      <div class="field"><label class="label">Barkod</label>
+        <div class="row gap-2">
+          <input class="input grow" name="barcode" id="ep-barcode">
+          <button type="button" class="scan-btn" title="Kamerani ochish"
+                  onclick="window.openBarcodeScanner(function(c){document.getElementById('ep-barcode').value=c;})">
+            <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg></button>
+        </div></div>
+      <p class="hint" style="margin:0 0 var(--sp-3)">Narx o'zgarishi tarixga yoziladi va nazoratchiga ko'rinadi.</p>
+      <button class="btn btn-block" type="submit">Saqlash</button>
+    </form>
+    <form method="post" style="margin-top:var(--sp-2)" data-confirm="Mahsulot arxivlansinmi? Sotuv va kun yakunida ko'rinmaydi, keyin qaytarish mumkin." data-confirm-ok="Ha, arxivlash">{% csrf_token %}
+      <input type="hidden" name="action" value="archive"><input type="hidden" name="id" id="ep-id2">
+      <button class="btn btn-ghost btn-block" type="submit" style="color:var(--bad)">
+        <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-trash-2"></use></svg> Arxivlash (sotilmay qo'ydi)</button>
+    </form>
+  </div>
 </div>
 
 {# Yangi mahsulot — alohida oyna (ro'yxat bilan aralashmaydi) #}
@@ -66,7 +118,10 @@
         <div class="field"><label class="label">Tannarx</label><input class="input num" type="number" name="buy_price" min="0" step="1000" value="0"></div>
         <div class="field"><label class="label">Sotish narxi</label><input class="input num" type="number" name="sell_price" min="0" step="1000" value="0"></div>
       </div>
-      <div class="field"><label class="label">Kam qoldiq chegarasi</label><input class="input num" type="number" name="low_stock_threshold" min="0" value="0"></div>
+      <div class="grid grid-2">
+        <div class="field"><label class="label">Kam qoldiq chegarasi</label><input class="input num" type="number" name="low_stock_threshold" min="0" step="any" value="0"></div>
+        <div class="field"><label class="label">1 qopda nechta</label><input class="input num" type="number" name="pack_coeff" min="0.001" step="any" value="1"></div>
+      </div>
       <button class="btn btn-block" type="submit" :disabled="!picked">Qo'shish</button>
     </form>
   </div>
@@ -76,6 +131,16 @@
 <script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>
 {{ catalog_json|json_script:"catalog-data" }}
 <script>
+  window.openProdEdit = function (b) {
+    var d = b.dataset, $ = function (id) { return document.getElementById(id); };
+    $('ep-title').textContent = d.name;
+    $('ep-id').value = d.id; $('ep-id2').value = d.id;
+    $('ep-buy').value = d.buy; $('ep-sell').value = d.sell;
+    $('ep-low').value = d.low; $('ep-coeff').value = d.coeff;
+    $('ep-barcode').value = d.barcode; $('ep-unit').textContent = d.unit;
+    $('edit-prod').hidden = false;
+    setTimeout(function () { $('ep-sell').focus(); $('ep-sell').select(); }, 50);
+  };
   document.addEventListener('alpine:init', () => {
     Alpine.data('prodForm', () => ({
       items: JSON.parse(document.getElementById('catalog-data').textContent),
@@ -88,7 +153,9 @@
       get filtered(){ const s=this.q.toLowerCase();
         return this.items.filter(i=>i.name.toLowerCase().includes(s)); },
       pick(c){ this.picked=c; this.open=false; this.q='';
-        this.$nextTick(()=>{ if(this.$refs.unit) this.$refs.unit.value=c.unit; }); },
+        // change hodisasi — maxsus dropdown yorlig'i ham yangilansin (aks holda eski birlik ko'rinardi)
+        this.$nextTick(()=>{ const u=this.$refs.unit; if(u){ u.value=c.unit;
+          u.dispatchEvent(new Event('change', {bubbles:true})); } }); },
     }));
   });
 </script>

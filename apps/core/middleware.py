@@ -48,7 +48,7 @@ class ForcePasswordChangeMiddleware(MiddlewareMixin):
     Ilgari faqat login'dan keyin yo'naltirilardi — "/" ni qo'lda ochib chetlab o'tish mumkin edi.
     """
 
-    ALLOWED = ("/password/change/", "/logout/", "/login/", "/static/", "/prefs/")
+    ALLOWED = ("/password/change/", "/logout/", "/login/", "/static/", "/prefs/", "/sw.js")
 
     def process_request(self, request):
         user = getattr(request, "user", None)
@@ -101,7 +101,9 @@ class AuditMiddleware(MiddlewareMixin):
             return
         from .models import AuditLog
 
-        if is_export:
+        if getattr(request, "audit_action", None) in AuditLog.Action.values:
+            action = request.audit_action  # view aniq tur bergan (masalan sozlama)
+        elif is_export:
             action = AuditLog.Action.EXPORT
         elif is_view:
             action = AuditLog.Action.VIEW
@@ -114,6 +116,8 @@ class AuditMiddleware(MiddlewareMixin):
             path=path[:300],
             ip=self._ip(request),
             interface=getattr(request, "interface", ""),
+            # View o'rnatgan tafsilot: NIMA qilindi (masalan "Signal #12 e'tiborsiz: №5")
+            detail=str(getattr(request, "audit_detail", ""))[:300],
         )
 
     @staticmethod

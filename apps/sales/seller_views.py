@@ -181,6 +181,8 @@ def products(request):
         catalog_qs = ProductCategory.objects.all()
     catalog = list(catalog_qs.order_by("name"))
 
+    if request.method == "POST" and request.POST.get("action") in ("edit", "archive", "restore"):
+        return _product_edit(request, shop)
     if request.method == "POST":
         cat = ProductCategory.objects.filter(pk=_pk(request.POST.get("category"))).first()
         # Nom: katalog nomi + ixtiyoriy nav/rang (masalan "Olma — qizil")
@@ -200,15 +202,25 @@ def products(request):
         if Product.objects.filter(shop=shop, name__iexact=name[:200], is_active=True).exists():
             messages.error(request, f"«{name}» allaqachon ro'yxatda bor — boshqa nav/rang yozing.")
             return redirect("seller:products")
+        if unit not in Unit.values:
+            unit = Unit.PIECE
+        barcode = request.POST.get("barcode", "").strip()[:64]
+        if barcode and Product.objects.filter(shop=shop, barcode=barcode, is_active=True).exists():
+            messages.error(request, "Bu barkod boshqa mahsulotda bor — skaner adashmasin.")
+            return redirect("seller:products")
+        coeff = to_dec(request.POST.get("pack_coeff"), Decimal("1"))
+        if coeff is None or coeff <= 0:
+            coeff = Decimal("1")
         p = Product.objects.create(
             shop=shop,
             name=name[:200],
             category=cat,
             unit=unit,
-            barcode=request.POST.get("barcode", "").strip()[:64],
+            barcode=barcode,
             buy_price=buy,
             sell_price=sell,
             low_stock_threshold=low,
+            pack_coeff=coeff,
         )
         if not p.barcode:  # barkod berilmagan bo'lsa — avtomatik EAN-13
             from apps.catalog.barcodes import ensure_barcode
@@ -222,7 +234,10 @@ def products(request):
     ]
     from apps.core.pagination import paginate
 
-    page = paginate(request, Product.objects.filter(shop=shop).order_by("name"), per_page=50)
+    # Faollar avval, arxivdagilar oxirida
+    page = paginate(
+        request, Product.objects.filter(shop=shop).order_by("-is_active", "name"), per_page=50
+    )
     return render(
         request,
         "seller/products.html",
@@ -235,6 +250,52 @@ def products(request):
             "units": Unit.choices,
         },
     )
+
+
+def _product_edit(request, shop):
+    """Mahsulotni tahrirlash / arxivlash. Narx o'zgarishi tarixga (Correction) yoziladi —
+    nazoratchi narx bilan o'ynashni ko'radi."""
+    p = get_object_or_404(Product, pk=_pk(request.POST.get("id")), shop=shop)
+    action = request.POST.get("action")
+    if action in ("archive", "restore"):
+        p.is_active = action == "restore"
+        p.save(update_fields=["is_active"])
+        messages.success(
+            request, f"«{p.name}» " + ("qayta faollashtirildi." if p.is_active else "arxivlandi.")
+        )
+        return redirect("seller:products")
+    buy = to_int(request.POST.get("buy_price"))
+    sell = to_int(request.POST.get("sell_price"))
+    low = to_dec(request.POST.get("low_stock_threshold"), Decimal("0"))
+    coeff = to_dec(request.POST.get("pack_coeff"), Decimal("1"))
+    barcode = request.POST.get("barcode", "").strip()[:64]
+    if buy is None or sell is None or buy < 0 or sell < 0 or low is None or low < 0:
+        messages.error(request, "Narx va miqdor manfiy bo'lmasin.")
+        return redirect("seller:products")
+    if coeff is None or coeff <= 0:
+        messages.error(request, "Qop koeffitsiyenti 0 dan katta bo'lsin.")
+        return redirect("seller:products")
+    if barcode and Product.objects.filter(
+        shop=shop, barcode=barcode, is_active=True
+    ).exclude(pk=p.pk).exists():
+        messages.error(request, "Bu barkod boshqa mahsulotda bor — skaner adashmasin.")
+        return redirect("seller:products")
+    for field, new in (("sell_price", sell), ("buy_price", buy)):
+        old = getattr(p, field)
+        if old != new:
+            Correction.objects.create(
+                shop=shop, user=request.user, target_model="Product", target_id=p.pk,
+                field=field, old_value=str(old), new_value=str(new),
+                reason=f"«{p.name}» narxi o'zgardi"[:200],
+            )
+    p.buy_price, p.sell_price = buy, sell
+    p.low_stock_threshold, p.pack_coeff = low, coeff
+    if barcode:
+        p.barcode = barcode
+    p.save(update_fields=["buy_price", "sell_price", "low_stock_threshold", "pack_coeff",
+                          "barcode"])
+    messages.success(request, f"«{p.name}» saqlandi.")
+    return redirect("seller:products")
 
 
 @login_required
@@ -885,7 +946,11 @@ def corrections(request):
             messages.error(request, "Yangi summa (0 dan katta) va sabab kiritilishi shart.")
         elif new_total == sale.total:
             messages.error(request, "Yangi summa eskisidan farq qilmaydi.")
+        elif sale.debt_records.filter(paid_amount__gt=0).exists():
+            messages.error(request, "Bu nasiya chekiga to'lov qilingan — summani o'zgartirib bo'lmaydi.")
         else:
+            # Nasiyaga sotilgan chek — daftardagi qarz ham shu summaga tenglashadi
+            sale.debt_records.filter(is_paid=False).update(amount=new_total)
             Correction.objects.create(
                 shop=shop,
                 user=request.user,
@@ -951,16 +1016,24 @@ def appeals(request):
                 )
                 messages.success(request, "Izoh yuborildi. Nazoratchi ko'rib chiqadi.")
         elif msg:
-            Appeal.objects.create(shop=shop, author=request.user, message=msg[:2000])
+            # Qaysi signalga e'tiroz — nazoratchi aynan qaysi kunni ko'rib chiqishni bilsin
+            target = None
+            if request.POST.get("alert"):
+                target = Alert.objects.filter(pk=_pk(request.POST.get("alert")), shop=shop).first()
+            Appeal.objects.create(shop=shop, alert=target, author=request.user, message=msg[:2000])
             messages.success(request, "E'tiroz yuborildi. Inspektor ko'rib chiqadi.")
         return redirect("seller:appeals")
+    since = timezone.localdate() - timedelta(days=14)
     return render(
         request,
         "seller/appeals.html",
         {
             "shop": shop,
-            "appeals": shop.appeals.select_related("author")[:30],
+            "appeals": shop.appeals.select_related("author", "alert")[:30],
             "nosales": _pending_nosales(shop),
+            "my_alerts": Alert.objects.filter(
+                shop=shop, date__gte=since, status__in=(Alert.Status.NEW, Alert.Status.ASSIGNED)
+            ).exclude(kind=Alert.Kind.ZERO_SALES).order_by("-date")[:20],
         },
     )
 

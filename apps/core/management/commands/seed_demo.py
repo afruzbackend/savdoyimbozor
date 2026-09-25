@@ -323,7 +323,11 @@ class Command(BaseCommand):
         )
 
     def _gen_close(self, shop, day, is_stock_hider):
-        """Kun yakuni: sotilgan miqdorni qoldiqqa aylantiradi. Yashiruvchi kam ko'rsatadi."""
+        """Kun yakuni: sotilgan miqdorni qoldiqqa aylantiradi.
+
+        Yashiruvchi: tovar yozilgan savdodan KO'P chiqib ketgan (qoldiq kamaygan, chek yo'q) —
+        jismoniy sotilgan > kiritilgan → "yashirilgan savdo".
+        """
         from django.db.models import Sum
 
         rows = (
@@ -335,7 +339,7 @@ class Command(BaseCommand):
         )
         if not rows:
             return
-        factor = random.uniform(0.3, 0.45) if is_stock_hider else random.uniform(0.95, 1.0)
+        factor = random.uniform(1.8, 2.4) if is_stock_hider else random.uniform(0.97, 1.03)
         close, _ = DailyClose.objects.update_or_create(shop=shop, date=day)
         close.lines.all().delete()
         computed = 0
