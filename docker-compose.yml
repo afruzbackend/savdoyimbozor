@@ -15,6 +15,10 @@ x-django-env: &django_env
   SECURE_HSTS_SECONDS: "0"
   # Media nginx orqali, lekin Django ruxsat tekshiradi (X-Accel-Redirect)
   MEDIA_X_ACCEL: "True"
+  # Zaxira: har kecha 02:30 (celery beat). Tashqi joyga yuborish SHART (server bozorda bo'lsa):
+  # masalan: BACKUP_UPLOAD_CMD="rclone copy {path} offsite:bozor-backup"
+  BACKUP_DIR: /backups
+  BACKUP_UPLOAD_CMD: ${BACKUP_UPLOAD_CMD:-}
 
 services:
   db:
@@ -45,6 +49,7 @@ services:
     volumes:
       - static:/app/staticfiles
       - media:/app/media
+      - backups:/backups
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_started}
@@ -55,6 +60,7 @@ services:
     environment: *django_env
     volumes:
       - media:/app/media
+      - backups:/backups
     depends_on:
       - db
       - redis
@@ -79,6 +85,7 @@ services:
       - web
 
 volumes:
+  backups:
   pgdata:
   redisdata:
   static:

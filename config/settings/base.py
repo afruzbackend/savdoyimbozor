@@ -182,6 +182,14 @@ LOGIN_LOCK_MINUTES = 15
 # Worker shu chegarani config orqali oladi (bozor rastasida eshik yo'q — chiziq kesish emas).
 VISITOR_MIN_DWELL_SECONDS = env.int("VISITOR_MIN_DWELL_SECONDS", default=5)
 
+# --- Zaxira nusxa (apps.core.management.commands.backup) ---
+# Server bozor ICHIDA bo'lmasin: zaxira albatta tashqi joyga (BACKUP_UPLOAD_CMD) yuborilsin.
+BACKUP_DIR = env("BACKUP_DIR", default=str(BASE_DIR / "backups"))
+BACKUP_KEEP = env.int("BACKUP_KEEP", default=14)  # nechta oxirgi nusxa saqlanadi
+PG_DUMP_BIN = env("PG_DUMP_BIN", default="pg_dump")
+# Masalan: rclone copy {path} offsite:bozor-backup   ({path} — fayl yo'li)
+BACKUP_UPLOAD_CMD = env("BACKUP_UPLOAD_CMD", default="")
+
 # --- Telegram ogohlantirish (ixtiyoriy) ---
 # Qizil signal chiqqanda biriktirilgan inspektorga xabar. Bo'sh bo'lsa — jim o'tadi.
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")

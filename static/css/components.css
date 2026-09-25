@@ -753,3 +753,5 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 .close-photo{display:flex;gap:var(--sp-3);align-items:center;margin-top:var(--sp-3)}
 .close-photo img{width:120px;height:90px;object-fit:cover;border-radius:var(--r-2);border:1px solid var(--border)}
 @media print{.close-photo img{width:200px;height:150px}}
+.backup-card.ok{border-left:3px solid var(--ok)}
+.backup-card.warn{border-left:3px solid var(--warn)}

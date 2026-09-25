@@ -21,6 +21,11 @@ app.conf.beat_schedule = {
         "task": "apps.analytics.tasks.recompute_yesterday",
         "schedule": crontab(hour=1, minute=0),
     },
+    # Har kecha 02:30 da zaxira nusxa (baza + fotolar, tashqi joyga)
+    "nightly-backup": {
+        "task": "apps.core.tasks.nightly_backup",
+        "schedule": crontab(hour=2, minute=30),
+    },
     # Har kuni 20:00 da sotuvchilarga kun yakuni/kassa yopishni eslatish
     "close-reminders": {
         "task": "apps.sales.tasks.close_reminders",

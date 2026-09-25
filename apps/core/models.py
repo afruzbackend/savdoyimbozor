@@ -201,3 +201,21 @@ def notify(user, kind, title, *, body="", url="", key=""):
         )
         return obj
     return Notification.objects.create(user=user, kind=kind, title=title, body=body, url=url)
+
+
+class BackupLog(TimeStampedModel):
+    """Zaxira nusxa jurnali: qachon, qancha, butunmi, bozordan tashqariga yuborildimi."""
+
+    ok = models.BooleanField(_("Muvaffaqiyatli"), default=False)
+    offsite_ok = models.BooleanField(_("Tashqariga yuborildi"), default=False)
+    files = models.JSONField(default=list)  # [{"name", "size", "sha256"}]
+    total_bytes = models.BigIntegerField(default=0)
+    message = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = _("Zaxira nusxa")
+        verbose_name_plural = _("Zaxira nusxalar")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.created_at:%Y-%m-%d %H:%M} {'OK' if self.ok else 'XATO'}"

@@ -61,8 +61,48 @@ def dashboard(request):
         "sellers": User.objects.filter(role=Role.SELLER).count(),
         "inspectors": User.objects.filter(role=Role.INSPECTOR).count(),
         "recent_audit": AuditLog.objects.select_related("user")[:10],
+        **_backup_status(),
     }
     return render(request, "panel/dashboard.html", ctx)
+
+
+def _backup_status() -> dict:
+    """Zaxira holati: oxirgi muvaffaqiyatli nusxa qachon, tashqariga ketdimi, eskirganmi."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from .models import BackupLog
+
+    last = BackupLog.objects.first()
+    last_ok = BackupLog.objects.filter(ok=True).first()
+    stale = last_ok is None or timezone.now() - last_ok.created_at > timedelta(hours=26)
+    return {"backup_last": last, "backup_last_ok": last_ok, "backup_stale": stale}
+
+
+@superadmin_required
+@require_POST
+def backup_now(request):
+    """Hozir zaxira olish (admin tugmasi). Katta bazada uzoq davom etishi mumkin."""
+    from io import StringIO
+
+    from django.core.management import call_command
+
+    out = StringIO()
+    call_command("backup", stdout=out)
+    from .models import BackupLog
+
+    log = BackupLog.objects.first()
+    request.audit_detail = f"Zaxira nusxa qo'lda: {'OK' if log and log.ok else 'XATO'}"
+    if log and log.ok:
+        messages.success(request, f"Zaxira olindi: {len(log.files)} fayl, "
+                                  f"{log.total_bytes / 1e6:.1f} MB.")
+        if not log.offsite_ok:
+            messages.warning(request, "Zaxira faqat shu serverda — tashqi joyga yuborish "
+                                      "(BACKUP_UPLOAD_CMD) sozlanmagan.")
+    else:
+        messages.error(request, "Zaxira olinmadi: " + (log.message[:200] if log else "noma'lum"))
+    return redirect("panel:home")
 
 
 @superadmin_required

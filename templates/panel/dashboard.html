@@ -23,6 +23,25 @@
     <div><small class="muted">Foydalanuvchilar</small><div class="truth-big count-up" style="font-size:var(--t-4);line-height:1">{{ sellers|add:inspectors }}</div>
       <small class="muted">{{ sellers }} sotuvchi · {{ inspectors }} inspektor</small></div></div>
 </div>
+{# Zaxira holati: yong'in/avariyada ma'lumot yo'qolmasligi uchun #}
+<div class="card backup-card {% if backup_stale or not backup_last_ok.offsite_ok %}warn{% else %}ok{% endif %}" style="margin-bottom:var(--sp-4)">
+  <div class="row gap-3" style="align-items:center;flex-wrap:wrap">
+    <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg></span>
+    <div style="flex:1 1 260px;min-width:0">
+      <div style="font-weight:700">Zaxira nusxa
+        {% if not backup_last_ok %}<span class="badge badge-bad">hali olinmagan</span>
+        {% elif backup_stale %}<span class="badge badge-bad">eskirgan</span>
+        {% elif not backup_last_ok.offsite_ok %}<span class="badge badge-warn">faqat shu serverda</span>
+        {% else %}<span class="badge badge-ok">joyida</span>{% endif %}</div>
+      <small class="muted">{% if backup_last_ok %}Oxirgi: {{ backup_last_ok.created_at|date:"d.m.Y H:i" }} ·
+        {{ backup_last_ok.files|length }} fayl{% if backup_last_ok.offsite_ok %} · tashqi joyga yuborilgan{% endif %}
+        {% else %}Har kecha 02:30 da avtomatik olinadi (Celery). Server bozordan tashqarida bo'lsin.{% endif %}
+        {% if backup_last and not backup_last.ok %}<br><span style="color:var(--bad)">Oxirgi urinish xato: {{ backup_last.message|truncatechars:120 }}</span>{% endif %}</small>
+    </div>
+    <form method="post" action="{% url 'panel:backup_now' %}" data-confirm="Hozir zaxira nusxa olinsinmi? Bir necha soniya davom etishi mumkin." data-confirm-ok="Ha, olish">{% csrf_token %}
+      <button class="btn btn-ghost" type="submit"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Hozir olish</button></form>
+  </div>
+</div>
 <div class="grid grid-2">
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Tezkor amallar</div>
