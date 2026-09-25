@@ -55,7 +55,8 @@
         {% if nav_attention %}<span class="menu-dot" aria-label="Yangi xabar bor"></span>{% endif %}
       </button>
       <h1>{% block heading %}{% endblock %}</h1>
-      <div class="row gap-3">{% block topbar_actions %}{% endblock %}</div>
+      <div class="row gap-3">{% if readonly %}<span class="badge badge-neutral readonly-pill" title="Hisob faqat ko'rish uchun — har ko'rilgan sahifa audit jurnaliga yoziladi">
+        <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-eye"></use></svg> Faqat ko'rish</span>{% endif %}{% block topbar_actions %}{% endblock %}</div>
     </header>
     <div class="page-ornament" aria-hidden="true" data-noloc>{% include 'components/_doppi.html' %}</div>
     <main class="content">

@@ -2,10 +2,10 @@
 {% load static humanize uzdate %}
 {% block title %}Tekshiruvlar{% endblock %}
 {% block heading %}Tekshiruvlar{% endblock %}
-{% block topbar_actions %}
+{% block topbar_actions %}{% if not readonly %}
 <a class="btn" href="{% url 'inspector:inspection_create' %}">
   <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-plus"></use></svg> Yangi tekshiruv</a>
-{% endblock %}
+{% endif %}{% endblock %}
 {% block content %}
 <div class="grid grid-4" style="margin-bottom:var(--sp-4)">
   <div class="card stat-card stat-pop"><span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg></span>

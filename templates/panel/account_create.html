@@ -10,6 +10,7 @@
       <div class="segmented">
         <button type="button" :aria-selected="role==='seller'" @click="role='seller'">Sotuvchi</button>
         <button type="button" :aria-selected="role==='inspector'" @click="role='inspector'">Tekshiruvchi</button>
+        <button type="button" :aria-selected="role==='prosecutor'" @click="role='prosecutor'">Prokuror</button>
       </div>
       <input type="hidden" name="role" :value="role">
       <input type="hidden" name="mode" :value="mode">
@@ -51,12 +52,15 @@
       <div class="hint">Login avtomatik (faqat raqam: STIR+do'kon raqami). Vaqtinchalik parol beriladi.</div>
     </div>
 
-    <div x-show="role==='inspector'" x-cloak>
+    <div x-show="role==='inspector' || role==='prosecutor'" x-cloak>
       <div class="field"><label class="label">Biriktirilgan bozorlar</label>
         <div class="stack gap-1">
-        {% for m in markets %}<label class="check"><input type="checkbox" name="markets" value="{{ m.pk }}"{% if forloop.first %} required{% endif %}> {{ m.name }}</label>{% endfor %}
+        {% for m in markets %}<label class="check"><input type="checkbox" name="markets" value="{{ m.pk }}"{% if forloop.first %} :required="role==='inspector'"{% endif %}> {{ m.name }}</label>{% endfor %}
         </div>
       </div>
+      <div class="hint" x-show="role==='prosecutor'" x-cloak>Prokuror (kuzatuvchi) hamma narsani <b>faqat ko'radi</b>:
+        signal, tekshiruv, ombor, favqulodda holat. Hech narsani o'zgartira olmaydi, har ko'rgan sahifasi audit jurnaliga yoziladi.
+        Bozor belgilanmasa — butun respublika ko'rinadi.</div>
     </div>
     <button class="btn btn-lg" type="submit" style="margin-top:var(--sp-3)">Hisob ochish</button>
   </form>

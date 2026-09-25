@@ -900,6 +900,14 @@ window.RU_DICT = {
   "YOPIQ": "ЗАКРЫТО",
   "BO'SH": "ПУСТО",
   "XATO": "ОШИБКА",
+  // Prokuror (kuzatuvchi) roli
+  "Prokuror": "Прокурор",
+  "Prokuror (kuzatuvchi)": "Прокурор (наблюдатель)",
+  "Kuzatuvchi rejimi": "Режим наблюдателя",
+  "Sizning hisobingiz faqat ko'rish uchun: ma'lumotni o'zgartirib bo'lmaydi.": "Ваша учётная запись только для просмотра: изменять данные нельзя.",
+  "Sizning hisobingiz faqat ko'rish uchun: yangi yozuv yaratib bo'lmaydi.": "Ваша учётная запись только для просмотра: создавать записи нельзя.",
+  "Faqat ko'rish": "Только просмотр",
+  "(belgilanmasa — butun respublika, faqat ko'rish)": "(если не выбрано — вся республика, только просмотр)",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
@@ -962,8 +970,13 @@ window.RU_FRAGMENTS = [
   ["% kam)", "% меньше)"],
   ["% ko'p)", "% больше)"],
   [" / kutilgan ", " / ожидалось "],
+  ["Do'kon ochiq, ammo shu kuni savdo kiritilmagan (tovar/kamera oqimi bor)",
+   "Магазин был открыт, но продажи за этот день не внесены (есть товар/поток камеры)"],
   ["Do'kon ochiq, ammo bugun savdo kiritilmagan (tovar/kamera oqimi bor)",
    "Магазин открыт, но продажи за сегодня не внесены (есть товар/поток камеры)"],
+  ["Savdo keskin tushdi: shu kuni ", "Продажи резко упали: в тот день "],
+  ["Savdo keskin tushdi: bugun ", "Продажи резко упали: сегодня "],
+  [" so'm, odatda ~", " сум, обычно ~"],
   ["Deklaratsiya kiritilgandan", "Декларация ниже внесённого на"],
   ["% past (kassa", "% (касса"],
   [" / savdo ", " / выручка "],

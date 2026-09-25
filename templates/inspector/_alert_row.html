@@ -8,7 +8,8 @@
   <td><span class="badge badge-{% if a.level == 'red' %}bad{% elif a.level == 'yellow' %}warn{% else %}ok{% endif %}">{{ a.get_level_display }}</span></td>
   <td><span class="badge badge-neutral">{{ a.get_status_display }}</span></td>
   <td style="white-space:nowrap">
-    {% if a.status != 'dismissed' %}
+    {% if readonly %}<span class="muted">—</span>
+    {% elif a.status != 'dismissed' %}
       <a class="btn btn-ghost" style="padding:6px 10px" href="{% url 'inspector:inspection_create' %}?alert={{ a.pk }}">Tekshirish</a>
       <button class="btn btn-ghost" style="padding:6px 10px" hx-post="{% url 'inspector:alert_action' a.pk %}"
               hx-vals='{"action":"assign_me"}' hx-target="#alert-{{ a.pk }}" hx-swap="outerHTML">Menga</button>

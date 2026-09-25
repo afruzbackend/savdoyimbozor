@@ -18,6 +18,16 @@ def _visible_shops(request):
     return request.user.visible_shops().select_related("market", "row", "category")
 
 
+def _readonly_block(request):
+    """Kuzatuvchi (prokuror) yaratish formalarini ochmaydi."""
+    if getattr(request.user, "is_prosecutor", False):
+        return render(request, "403.html", {
+            "heading": "Kuzatuvchi rejimi",
+            "message": "Sizning hisobingiz faqat ko'rish uchun: yangi yozuv yaratib bo'lmaydi.",
+        }, status=403)
+    return None
+
+
 def _pk(value) -> int:
     """So'rovdan kelgan ID — raqam bo'lmasa 0 ("abc" bilan 500 xato bo'lmasin)."""
     from apps.core.format import to_int
@@ -35,6 +45,19 @@ def _level(truth, cfg):
     return "red"
 
 
+def _score_date(shops, today):
+    """Bugun hali hisoblanmagan bo'lsa (ertalab / fon vazifasi kutilmoqda) — oxirgi o'lchangan kun.
+
+    Aks holda dashboard va xarita har ertalab bo'm-bo'sh ko'rinadi.
+    """
+    if DailyScore.objects.filter(shop__in=shops, date=today, measured=True).exists():
+        return today
+    return (
+        DailyScore.objects.filter(shop__in=shops, date__lt=today, measured=True)
+        .order_by("-date").values_list("date", flat=True).first()
+    ) or today
+
+
 @login_required
 def dashboard(request):
     from apps.core.models import SystemSettings
@@ -43,9 +66,10 @@ def dashboard(request):
     shops = _visible_shops(request)
     today = timezone.localdate()
 
+    score_date = _score_date(shops, today)
     latest = {
         s.shop_id: s
-        for s in DailyScore.objects.filter(shop__in=shops, date=today).select_related(
+        for s in DailyScore.objects.filter(shop__in=shops, date=score_date).select_related(
             "shop", "shop__category", "shop__market"
         )
     }
@@ -62,7 +86,7 @@ def dashboard(request):
     false_sig = insp.filter(result=Inspection.Result.FALSE).count()
     accuracy = round(confirmed / (confirmed + false_sig) * 100) if (confirmed + false_sig) else None
 
-    # Eng xavfli do'konlar (bugungi ball bo'yicha)
+    # Eng xavfli do'konlar (score_date balli bo'yicha)
     risky = sorted(measured, key=lambda s: s.truth_pct)[:8]
 
     # Yashirilgan savdo (oxirgi 30 kun) + potensial qo'shimcha soliq
@@ -86,6 +110,7 @@ def dashboard(request):
         "alerts": new_alerts.order_by("-created_at")[:12],
         "risky": [(s, _level(s.truth_pct, cfg)) for s in risky],
         "today": today,
+        "score_date": score_date,
         "hidden_sales": int(hidden),
         "potential_tax": potential_tax,
         "tax_rate": cfg.tax_rate_percent,
@@ -104,10 +129,11 @@ def market_map(request, pk=None):
         return render(request, "inspector/market_map.html", {"markets": markets, "market": None})
 
     today = timezone.localdate()
+    score_date = _score_date(market.shops.all(), today)
     # Ma'lumotsiz (solishtiruvsiz) do'kon 0% qizil emas — "none" (kulrang) bo'lsin
     scores = {
         s.shop_id: (s.truth_pct if s.has_data else None)
-        for s in DailyScore.objects.filter(shop__market=market, date=today)
+        for s in DailyScore.objects.filter(shop__market=market, date=score_date)
     }
 
     # Bozor sxemasi: do'konlar QATOR bo'yicha guruhlanadi, har rasta rangli % belgi.
@@ -139,6 +165,8 @@ def market_map(request, pk=None):
             "market": market,
             "rows_data": rows_data,
             "counts": counts,
+            "score_date": score_date,
+            "today": today,
         },
     )
 
@@ -338,6 +366,8 @@ def alert_action(request, pk):
 
 @login_required
 def inspection_create(request):
+    if (blocked := _readonly_block(request)) is not None:
+        return blocked
     shops = _visible_shops(request)
     alert_id = request.GET.get("alert")
     alert = Alert.objects.filter(pk=_pk(alert_id), shop__in=shops).first() if alert_id else None
@@ -454,7 +484,7 @@ def inspection_act(request, pk):
     if insp.fine_amount in (None, 0):  # jarima bo'sh bo'lsa — taxminiy to'ldiramiz
         insp.fine_amount = suggested_fine
         changed.append("fine_amount")
-    if changed:
+    if changed and not request.user.is_prosecutor:  # kuzatuvchi ko'rishi bazaga yozmaydi
         insp.save(update_fields=changed)
 
     return render(
@@ -1047,6 +1077,8 @@ def incidents_list(request):
 @login_required
 def incident_create(request):
     """Hodisani e'lon qilish: bozor + tur + sana/vaqt → shu paytdagi holat MUHRLANADI."""
+    if (blocked := _readonly_block(request)) is not None:
+        return blocked
     from django.contrib import messages
 
     from .incidents import declare_incident

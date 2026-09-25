@@ -21,8 +21,8 @@
     <div class="field"><label class="label">Telegram ID <small class="muted">(qizil signal xabari uchun)</small></label>
       <input class="input num" name="telegram_id" value="{{ u.telegram_id }}" inputmode="numeric" placeholder="masalan 123456789">
       {% if not telegram_enabled %}<div class="hint">Telegram bot hali sozlanmagan (TELEGRAM_BOT_TOKEN) — xabar yuborilmaydi.</div>{% endif %}</div>
-    {% if u.is_inspector %}
-    <div class="field"><label class="label">Biriktirilgan bozorlar <small class="muted">(inspektor faqat shu bozorlarni ko'radi)</small></label>
+    {% if u.is_monitor %}
+    <div class="field"><label class="label">Biriktirilgan bozorlar <small class="muted">{% if u.is_prosecutor %}(belgilanmasa — butun respublika, faqat ko'rish){% else %}(inspektor faqat shu bozorlarni ko'radi){% endif %}</small></label>
       <div class="stack gap-1">
       {% for m in markets %}<label class="check"><input type="checkbox" name="markets" value="{{ m.pk }}" {% if m.pk in assigned %}checked{% endif %}> {{ m.name }} <small class="muted">· {{ m.region.name }}</small></label>
       {% empty %}<span class="muted">Bozor yo'q — avval bozor qo'shing.</span>{% endfor %}

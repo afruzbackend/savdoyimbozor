@@ -12,6 +12,8 @@ class Role(models.TextChoices):
     SUPERADMIN = "superadmin", _("Super admin")
     INSPECTOR = "inspector", _("Tekshiruvchi")
     SELLER = "seller", _("Sotuvchi")
+    # Faqat KO'RADI (prokuratura/kuzatuvchi): hech narsani o'zgartira olmaydi, har ko'rishi auditda
+    PROSECUTOR = "prosecutor", _("Prokuror (kuzatuvchi)")
 
 
 class Language(models.TextChoices):
@@ -81,6 +83,15 @@ class User(AbstractUser):
         return self.role == Role.INSPECTOR
 
     @property
+    def is_prosecutor(self):
+        return self.role == Role.PROSECUTOR
+
+    @property
+    def is_monitor(self):
+        """Nazorat interfeysini ko'radiganlar: tekshiruvchi va prokuror (faqat ko'rish)."""
+        return self.role in (Role.INSPECTOR, Role.PROSECUTOR)
+
+    @property
     def is_seller(self):
         return self.role == Role.SELLER
 
@@ -96,6 +107,11 @@ class User(AbstractUser):
             return Shop.objects.all()
         if self.is_inspector:
             return Shop.objects.filter(market__in=self.assigned_markets.all())
+        if self.is_prosecutor:
+            # Bozor biriktirilgan bo'lsa — faqat o'shalar, aks holda butun respublika
+            if self.assigned_markets.exists():
+                return Shop.objects.filter(market__in=self.assigned_markets.all())
+            return Shop.objects.all()
         if self.is_seller and self.shop_id:
             return Shop.objects.filter(pk=self.shop_id)
         return Shop.objects.none()

@@ -13,12 +13,12 @@ solishtirib rostlik darajasi beradigan va yashiruvchini signal beradigan Django 
 
 ## Ishga tushirish
 `docker compose up --build` yoki lokal (README'ga qarang). Demo:
-`seed_demo --reset` (loginlar admin/nazorat/sotuvchi, parol demo1234),
+`seed_demo --reset` (loginlar admin/nazorat/sotuvchi/prokuror, parol demo1234),
 `simulate_camera` (kamerasiz jonli demo), `recompute` (rostlik+signal).
 
 ## Applar (`apps/`)
 - `core` — SystemSettings (barcha chegaralar), AuditLog, TimeStampedModel, HostRouting + Audit middleware, panel (super admin) views.
-- `accounts` — User(Role: superadmin/inspector/seller), blokli login, `visible_shops()` (ruxsat markazi), `services.py` (hisob ochish, login = FAQAT raqam: STIR+do'kon raqami; inspektor 70xxxx).
+- `accounts` — User(Role: superadmin/inspector/seller/prosecutor — prokuror FAQAT ko'radi: `ReadOnlyRoleMiddleware`, har ko'rish auditda), blokli login, `visible_shops()` (ruxsat markazi), `services.py` (hisob ochish, login = FAQAT raqam: STIR+do'kon raqami; inspektor 70xxxx).
 - `geo` — Region → Market → Row. `catalog` — ShopCategory, ProductCategory (bozor narxi uchun), Product. `shops` — Shop.
 - `sales` — Sale/SaleItem, StockIn, SaleReturn, WriteOff, DailyClose, Debt; `services/pricing.py` (chegirma/yaxlitlash BITTA MANBA), `services/sales.py`; seller_views + api.
 - `cash` — CashRecord (deklaratsiya; source: excel/tax_api/kassa).

@@ -240,6 +240,15 @@ def account_create(request):
                 full_name=request.POST.get("full_name", ""),
                 phone=request.POST.get("phone", ""),
             )
+        elif role == Role.PROSECUTOR:
+            # Kuzatuvchi: bozor tanlanmasa — butun respublika (faqat ko'rish)
+            from apps.accounts.services import create_prosecutor
+
+            markets = Market.objects.filter(
+                pk__in=[_pk(x) for x in request.POST.getlist("markets")]
+            )
+            cred = create_prosecutor(request.POST.get("full_name", ""), list(markets),
+                                     phone=request.POST.get("phone", ""))
         else:
             markets = Market.objects.filter(
                 pk__in=[_pk(x) for x in request.POST.getlist("markets")]
@@ -266,7 +275,8 @@ def account_create(request):
             "markets": markets,
             "next_by_market": next_by_market,
             "categories": ShopCategory.objects.all(),
-            "roles": [(Role.SELLER, "Sotuvchi"), (Role.INSPECTOR, "Tekshiruvchi")],
+            "roles": [(Role.SELLER, "Sotuvchi"), (Role.INSPECTOR, "Tekshiruvchi"),
+                      (Role.PROSECUTOR, "Prokuror (kuzatuvchi)")],
         },
     )
 
@@ -749,10 +759,10 @@ def user_edit(request, pk):
             return redirect("panel:user_edit", pk=u.pk)
         u.telegram_id = tg[:40]
         u.save(update_fields=["first_name", "last_name", "phone", "telegram_id"])
-        if u.is_inspector:
+        if u.is_monitor:
             ids = request.POST.getlist("markets")
-            markets = list(Market.objects.filter(pk__in=ids))
-            if not markets:
+            markets = list(Market.objects.filter(pk__in=[_pk(x) for x in ids]))
+            if not markets and u.is_inspector:
                 messages.warning(
                     request, "Inspektorga bozor biriktirilmadi — u hech bir do'konni ko'rmaydi."
                 )

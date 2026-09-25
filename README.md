@@ -47,8 +47,9 @@ So'ng: **http://localhost/** (nginx 80-portda).
 | `sotuvchi` | Sotuvchi |
 | `nazorat` | Tekshiruvchi |
 | `admin` | Super admin |
+| `prokuror` | Prokuror (kuzatuvchi) — hamma narsani faqat ko'radi, har ko'rishi audit jurnalida |
 
-Uchalasi ham **bir xil manzildan** kiradi. Admin foydalanuvchilar ro'yxatida
+Hammasi **bir xil manzildan** kiradi. Admin foydalanuvchilar ro'yxatida
 har hisobning joriy **login va parolini** ko'ra oladi (davlat kredensial modeli).
 
 ## Demo ssenariysi

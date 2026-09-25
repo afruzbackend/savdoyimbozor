@@ -25,7 +25,7 @@
       <b>Signal ({{ a.alert.date|uzdate }}):</b> {{ a.alert.reason }}</div>
     {% endif %}
     <div style="margin-top:var(--sp-3);white-space:pre-line">{{ a.message }}</div>
-    {% if a.status != 'new' %}
+    {% if a.status != 'new' or readonly %}
       {% if a.response %}<div class="msg info" style="margin:var(--sp-3) 0 0"><b>Javob:</b> {{ a.response }}</div>{% endif %}
     {% else %}
     <form method="post" action="{% url 'inspector:appeal_respond' a.pk %}" class="stack gap-2" style="margin-top:var(--sp-3)">

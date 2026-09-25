@@ -1,5 +1,5 @@
 {% extends 'inspector/base.html' %}
-{% load static %}
+{% load static uzdate %}
 {% block title %}Bozor sxemasi{% endblock %}
 {% block heading %}Bozor sxemasi{% endblock %}
 {% block topbar_actions %}
@@ -29,7 +29,7 @@
 <div class="card" x-data="{zoom:1}">
   <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:var(--sp-3)">
     <div><span class="card-title">{{ market.name }}</span>
-      <small class="muted" style="margin-left:8px">{{ market.region.name }}</small></div>
+      <small class="muted" style="margin-left:8px">{{ market.region.name }}{% if score_date and score_date != today %} · <span class="num">{{ score_date|uzdate }}</span> bo'yicha{% endif %}</small></div>
     <div class="zoom-ctl" data-noloc>
       <button type="button" @click="zoom=Math.max(0.6,zoom-0.15)">−</button>
       <button type="button" @click="zoom=1">↺</button>

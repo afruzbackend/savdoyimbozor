@@ -160,7 +160,7 @@ class Command(BaseCommand):
             from apps.accounts.models import User
 
             User.objects.exclude(is_superuser=True).exclude(
-                username__in=["admin", "nazorat", "sotuvchi"]
+                username__in=["admin", "nazorat", "sotuvchi", "prokuror"]
             ).delete()
             self.stdout.write("Eski ma'lumot tozalandi.")
 
@@ -256,6 +256,7 @@ class Command(BaseCommand):
         insp = self._user("nazorat", "Nodir Inspektor", "inspector")
         insp.assigned_markets.add(market)
         self._user("sotuvchi", "Sardor Sotuvchi", "seller", shop=shops[1][0], is_owner=True)
+        self._user("prokuror", "Aziz Prokurorov", "prosecutor")  # faqat ko'radi, butun respublika
 
         # 7 kunlik savdo + deklaratsiya
         today = timezone.localdate()
@@ -284,7 +285,7 @@ class Command(BaseCommand):
                 f"Qizil signalli do'konlar: {reds}."
             )
         )
-        self.stdout.write("Loginlar (parol demo1234): admin / nazorat / sotuvchi")
+        self.stdout.write("Loginlar (parol demo1234): admin / nazorat / sotuvchi / prokuror")
 
     def _gen_day(self, shop, scat, day, prod_cats, is_cash_hider):
         base = {"Meva-sabzavot": 2_500_000, "Kiyim-kechak": 4_000_000, "Oziq-ovqat": 1_800_000}[

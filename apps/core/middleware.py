@@ -11,6 +11,7 @@ from django.utils.deprecation import MiddlewareMixin
 ROLE_INTERFACE = {
     "superadmin": "panel",
     "inspector": "inspector",
+    "prosecutor": "inspector",  # nazorat interfeysi, lekin FAQAT KO'RISH (ReadOnlyRoleMiddleware)
     "seller": "seller",
 }
 
@@ -65,6 +66,28 @@ class ForcePasswordChangeMiddleware(MiddlewareMixin):
         return redirect("/password/change/")
 
 
+class ReadOnlyRoleMiddleware(MiddlewareMixin):
+    """Prokuror (kuzatuvchi) hech narsani o'zgartira olmaydi — server tomonida bloklanadi.
+
+    Faqat shaxsiy amallar ruxsat: chiqish, parol, o'z telefon/sozlamasi, til/mavzu.
+    """
+
+    ALLOWED = ("/logout/", "/password/change/", "/profil/sozlamalar/", "/prefs/", "/login/")
+
+    def process_request(self, request):
+        user = getattr(request, "user", None)
+        if not (user and user.is_authenticated and getattr(user, "role", "") == "prosecutor"):
+            return None
+        if request.method in ("GET", "HEAD", "OPTIONS") or request.path.startswith(self.ALLOWED):
+            return None
+        from django.shortcuts import render
+
+        return render(request, "403.html", {
+            "heading": "Kuzatuvchi rejimi",
+            "message": "Sizning hisobingiz faqat ko'rish uchun: ma'lumotni o'zgartirib bo'lmaydi.",
+        }, status=403)
+
+
 class AuditMiddleware(MiddlewareMixin):
     """Muhim amallarni audit jurnaliga yozadi (POST, eksport, dalil ko'rish)."""
 
@@ -96,7 +119,10 @@ class AuditMiddleware(MiddlewareMixin):
             request.method == "GET"
             and getattr(request, "interface", "") == "inspector"
             and response.status_code == 200
-            and self.VIEW_RE.match(path)
+            and (self.VIEW_RE.match(path)
+                 # Prokurorning HAR bir sahifa ko'rishi yoziladi (kim nimani ko'rdi)
+                 or (getattr(user, "role", "") == "prosecutor"
+                     and "text/html" in response.get("Content-Type", "")))
         )
         # View o'zi "buni yoz" desa (masalan hodisa Excel'i) — GET bo'lsa ham yoziladi
         forced = bool(getattr(request, "audit_action", None) or getattr(request, "audit_detail", ""))

@@ -2,10 +2,10 @@
 {% load static humanize uzdate %}
 {% block title %}Favqulodda holatlar{% endblock %}
 {% block heading %}Favqulodda holatlar{% endblock %}
-{% block topbar_actions %}
+{% block topbar_actions %}{% if not readonly %}
 <a class="btn btn-danger" href="{% url 'inspector:incident_create' %}">
   <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg> Hodisa e'lon qilish</a>
-{% endblock %}
+{% endif %}{% endblock %}
 {% block content %}
 <div class="card" style="margin-bottom:var(--sp-4)">
   <p class="muted" style="margin:0">Yong'in, suv toshqini yoki o'g'irlik bo'lganda hodisani e'lon qiling: o'sha paytdagi

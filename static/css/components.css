@@ -755,3 +755,6 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 @media print{.close-photo img{width:200px;height:150px}}
 .backup-card.ok{border-left:3px solid var(--ok)}
 .backup-card.warn{border-left:3px solid var(--warn)}
+
+/* Kuzatuvchi (prokuror) — faqat ko'rish belgisi */
+.readonly-pill{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}

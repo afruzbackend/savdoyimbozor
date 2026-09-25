@@ -39,7 +39,8 @@ def ui_context(request):
         except Exception:
             ctx["unread_notifications"] = 0
         attention = ctx["unread_notifications"]
-        if ctx["current_role"] == "inspector":
+        ctx["readonly"] = ctx["current_role"] == "prosecutor"
+        if ctx["current_role"] in ("inspector", "prosecutor"):
             # Menyuda ko'rinadigan son: yangi signal va javobsiz e'tiroz (ilova ichida xabar)
             from apps.analytics.models import Alert, Appeal
 

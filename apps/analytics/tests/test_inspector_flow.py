@@ -61,6 +61,24 @@ def test_dashboard_shows_hidden_sales(iclient, shop):
 
 
 @pytest.mark.django_db
+def test_dashboard_falls_back_to_last_measured_day(iclient, shop):
+    """Ertalab bugungi ball yo'q — dashboard kechagi (oxirgi o'lchangan) kunni ko'rsatadi, bo'sh emas."""
+    import datetime
+
+    from django.utils import timezone
+
+    from apps.analytics.models import DailyScore
+
+    y = timezone.localdate() - datetime.timedelta(days=1)
+    DailyScore.objects.create(shop=shop, date=y, truth_pct=31, entered_sales=100000,
+                              cash_amount=300000, measured=True)
+    r = iclient.get("/", HTTP_HOST=INSPECTOR_HOST)
+    assert r.context["score_date"] == y
+    assert r.context["avg_truth"] == 31
+    assert [s.shop_id for s, _lvl in r.context["risky"]] == [shop.pk]
+
+
+@pytest.mark.django_db
 def test_statistics_shows_seller_row(iclient, shop, seller):
     from django.utils import timezone
 

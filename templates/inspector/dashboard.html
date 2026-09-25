@@ -45,7 +45,7 @@
   </div>
   <div class="card stat-pop stat-card">
     <span class="stat-ic" style="background:var(--ok-bg,var(--brand-50));color:var(--ok)"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg></span>
-    <div><small class="muted">O'rtacha rostlik</small>
+    <div><small class="muted">O'rtacha rostlik{% if score_date != today %} · <span class="num">{{ score_date|uzdate }}</span>{% endif %}</small>
       <div class="truth-big count-up" style="font-size:var(--t-4);line-height:1;color:var(--ok)">{% if avg_truth is not None %}{{ avg_truth }}%{% else %}—{% endif %}</div></div>
   </div>
   <div class="card stat-pop stat-card">
@@ -58,7 +58,7 @@
 
 <div class="grid" style="grid-template-columns:1.3fr 1fr;gap:var(--sp-4)">
   <div class="card">
-    <div class="card-header"><span class="card-title">Eng xavfli do'konlar</span>
+    <div class="card-header"><span class="card-title">Eng xavfli do'konlar{% if score_date != today %} <small class="muted num" style="font-weight:400">· {{ score_date|uzdate }}</small>{% endif %}</span>
       <a href="{% url 'inspector:map' %}" class="btn-quiet">Xarita →</a></div>
     <div class="table-wrap">
       <table class="data">

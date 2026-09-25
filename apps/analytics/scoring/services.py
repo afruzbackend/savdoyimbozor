@@ -431,7 +431,7 @@ def recompute_for_date(day, final: bool | None = None) -> int:
                     date=day,
                     kind=Alert.Kind.ZERO_SALES,
                     level="red",
-                    reason="Do'kon ochiq, ammo bugun savdo kiritilmagan (tovar/kamera oqimi bor)",
+                    reason="Do'kon ochiq, ammo shu kuni savdo kiritilmagan (tovar/kamera oqimi bor)",
                     assigned_to=inspector,
                 )
                 try:
@@ -498,7 +498,7 @@ def _anomaly_from(shop, day, entered, prior, cfg, inspector):
         kind=Alert.Kind.ANOMALY,
         level=lvl,
         reason=(
-            f"Savdo keskin tushdi: bugun {som(entered)} so'm, "
+            f"Savdo keskin tushdi: shu kuni {som(entered)} so'm, "
             f"odatda ~{som(avg)} so'm ({drop_pct}% kam)"
         ),
         assigned_to=inspector,

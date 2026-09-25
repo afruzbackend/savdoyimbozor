@@ -56,11 +56,11 @@ def _allowed(user, path: str) -> bool:
         from apps.sales.models import DailyClose
 
         return DailyClose.objects.filter(photo=path, shop__in=shops).exists()
-    if top == "inspections" and user.is_inspector:
+    if top == "inspections" and user.is_monitor:
         from apps.analytics.models import Inspection
 
         return Inspection.objects.filter(photo=path, shop__in=shops).exists()
-    if top == "clips" and user.is_inspector:
+    if top == "clips" and user.is_monitor:
         from apps.cameras.models import CameraEvent
 
         return CameraEvent.objects.filter(clip=path, shop__in=shops).exists()

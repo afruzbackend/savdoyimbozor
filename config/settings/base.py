@@ -72,6 +72,8 @@ MIDDLEWARE = [
     "apps.core.middleware.HostRoutingMiddleware",
     # Birinchi kirishda / tiklangan parolni almashtirish majburiy:
     "apps.core.middleware.ForcePasswordChangeMiddleware",
+    # Prokuror (kuzatuvchi) — faqat ko'rish, har qanday o'zgartirish bloklanadi:
+    "apps.core.middleware.ReadOnlyRoleMiddleware",
     # Muhim amallarni audit jurnaliga yozadi:
     "apps.core.middleware.AuditMiddleware",
 ]
