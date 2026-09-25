@@ -192,6 +192,21 @@ PG_DUMP_BIN = env("PG_DUMP_BIN", default="pg_dump")
 # Masalan: rclone copy {path} offsite:bozor-backup   ({path} — fayl yo'li)
 BACKUP_UPLOAD_CMD = env("BACKUP_UPLOAD_CMD", default="")
 
+# --- Soliq / onlayn kassa deklaratsiyasi (apps.cash.adapters) ---
+# Aniq kontrakt Soliq qo'mitasi bilan kelishuvda belgilanadi; shu yerda faqat sozlanadi.
+#   ""      — o'chiq (faqat Excel import)
+#   "http"  — HTTPS JSON API (TAX_API_URL + TAX_API_TOKEN), sahifalash "next" orqali
+#   "inbox" — papkaga tashlanadigan CSV/JSON fayllar (SFTP/Yagona integratsiya platformasi)
+TAX_ADAPTER = env("TAX_ADAPTER", default="")
+TAX_API_URL = env("TAX_API_URL", default="")
+TAX_API_TOKEN = env("TAX_API_TOKEN", default="")
+# Javob maydonlari → bizniki: "stir=tin,date=date,amount=total,fiscal_id=terminal_id"
+TAX_API_FIELDS = env("TAX_API_FIELDS", default="")
+TAX_API_AMOUNT_DIVISOR = env.int("TAX_API_AMOUNT_DIVISOR", default=1)  # tiyinda bo'lsa 100
+TAX_API_TIMEOUT = env.int("TAX_API_TIMEOUT", default=30)
+TAX_INBOX_DIR = env("TAX_INBOX_DIR", default=str(BASE_DIR / "tax_inbox"))
+TAX_SYNC_DAYS = env.int("TAX_SYNC_DAYS", default=3)  # kechikkan tuzatishlar uchun oxirgi N kun
+
 # --- Telegram ogohlantirish (ixtiyoriy) ---
 # Qizil signal chiqqanda biriktirilgan inspektorga xabar. Bo'sh bo'lsa — jim o'tadi.
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")

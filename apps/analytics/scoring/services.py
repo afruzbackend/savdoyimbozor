@@ -146,9 +146,10 @@ def _has_stock(shop):
 
 
 def _cash_declared(shop, day):
-    from apps.cash.models import CashRecord
+    # Manbalar QO'SHILMAYDI — eng ishonchlisi (Soliq API > kassa > Excel)
+    from apps.cash.services import declared_for
 
-    return sum(c.amount for c in CashRecord.objects.filter(shop=shop, date=day))
+    return declared_for(shop, day)
 
 
 def _stock_estimate(shop, day):
@@ -273,7 +274,6 @@ def recompute_for_date(day, final: bool | None = None) -> int:
     from django.db.models import Count, Sum
 
     from apps.cameras.models import CameraEvent
-    from apps.cash.models import CashRecord
     from apps.catalog.models import Product
     from apps.sales.models import DailyClose, Sale
 
@@ -287,13 +287,10 @@ def recompute_for_date(day, final: bool | None = None) -> int:
     ):
         entered_by[r["shop"]] = int(r["t"] or 0)
         checks_by[r["shop"]] = r["n"] or 0
-    # Deklaratsiya (kassa) — 1 so'rov
-    cash_by = {
-        r["shop"]: int(r["t"] or 0)
-        for r in CashRecord.objects.filter(shop_id__in=ids, date=day)
-        .values("shop")
-        .annotate(t=Sum("amount"))
-    }
+    # Deklaratsiya (kassa) — 1 so'rov; bir kunga bir nechta manba bo'lsa eng ishonchlisi
+    from apps.cash.services import declared_by_shop
+
+    cash_by = declared_by_shop(ids, day)
     # Kamera tashriflari — 1 so'rov
     visits_by = {
         r["shop"]: r["c"]
@@ -350,6 +347,13 @@ def recompute_for_date(day, final: bool | None = None) -> int:
     existing_alerts = set(
         Alert.objects.filter(shop_id__in=ids, date=day).values_list("shop_id", "kind")
     )
+    # Hali hech kim ko'rmagan rostlik signallari: kechikib kelgan ma'lumot (Soliq API, Excel)
+    # bilan qayta hisoblanganda yangilanadi yoki bekor qilinadi — halol do'kon nishonda qolmasin
+    open_truth = {
+        a.shop_id: a
+        for a in Alert.objects.filter(shop_id__in=ids, date=day, kind=Alert.Kind.TRUTH,
+                                      status=Alert.Status.NEW)
+    }
 
     def _price_score_from(rows, medians):
         scores = [
@@ -450,12 +454,20 @@ def recompute_for_date(day, final: bool | None = None) -> int:
         if not any(v is not None for v in parts.values()):
             continue
         lvl = level_for(result["truth"], cfg.green_threshold, cfg.yellow_threshold)
+        stale = open_truth.get(shop.id)
         if lvl == "green":
+            if stale is not None:
+                stale.status = Alert.Status.DISMISSED
+                stale.reason = (stale.reason[:240] + " — yangi ma'lumot bilan bekor qilindi")[:300]
+                stale.save(update_fields=["status", "reason", "updated_at"])
             continue
+        reason = _alert_reason(result, parts, entered, cash)
         if (shop.id, Alert.Kind.TRUTH) in existing_alerts:
+            if stale is not None and (stale.level != lvl or stale.reason != reason):
+                stale.level, stale.reason = lvl, reason
+                stale.save(update_fields=["level", "reason", "updated_at"])
             continue
         existing_alerts.add((shop.id, Alert.Kind.TRUTH))
-        reason = _alert_reason(result, parts, entered, cash)
         alert = Alert.objects.create(
             shop=shop,
             date=day,

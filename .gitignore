@@ -20,3 +20,4 @@ Thumbs.db
 .pytest_cache/
 .ruff_cache/
 /backups/
+/tax_inbox/

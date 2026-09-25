@@ -453,7 +453,35 @@ def import_cash(request):
             messages.warning(request, "O'tkazilgan qatorlar: " + "; ".join(reasons[:10])
                              + (" ..." if len(reasons) > 10 else ""))
         return redirect("panel:import_cash")
-    return render(request, "panel/import_cash.html")
+    from apps.cash.models import DeclarationSync
+    from apps.cash.sync import status as tax_status
+
+    return render(request, "panel/import_cash.html", {
+        "tax": tax_status(),
+        "syncs": DeclarationSync.objects.all()[:8],
+    })
+
+
+@superadmin_required
+@require_POST
+def tax_sync_now(request):
+    """Soliq / onlayn kassa deklaratsiyasini hozir olish (admin tugmasi)."""
+    from apps.cash.sync import run_sync
+
+    entry = run_sync()
+    if entry is None:
+        messages.warning(request, "Soliq integratsiyasi sozlanmagan (TAX_ADAPTER) — "
+                                  "hozircha faqat Excel import.")
+    elif entry.ok:
+        request.audit_detail = f"Soliq sinxronlash: {entry.saved} do'kon-kun"
+        messages.success(request, entry.message)
+        if entry.unmatched:
+            messages.warning(request, f"{entry.unmatched} ta qator do'konga bog'lanmadi: "
+                             + "; ".join(entry.problems[:5]))
+    else:
+        request.audit_detail = "Soliq sinxronlash: XATO"
+        messages.error(request, entry.message[:300])
+    return redirect("panel:import_cash")
 
 
 @superadmin_required
@@ -719,6 +747,11 @@ def shop_edit(request, pk):
         shop.category = category
         shop.owner_phone = p.get("owner_phone", "").strip()[:20]
         shop.address = p.get("address", "").strip()[:300]
+        fiscal = p.get("fiscal_id", "").strip().upper()[:40]
+        if fiscal and Shop.objects.filter(fiscal_id=fiscal).exclude(pk=shop.pk).exists():
+            messages.error(request, f"Kassa raqami {fiscal} boshqa do'konga biriktirilgan.")
+            return redirect("panel:shop_edit", pk=shop.pk)
+        shop.fiscal_id = fiscal
         shop.row = Row.objects.filter(pk=_pk(p.get("row")), market=shop.market).first()
         days = sorted({int(d) for d in p.getlist("closed") if d.isdigit() and 0 <= int(d) <= 6})
         shop.closed_weekdays = ",".join(str(d) for d in days)

@@ -17,6 +17,9 @@
       <div class="field"><label class="label">Do'kon raqami</label>
         <input class="input num" name="number" value="{{ shop.number }}" required></div>
     </div>
+    <div class="field"><label class="label">Kassa (FM / terminal) raqami <small class="muted">(ixtiyoriy)</small></label>
+      <input class="input num" name="fiscal_id" value="{{ shop.fiscal_id }}" placeholder="masalan UZ170703100257" data-noloc>
+      <div class="hint">Onlayn/virtual kassa raqami. Bitta STIR bir nechta do'konga ega bo'lsa, Soliq ma'lumoti shu raqam orqali aynan shu rastaga yoziladi.</div></div>
     <div class="grid grid-2">
       <div class="field"><label class="label">Telefon</label>
         <input class="input" name="owner_phone" value="{{ shop.owner_phone }}" placeholder="+998..."></div>

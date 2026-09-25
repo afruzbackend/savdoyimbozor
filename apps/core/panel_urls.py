@@ -18,6 +18,7 @@ urlpatterns = [
     path("kameralar/", v.cameras, name="cameras"),
     path("import/dokonlar/", v.import_shops, name="import_shops"),
     path("import/kassa/", v.import_cash, name="import_cash"),
+    path("import/kassa/soliq/", v.tax_sync_now, name="tax_sync"),
     path("login-varaqasi/", v.login_sheet, name="login_sheet"),
     path("sozlamalar/", v.settings_edit, name="settings"),
     path("audit/", v.audit_log, name="audit"),

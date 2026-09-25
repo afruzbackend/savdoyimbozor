@@ -19,6 +19,13 @@ x-django-env: &django_env
   # masalan: BACKUP_UPLOAD_CMD="rclone copy {path} offsite:bozor-backup"
   BACKUP_DIR: /backups
   BACKUP_UPLOAD_CMD: ${BACKUP_UPLOAD_CMD:-}
+  # Soliq / onlayn kassa deklaratsiyasi (bo'sh — faqat Excel). inbox: /tax_inbox ga fayl tashlanadi
+  TAX_ADAPTER: ${TAX_ADAPTER:-}
+  TAX_API_URL: ${TAX_API_URL:-}
+  TAX_API_TOKEN: ${TAX_API_TOKEN:-}
+  TAX_API_FIELDS: ${TAX_API_FIELDS:-}
+  TAX_API_AMOUNT_DIVISOR: ${TAX_API_AMOUNT_DIVISOR:-1}
+  TAX_INBOX_DIR: /tax_inbox
 
 services:
   db:
@@ -50,6 +57,7 @@ services:
       - static:/app/staticfiles
       - media:/app/media
       - backups:/backups
+      - tax_inbox:/tax_inbox
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_started}
@@ -61,6 +69,7 @@ services:
     volumes:
       - media:/app/media
       - backups:/backups
+      - tax_inbox:/tax_inbox
     depends_on:
       - db
       - redis
@@ -86,6 +95,7 @@ services:
 
 volumes:
   backups:
+  tax_inbox:
   pgdata:
   redisdata:
   static:

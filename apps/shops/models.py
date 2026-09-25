@@ -28,6 +28,10 @@ class Shop(TimeStampedModel):
     )
     number = models.CharField(_("Do'kon raqami"), max_length=20)
     stir = models.CharField(_("STIR"), max_length=15, blank=True, db_index=True)
+    # Onlayn/virtual kassa (fiskal modul yoki terminal) raqami: bitta STIR bir nechta do'konga
+    # ega bo'lsa, Soliq ma'lumoti aynan qaysi rastaga tegishli ekanini shu belgilaydi.
+    fiscal_id = models.CharField(_("Kassa (FM/terminal) raqami"), max_length=40, blank=True,
+                                 db_index=True)
     owner_name = models.CharField(_("Egasi"), max_length=200, blank=True)
     owner_phone = models.CharField(_("Egasi telefoni"), max_length=20, blank=True)
     address = models.CharField(_("Manzil"), max_length=300, blank=True)

@@ -1,9 +1,38 @@
 {% extends 'panel/base.html' %}
-{% load static %}
+{% load static humanize %}
 {% block title %}Kassa import{% endblock %}
-{% block heading %}Kassa / deklaratsiya yuklash{% endblock %}
+{% block heading %}Kassa / deklaratsiya{% endblock %}
 {% block content %}
-<div class="card" style="max-width:600px">
+<div class="card backup-card {% if not tax.adapter %}{% elif tax.stale or tax.last and not tax.last.ok %}warn{% else %}ok{% endif %}" style="margin-bottom:var(--sp-4);max-width:860px">
+  <div class="row gap-3" style="align-items:center;flex-wrap:wrap">
+    <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-receipt"></use></svg></span>
+    <div style="flex:1 1 280px;min-width:0">
+      <div style="font-weight:700">Soliq / onlayn kassa integratsiyasi
+        {% if not tax.adapter %}<span class="badge badge-neutral">sozlanmagan</span>
+        {% elif tax.last and not tax.last.ok %}<span class="badge badge-bad">xato</span>
+        {% elif tax.stale %}<span class="badge badge-warn">eskirgan</span>
+        {% else %}<span class="badge badge-ok">ishlamoqda</span>{% endif %}</div>
+      <small class="muted">
+        {% if not tax.adapter %}Hozircha deklaratsiya faqat Excel orqali. Soliq qo'mitasi bilan kelishuvdan so'ng
+          server sozlamasida <span data-noloc>TAX_ADAPTER</span> yoqiladi — ma'lumot har kuni 04:15 va 13:15 da o'zi keladi.
+        {% elif tax.last_ok %}Oxirgi muvaffaqiyatli: {{ tax.last_ok.created_at|date:"d.m.Y H:i" }} ·
+          {{ tax.last_ok.saved|intcomma }} do'kon-kun{% if tax.last_ok.unmatched %} · <span style="color:var(--warn)">{{ tax.last_ok.unmatched }} qator bog'lanmadi</span>{% endif %}
+        {% else %}Hali sinxronlanmagan.{% endif %}
+        {% if tax.last and not tax.last.ok %}<br><span style="color:var(--bad)">Oxirgi urinish: {{ tax.last.message|truncatechars:140 }}</span>{% endif %}
+      </small>
+    </div>
+    {% if tax.adapter %}
+    <form method="post" action="{% url 'panel:tax_sync' %}" data-confirm="Soliq ma'lumoti hozir olinsinmi? Tegishli kunlar rostligi qayta hisoblanadi." data-confirm-ok="Ha, olish">{% csrf_token %}
+      <button class="btn btn-ghost" type="submit"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-rotate-ccw"></use></svg> Hozir olish</button></form>
+    {% endif %}
+  </div>
+  <p class="faint" style="font-size:var(--t--1);margin:var(--sp-3) 0 0">Bir kunga bir nechta manba kelsa, summalar qo'shilmaydi — eng ishonchlisi olinadi:
+    <b>Soliq API</b> → <b>virtual kassa</b> → <b>Excel</b>.</p>
+</div>
+
+<div class="grid grid-2" style="max-width:860px;align-items:start">
+<div class="card">
+  <div class="card-title" style="margin-bottom:var(--sp-2)">Excel yuklash</div>
   <p class="muted">Ustunlar tartibi (1-qator sarlavha): <b>STIR · Sana · Summa · Do'kon raqami (ixtiyoriy)</b></p>
   <p class="faint" style="font-size:var(--t--1)">Sana: 2026-09-24 yoki 24.09.2026. Bitta STIR bir nechta do'konga ega bo'lsa — 4-ustunga do'kon raqamini yozing.</p>
   <p class="hint">Yuklangach tegishli kunlar bo'yicha rostlik darajasi avtomatik qayta hisoblanadi.</p>
@@ -17,5 +46,27 @@
       </label></div>
     <button class="btn btn-lg" type="submit">Yuklash va hisoblash</button>
   </form>
+</div>
+
+<div class="card">
+  <div class="card-title" style="margin-bottom:var(--sp-2)">Sinxronlash jurnali</div>
+  {% if syncs %}
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>Vaqt</th><th>Davr</th><th class="num">Yozildi</th><th class="num">Bog'lanmadi</th><th></th></tr></thead>
+    <tbody>
+    {% for s in syncs %}
+    <tr{% if not s.ok %} class="row-bad"{% endif %} title="{{ s.message }}{% for p in s.problems|slice:':5' %}&#10;• {{ p }}{% endfor %}">
+      <td class="num">{{ s.created_at|date:"d.m H:i" }}</td>
+      <td class="num">{% if s.date_from %}{{ s.date_from|date:"d.m" }}–{{ s.date_to|date:"d.m" }}{% else %}—{% endif %}</td>
+      <td class="num">{{ s.saved|intcomma }}</td>
+      <td class="num">{{ s.unmatched }}</td>
+      <td>{% if s.ok %}<span class="badge badge-ok">OK</span>{% else %}<span class="badge badge-bad">Xato</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% else %}
+  <p class="muted" style="margin:0">Hali sinxronlash bo'lmagan.</p>
+  {% endif %}
+</div>
 </div>
 {% endblock %}

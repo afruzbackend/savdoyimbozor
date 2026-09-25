@@ -26,6 +26,12 @@ app.conf.beat_schedule = {
         "task": "apps.core.tasks.nightly_backup",
         "schedule": crontab(hour=2, minute=30),
     },
+    # Soliq / onlayn kassa deklaratsiyasi (TAX_ADAPTER bo'sh bo'lsa — jim o'tadi).
+    # Ertalab kechagi kun, tushda kechikkan tuzatishlar.
+    "sync-declarations": {
+        "task": "apps.cash.tasks.sync_declarations",
+        "schedule": crontab(hour="4,13", minute=15),
+    },
     # Har kuni 20:00 da sotuvchilarga kun yakuni/kassa yopishni eslatish
     "close-reminders": {
         "task": "apps.sales.tasks.close_reminders",
