@@ -209,6 +209,19 @@ BEHIND_PROXY = env.bool("BEHIND_PROXY", default=False)
 PUBLIC_BASE_URL = env("PUBLIC_BASE_URL", default="")
 RECEIPT_REPORT_DAYS = env.int("RECEIPT_REPORT_DAYS", default=7)  # xaridor necha kun ichida yozadi
 
+# --- SMS (xaridorga nasiya eslatmasi) — apps.core.sms ---
+#   ""        — o'chiq
+#   "console" — yubormaydi, jurnalga yozadi (demo/test)
+#   "eskiz"   — Eskiz.uz (SMS_ESKIZ_EMAIL, SMS_ESKIZ_PASSWORD, SMS_FROM; matn shabloni
+#               Eskiz kabinetida tasdiqlangan bo'lishi kerak)
+#   "http"    — umumiy shlyuz: POST SMS_HTTP_URL {"phone","text"} + Bearer SMS_HTTP_TOKEN
+SMS_BACKEND = env("SMS_BACKEND", default="")
+SMS_FROM = env("SMS_FROM", default="4546")
+SMS_ESKIZ_EMAIL = env("SMS_ESKIZ_EMAIL", default="")
+SMS_ESKIZ_PASSWORD = env("SMS_ESKIZ_PASSWORD", default="")
+SMS_HTTP_URL = env("SMS_HTTP_URL", default="")
+SMS_HTTP_TOKEN = env("SMS_HTTP_TOKEN", default="")
+
 # --- Soliq / onlayn kassa deklaratsiyasi (apps.cash.adapters) ---
 # Aniq kontrakt Soliq qo'mitasi bilan kelishuvda belgilanadi; shu yerda faqat sozlanadi.
 #   ""      — o'chiq (faqat Excel import)

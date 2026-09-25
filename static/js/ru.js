@@ -900,6 +900,18 @@ window.RU_DICT = {
   "YOPIQ": "ЗАКРЫТО",
   "BO'SH": "ПУСТО",
   "XATO": "ОШИБКА",
+  // Xaridorga SMS eslatma
+  "Xaridorga SMS eslatma": "SMS-напоминание покупателю",
+  "(tizimda SMS hali ulanmagan)": "(SMS в системе ещё не подключены)",
+  "SMS eslatma yoqilgan": "SMS-напоминание включено",
+  "SMS o'chirilgan": "SMS выключено",
+  "yuborildi": "отправлено",
+  "yuborilmadi": "не отправлено",
+  "raqam noto'g'ri": "неверный номер",
+  "Xaridorga SMS eslatma (nasiya)": "SMS-напоминание покупателю (долг)",
+  "ulanmagan": "не подключено",
+  "sinov rejimi": "тестовый режим",
+  "xatolar bor": "есть ошибки",
   // Darvoza kamerasi ↔ kirim
   "Hujjatsiz kirim": "Неоформленный приход",
   "Darvoza kamerasi va kirim": "Камера ворот и приход",

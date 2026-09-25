@@ -219,3 +219,30 @@ class BackupLog(TimeStampedModel):
 
     def __str__(self):
         return f"{self.created_at:%Y-%m-%d %H:%M} {'OK' if self.ok else 'XATO'}"
+
+
+class SmsMessage(TimeStampedModel):
+    """Yuborilgan SMS jurnali. `key` — idempotentlik: bir eslatma ikki marta ketmaydi."""
+
+    class Status(models.TextChoices):
+        SENT = "sent", _("Yuborildi")
+        FAILED = "failed", _("Xato")
+        INVALID = "invalid", _("Raqam noto'g'ri")
+
+    key = models.CharField(max_length=120, unique=True)
+    phone = models.CharField(max_length=20)
+    text = models.CharField(max_length=480)
+    status = models.CharField(max_length=10, choices=Status.choices)
+    provider = models.CharField(max_length=20, blank=True)
+    provider_id = models.CharField(max_length=80, blank=True)
+    error = models.CharField(max_length=300, blank=True)
+    shop = models.ForeignKey("shops.Shop", null=True, blank=True, on_delete=models.SET_NULL,
+                             related_name="+")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = _("SMS")
+        verbose_name_plural = _("SMS jurnali")
+
+    def __str__(self):
+        return f"{self.phone} {self.get_status_display()}"

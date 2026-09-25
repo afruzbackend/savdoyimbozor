@@ -37,6 +37,11 @@ app.conf.beat_schedule = {
         "task": "apps.cash.tasks.sync_declarations",
         "schedule": crontab(hour="4,13", minute=15),
     },
+    # Xaridorlarga nasiya SMS eslatmasi (1 kun oldin, o'sha kuni, 3 kun o'tganda)
+    "debt-sms-reminders": {
+        "task": "apps.sales.tasks.debt_sms_reminders",
+        "schedule": crontab(hour="10,15", minute=0),  # 15:00 — tarmoq xatosi bo'lganlar qayta
+    },
     # Har kuni 20:00 da sotuvchilarga kun yakuni/kassa yopishni eslatish
     "close-reminders": {
         "task": "apps.sales.tasks.close_reminders",

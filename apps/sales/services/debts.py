@@ -61,3 +61,49 @@ def debt_reminders(user, shop) -> int:
         )
         created += Notification.objects.filter(user=user).count() - before
     return created
+
+
+OVERDUE_SMS_AFTER = 3  # muddat o'tgach necha kundan keyin bitta eslatma
+
+
+def _sms_text(d, stage) -> str:
+    """Lotin, ~160 belgi (bitta SMS). Faqat kerakli: kimdan, qancha, qachon."""
+    who = (d.customer_name or "").split()[0][:20] if d.customer_name else ""
+    shop = f"{d.shop.market.name} {d.shop.number}-do'kon"[:40]
+    left = som(d.remaining)
+    when = {
+        "before": f"qaytarish kuni ertaga, {d.due_date:%d.%m}",
+        "today": "qaytarish kuni bugun",
+        "overdue": f"muddati {d.due_date:%d.%m} da o'tgan",
+    }[stage]
+    hello = f"Hurmatli {who}! " if who else ""
+    return f"{hello}{shop}: nasiya {left} so'm, {when}. Bozor Nazorat"
+
+
+def buyer_sms_reminders(today=None) -> dict:
+    """Xaridorlarga nasiya SMS eslatmasi (har kuni 10:00, Celery). Idempotent (SmsMessage.key).
+
+    Bosqichlar: 1 kun oldin · o'sha kuni · muddat o'tgach 3-kuni (bir marta).
+    """
+    from apps.core import sms
+
+    stats = {"sent": 0, "failed": 0, "invalid": 0}
+    if not sms.enabled():
+        return stats
+    today = today or timezone.localdate()
+    stages = {
+        today + timedelta(days=1): "before",
+        today: "today",
+        today - timedelta(days=OVERDUE_SMS_AFTER): "overdue",
+    }
+    qs = (Debt.objects.filter(is_paid=False, sms_remind=True, due_date__in=list(stages))
+          .exclude(customer_phone="").select_related("shop", "shop__market"))
+    for d in qs:
+        if d.remaining <= 0:
+            continue
+        stage = stages[d.due_date]
+        msg = sms.send(f"debt:{d.id}:{d.due_date}:{stage}", d.customer_phone, _sms_text(d, stage),
+                       shop=d.shop)
+        if msg is not None:
+            stats[msg.status] = stats.get(msg.status, 0) + 1
+    return stats

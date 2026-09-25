@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AuditLog, SystemSettings
+from .models import AuditLog, SmsMessage, SystemSettings
 
 
 @admin.register(SystemSettings)
@@ -24,3 +24,11 @@ class AuditLogAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(SmsMessage)
+class SmsMessageAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "phone", "status", "provider", "key")
+    list_filter = ("status", "provider")
+    search_fields = ("phone", "key")
+    readonly_fields = [f.name for f in SmsMessage._meta.fields]

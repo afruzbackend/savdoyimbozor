@@ -313,6 +313,8 @@ class Debt(TimeStampedModel):
     is_paid = models.BooleanField(_("To'langan"), default=False)
     paid_at = models.DateTimeField(null=True, blank=True)
     note = models.CharField(max_length=200, blank=True)
+    # Xaridorga SMS eslatma (1 kun oldin, o'sha kuni, 3 kun o'tganda). Sotuvchi o'chira oladi.
+    sms_remind = models.BooleanField(_("Xaridorga SMS eslatma"), default=True)
     # Sotuv ekranida "Nasiya" bilan sotilgan bo'lsa — o'sha chek
     sale = models.ForeignKey(
         Sale, null=True, blank=True, on_delete=models.SET_NULL, related_name="debt_records"

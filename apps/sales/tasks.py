@@ -8,3 +8,11 @@ from django.core.management import call_command
 def close_reminders():
     """Kunlik eslatma: sotuvchilarga kun yakuni + kassa yopish (20:00)."""
     call_command("close_reminders")
+
+
+@shared_task
+def debt_sms_reminders():
+    """Xaridorlarga nasiya SMS eslatmasi (SMS_BACKEND bo'sh bo'lsa — jim o'tadi)."""
+    from apps.sales.services.debts import buyer_sms_reminders
+
+    return buyer_sms_reminders()

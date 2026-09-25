@@ -62,8 +62,27 @@ def dashboard(request):
         "inspectors": User.objects.filter(role=Role.INSPECTOR).count(),
         "recent_audit": AuditLog.objects.select_related("user")[:10],
         **_backup_status(),
+        **_sms_status(),
     }
     return render(request, "panel/dashboard.html", ctx)
+
+
+def _sms_status() -> dict:
+    """SMS (xaridorga nasiya eslatmasi): ulanganmi, oxirgi 7 kun yuborilgan/xato."""
+    from datetime import timedelta
+
+    from django.conf import settings
+    from django.db.models import Count, Q
+    from django.utils import timezone
+
+    from .models import SmsMessage
+
+    week = SmsMessage.objects.filter(created_at__gte=timezone.now() - timedelta(days=7))
+    agg = week.aggregate(sent=Count("id", filter=Q(status="sent")),
+                         failed=Count("id", filter=Q(status="failed")),
+                         invalid=Count("id", filter=Q(status="invalid")))
+    return {"sms_backend": settings.SMS_BACKEND, "sms_week": agg,
+            "sms_last_error": week.filter(status="failed").first()}
 
 
 def _backup_status() -> dict:

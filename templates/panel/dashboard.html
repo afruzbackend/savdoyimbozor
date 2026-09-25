@@ -42,6 +42,22 @@
       <button class="btn btn-ghost" type="submit"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Hozir olish</button></form>
   </div>
 </div>
+<div class="card backup-card {% if not sms_backend %}{% elif sms_week.failed %}warn{% else %}ok{% endif %}" style="margin-bottom:var(--sp-4)">
+  <div class="row gap-3" style="align-items:center;flex-wrap:wrap">
+    <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bell"></use></svg></span>
+    <div style="flex:1 1 260px;min-width:0">
+      <div style="font-weight:700">Xaridorga SMS eslatma (nasiya)
+        {% if not sms_backend %}<span class="badge badge-neutral">ulanmagan</span>
+        {% elif sms_backend == 'console' %}<span class="badge badge-warn">sinov rejimi</span>
+        {% elif sms_week.failed %}<span class="badge badge-warn">xatolar bor</span>
+        {% else %}<span class="badge badge-ok">ishlamoqda</span>{% endif %}</div>
+      <small class="muted">{% if not sms_backend %}Qaytarish kunidan 1 kun oldin, o'sha kuni va 3 kun o'tganda xaridorga SMS ketadi — server sozlamasida
+        <span data-noloc>SMS_BACKEND</span> (Eskiz.uz yoki boshqa shlyuz) yoqilgach.
+        {% else %}Oxirgi 7 kun: <b>{{ sms_week.sent }}</b> yuborildi{% if sms_week.failed %} · <span style="color:var(--warn-ink)">{{ sms_week.failed }} xato</span>{% endif %}{% if sms_week.invalid %} · {{ sms_week.invalid }} raqam noto'g'ri{% endif %}
+          {% if sms_last_error %}<br><span style="color:var(--bad)">Oxirgi xato: {{ sms_last_error.error|truncatechars:120 }}</span>{% endif %}{% endif %}</small>
+    </div>
+  </div>
+</div>
 <div class="grid grid-2">
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Tezkor amallar</div>

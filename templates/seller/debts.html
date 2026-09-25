@@ -10,9 +10,11 @@
     <form method="post">{% csrf_token %}
       <div class="field"><label class="label">Xaridor</label><input class="input" name="customer_name" placeholder="Ism, mo'ljal" required></div>
       <div class="field"><label class="label">Telefon</label><input class="input" name="customer_phone" placeholder="+998..." inputmode="tel"></div>
-      <div class="field"><label class="label">Summa (so'm)</label><input class="input num" type="number" name="amount" min="1" step="1000" inputmode="numeric" required></div>
+      <div class="field"><label class="label">Summa (so'm)</label><input class="input num" name="amount" inputmode="numeric" autocomplete="off" required></div>
       {% include 'components/_duefield.html' with name='due_date' label='Qaytarish sanasi' %}
       <div class="field"><label class="label">Izoh</label><input class="input" name="note"></div>
+      <label class="switch" style="margin-bottom:var(--sp-3)"><input type="checkbox" name="sms_remind" checked><span class="track"></span><span class="thumb"></span>
+        <span style="font-size:var(--t--1)">Xaridorga SMS eslatma{% if not sms_on %} <small class="muted">(tizimda SMS hali ulanmagan)</small>{% endif %}</span></label>
       <button class="btn btn-block" type="submit">Qo'shish</button>
     </form>
   </div>
@@ -37,6 +39,16 @@
                   {% if d.due_date < today %}<span class="badge badge-bad">muddati o'tdi</span>{% elif d.due_date == today %}<span class="badge badge-warn">bugun</span>{% elif d.due_date == tomorrow %}<span class="badge badge-neutral">ertaga</span>{% endif %}
                 {% else %} · <span class="badge badge-neutral">muddat yo'q</span>{% endif %}
               </div>
+              {% if d.customer_phone %}
+              <form method="post" class="sms-line">{% csrf_token %}
+                <input type="hidden" name="sms_toggle" value="{{ d.pk }}">
+                <button type="submit" class="sms-toggle {% if d.sms_remind %}on{% endif %}" title="{% if d.sms_remind %}SMS eslatmani o'chirish{% else %}SMS eslatmani yoqish{% endif %}">
+                  <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-{% if d.sms_remind %}bell{% else %}bell-off{% endif %}"></use></svg>
+                  SMS {% if d.sms_remind %}eslatma yoqilgan{% else %}o'chirilgan{% endif %}</button>
+                {% if d.last_sms %}<small class="faint num">· {{ d.last_sms.created_at|date:"d.m H:i" }}
+                  {% if d.last_sms.status == 'sent' %}yuborildi{% elif d.last_sms.status == 'invalid' %}<span style="color:var(--bad)">raqam noto'g'ri</span>{% else %}<span style="color:var(--warn-ink)">yuborilmadi</span>{% endif %}</small>{% endif %}
+              </form>
+              {% endif %}
             </div>
             <div class="row gap-2" style="align-items:center">
               <div style="text-align:right">
@@ -48,7 +60,7 @@
           </div>
           <form method="post" class="debt-pay" x-show="open" x-cloak>{% csrf_token %}
             <input type="hidden" name="pay" value="{{ d.pk }}">
-            <input class="input num" type="number" name="amount" min="1" max="{{ d.remaining }}" inputmode="numeric"
+            <input class="input num" name="amount" inputmode="numeric" autocomplete="off"
                    value="{{ d.remaining }}" style="max-width:150px" aria-label="Summa">
             <button class="btn" name="method" value="cash"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg> Naqd</button>
             <button class="btn btn-ghost" name="method" value="card"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-credit-card"></use></svg> Karta</button>

@@ -748,6 +748,13 @@ def debts(request):
     if shop is None:
         return redirect("seller:home")
     if request.method == "POST":
+        if request.POST.get("sms_toggle"):
+            debt = get_object_or_404(Debt, pk=_pk(request.POST["sms_toggle"]), shop=shop)
+            debt.sms_remind = not debt.sms_remind
+            debt.save(update_fields=["sms_remind"])
+            state = "yoqildi" if debt.sms_remind else "o'chirildi"
+            messages.success(request, f"{debt.customer_name}: SMS eslatma {state}.")
+            return redirect("seller:debts")
         if request.POST.get("extend"):
             # Xaridor muddat so'radi — yangi sana (eslatmalar yangi sanaga qayta keladi)
             from .services.debts import parse_due
@@ -807,11 +814,24 @@ def debts(request):
                     amount=amount,
                     due_date=due,
                     note=request.POST.get("note", "").strip()[:200],
+                    sms_remind=request.POST.get("sms_remind") == "on",
                 )
                 messages.success(request, "Nasiya qo'shildi.")
         return redirect("seller:debts")
     active = list(Debt.objects.filter(shop=shop, is_paid=False).order_by("due_date", "created_at"))
+    from apps.core import sms
+    from apps.core.models import SmsMessage
+
     from .models import DebtPayment
+
+    # Har nasiyaning oxirgi SMS holati (1 so'rov)
+    last_sms = {}
+    for m in SmsMessage.objects.filter(
+        key__regex=r"^debt:(" + "|".join(str(d.pk) for d in active) + r"):"
+    ).order_by("created_at") if active else []:
+        last_sms[int(m.key.split(":")[1])] = m
+    for d in active:
+        d.last_sms = last_sms.get(d.pk)
 
     return render(
         request,
@@ -824,6 +844,7 @@ def debts(request):
             "payments": DebtPayment.objects.filter(shop=shop)
             .select_related("debt").order_by("-created_at")[:15],
             "today": timezone.localdate(),
+            "sms_on": sms.enabled(),
         },
     )
 
