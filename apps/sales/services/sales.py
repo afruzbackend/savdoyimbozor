@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from django.db import transaction
-from django.db.models import F
 from django.utils import timezone
 
 from apps.core.models import SystemSettings
@@ -73,6 +72,10 @@ def create_sale(
     candidate_pids = {pid for _q, _up, pid, _n in raw_lines if pid}
     prods = {}
     if candidate_pids:
+        # Qulf tartibi hamma joyda bir xil: avval do'kon, keyin mahsulot (deadlock bo'lmasin)
+        from apps.shops.models import Shop
+
+        Shop.objects.select_for_update().filter(pk=shop.pk).first()
         prods = {
             p.pk: p
             for p in Product.objects.select_for_update().filter(
@@ -144,9 +147,13 @@ def create_sale(
             unit_price=up,
             line_total=int((q * up).quantize(Decimal("1"))),
         )
-        # Qoldiqni kamaytiramiz (qatorlar allaqachon qulflangan)
+        # Qoldiqni kamaytiramiz — o'zgarmas jurnal orqali (vaqt bo'yicha ombor holati uchun)
         if pid:
-            Product.objects.filter(pk=pid).update(stock=F("stock") - q)
+            from ..models import StockMove
+            from .stock import record_move
+
+            record_move(prods[pid], StockMove.Kind.SALE, delta=-q, ref=f"Sale#{sale.pk}",
+                        user=seller)
     if payment_type == "debt" and sale.total > 0:
         from ..models import Debt
 

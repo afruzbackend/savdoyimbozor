@@ -123,7 +123,12 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         random.seed(2026)
         if opts["reset"]:
+            from apps.sales.models import CashOpen, DebtPayment, StockMove
+
             for M in (
+                StockMove,  # demo tozalash: jurnal ham (haqiqiy tizimda o'chirilmaydi)
+                DebtPayment,
+                CashOpen,
                 CameraEvent,
                 Camera,
                 Inspection,
@@ -261,7 +266,14 @@ class Command(BaseCommand):
                 self._gen_close(shop, day, is_stock_hider=shop.id in stock_hiders)
                 self._gen_register_close(shop, day, is_cash_hider=shop.id in cash_hiders)
 
-        # Rostlik + signal
+        # Ombor jurnali boshlanishi: joriy qoldiq "boshlang'ich" bo'lib yoziladi
+        from apps.sales.models import StockMove
+        from apps.sales.services.stock import record_move
+
+        for p in Product.objects.exclude(stock=0).filter(moves__isnull=True):
+            record_move(p, StockMove.Kind.OPENING, set_to=p.stock, ref="Demo boshi")
+
+        # Rostlik + signal (o'tgan kunlar yakuniy)
         for d in range(opts["days"]):
             recompute_for_date(today - timedelta(days=d))
 

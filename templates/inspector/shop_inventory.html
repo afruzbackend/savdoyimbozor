@@ -1,30 +1,84 @@
 {% extends 'inspector/base.html' %}
-{% load static humanize %}
+{% load static humanize uzdate %}
 {% block title %}Ombor — №{{ shop.number }}{% endblock %}
 {% block heading %}№{{ shop.number }} · {{ shop.owner_name }} — ombor{% endblock %}
 {% block topbar_actions %}
+  <button class="btn" type="button" onclick="window.print()">
+    <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-file-text"></use></svg> Chop etish / PDF</button>
   <a class="btn btn-ghost" href="{% url 'inspector:shop_detail' shop.pk %}">Do'kon sahifasi</a>
 {% endblock %}
 {% block content %}
-<div class="card" style="margin-bottom:var(--sp-4)">
-  <small class="muted">Joriy ombor umumiy qiymati</small>
-  <div class="truth-big num" style="font-size:var(--t-3)">{{ total|intcomma }} <span style="font-size:var(--t-1)">so'm</span></div>
-</div>
-<div class="card">
-  <div class="table-wrap">
-    <table class="data">
-      <thead><tr><th>Mahsulot</th><th>Barkod</th><th class="num">Qoldiq</th><th class="num">Narx</th><th class="num">Qiymat</th></tr></thead>
+<div class="print-doc">
+  {# Faqat chop etishda: rasmiy sarlavha #}
+  <div class="print-only doc-head">
+    <div style="font-weight:700;font-size:15pt">Ombor holati to'g'risida ma'lumotnoma</div>
+    <div>{{ shop.market.name }} · do'kon №{{ shop.number }} · STIR {{ shop.stir|default:"—" }} · {{ shop.owner_name }}</div>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--sp-4)">
+    <div class="grid grid-3" style="gap:var(--sp-3)">
+      <div><small class="muted">Holat vaqti</small>
+        <div style="font-weight:700">{{ moment|uzdatetime }}{% if not at %} <span class="badge badge-neutral">hozir</span>{% endif %}</div></div>
+      <div><small class="muted">Ombor umumiy qiymati</small>
+        <div class="truth-big num" style="font-size:var(--t-2)">{{ total|intcomma }} <span style="font-size:var(--t-0)">so'm</span></div></div>
+      <div><small class="muted">Oxirgi jismoniy sanoq</small>
+        <div>{% if last_count %}{{ last_count|uzdatetime }}{% else %}<span class="badge badge-warn">sanalmagan</span>{% endif %}</div></div>
+    </div>
+    <div class="chain-box {% if chain_ok %}ok{% else %}bad{% endif %}">
+      {% if chain_ok %}
+        <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg>
+        <span>Jurnal butun: {{ chain_n }} ta yozuv, hech biri o'zgartirilmagan yoki o'chirilmagan.
+          {% if fingerprint %}Nazorat kodi: <b class="num" data-noloc>{{ fingerprint }}</b>{% endif %}</span>
+      {% else %}
+        <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg>
+        <span><b>Diqqat: jurnal buzilgan</b> (yozuv #{{ chain_bad }}) — ma'lumot o'zgartirilgan bo'lishi mumkin.</span>
+      {% endif %}
+    </div>
+    {% if before_journal %}
+    <div class="msg warning" style="margin:var(--sp-3) 0 0">Tanlangan vaqt jurnal boshlanishidan ({{ journal_start|uzdatetime }}) oldin — bu davr uchun ma'lumot yo'q.</div>
+    {% endif %}
+  </div>
+
+  <div class="card" style="margin-bottom:var(--sp-4)">
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Mahsulot</th><th>Barkod</th><th class="num">Qoldiq</th><th class="num">Narx</th><th class="num">Qiymat</th>{% if at %}<th>Oxirgi harakat</th>{% endif %}</tr></thead>
+        <tbody>
+        {% for ln in lines %}
+        <tr class="{% if ln.qty < 0 %}row-bad{% endif %}">
+          <td>{{ ln.p.name }}</td><td class="num muted" data-noloc>{{ ln.p.barcode|default:"—" }}</td>
+          <td class="num">{{ ln.qty|floatformat:'-3' }} {{ ln.p.get_unit_display }}</td>
+          <td class="num">{{ ln.price|intcomma }}</td>
+          <td class="num"><b>{{ ln.value|intcomma }}</b></td>
+          {% if at %}<td class="muted num" style="white-space:nowrap">{{ ln.last|uzdatetime }}</td>{% endif %}
+        </tr>
+        {% empty %}<tr><td colspan="6" class="muted">Qoldiqda mahsulot yo'q.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if day_moves %}
+  <div class="card" style="margin-bottom:var(--sp-4)">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">O'sha kungi tovar harakatlari (shu vaqtgacha)</div>
+    <div class="table-wrap"><table class="data" style="font-size:var(--t--1)">
+      <thead><tr><th>Vaqt</th><th>Mahsulot</th><th>Tur</th><th class="num">O'zgarish</th><th class="num">Qoldiq</th><th>Hujjat</th></tr></thead>
       <tbody>
-      {% for p in products %}
-      <tr class="{% if p.is_low_stock %}row-warn{% endif %}">
-        <td>{{ p.name }}</td><td class="num muted">{{ p.barcode|default:"—" }}</td>
-        <td class="num">{{ p.stock|floatformat:'-3' }} {{ p.unit }}</td>
-        <td class="num">{{ p.sell_price|intcomma }}</td>
-        <td class="num"><b>{{ p.line_value|intcomma }}</b></td>
-      </tr>
-      {% empty %}<tr><td colspan="5" class="muted">Mahsulot yo'q.</td></tr>{% endfor %}
-      </tbody>
-    </table>
+      {% for m in day_moves %}
+        <tr><td class="num">{{ m.created_at|date:"H:i" }}</td><td>{{ m.product.name }}</td><td>{{ m.get_kind_display }}</td>
+          <td class="num {% if m.qty > 0 %}ok-text{% elif m.qty < 0 %}bad-text{% endif %}">{% if m.qty > 0 %}+{% endif %}{{ m.qty|floatformat:'-3' }}</td>
+          <td class="num">{{ m.balance|floatformat:'-3' }}</td><td class="muted num" data-noloc>{{ m.ref }}</td></tr>
+      {% endfor %}
+      </tbody></table></div>
+  </div>
+  {% endif %}
+
+  <p class="faint" style="font-size:var(--t--1)">
+    Ma'lumotnoma {{ generated|uzdatetime }} da tuzildi · {{ inspector.get_full_name|default:inspector.username }}.
+    Qoldiq sotuvchi yozuvlari (kirim, sotuv, hisobdan chiqarish) va kun yakunidagi jismoniy sanoq asosida
+    o'zgarmas jurnaldan hisoblangan; oxirgi sanoqdan keyingi harakatlar sotuvchi kiritgan ma'lumotdir.</p>
+  <div class="print-only sign-row">
+    <div>Tuzdi: ______________________</div><div>Sotuvchi: ______________________</div>
   </div>
 </div>
 {% endblock %}

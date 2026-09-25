@@ -1,15 +1,30 @@
 {% extends 'inspector/base.html' %}
-{% load static humanize %}
-{% block title %}Joriy ombor{% endblock %}
-{% block heading %}Joriy ombor{% endblock %}
+{% load static humanize uzdate %}
+{% block title %}Ombor holati{% endblock %}
+{% block heading %}Ombor holati{% endblock %}
 {% block content %}
 {% if markets.count > 1 %}
 <div class="segmented" style="margin-bottom:var(--sp-4)" data-noloc>
   {% for m in markets %}
-  <a href="{% url 'inspector:inventory_market' m.pk %}"><button {% if market and m.pk == market.pk %}aria-selected="true"{% endif %}>{{ m.name }}</button></a>
+  <a href="{% url 'inspector:inventory_market' m.pk %}{{ at_query }}"><button {% if market and m.pk == market.pk %}aria-selected="true"{% endif %}>{{ m.name }}</button></a>
   {% endfor %}
 </div>
 {% endif %}
+
+{# Vaqt tanlash: "yong'in kuni soat 14:00 da nima bor edi" — jurnaldan #}
+<form method="get" class="card at-picker" style="margin-bottom:var(--sp-4)">
+  <div class="row gap-3" style="align-items:flex-end;flex-wrap:wrap">
+    <div style="flex:0 0 auto">{% include 'components/_datefield.html' with name='sana' iso=at|date:'Y-m-d' label='Sana' %}</div>
+    <div class="field" style="margin:0;flex:0 0 110px"><label class="label">Soat</label>
+      <input class="input num" name="vaqt" value="{% if at %}{{ at|date:'H:i' }}{% endif %}" placeholder="14:00"
+             inputmode="numeric" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]"></div>
+    <button class="btn" type="submit"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-search"></use></svg> Ko'rsatish</button>
+    {% if at %}<a class="btn btn-ghost" href="{% if market %}{% url 'inspector:inventory_market' market.pk %}{% else %}{% url 'inspector:inventory' %}{% endif %}">Hozirgi holat</a>{% endif %}
+  </div>
+  <p class="hint" style="margin:var(--sp-2) 0 0">
+    {% if at %}<b>{{ at|uzdatetime }}</b> holatidagi qoldiq — o'zgartirib bo'lmaydigan tovar harakati jurnalidan.
+    {% else %}Hozirgi qoldiq. Yong'in, tekshiruv yoki kompensatsiya uchun o'tgan vaqtni tanlang.{% endif %}</p>
+</form>
 
 <div class="grid grid-2" style="margin-bottom:var(--sp-4)">
   <div class="card"><small class="muted">Bozordagi umumiy ombor qiymati</small>
@@ -20,20 +35,21 @@
 
 <div class="card">
   <div class="card-header"><span class="card-title">{{ market.name }} — do'konlar ombori</span>
-    <small class="muted">Yong'in/nazorat holatida: qaysi do'konda qancha mahsulot bor</small></div>
+    <small class="muted">Oxirgi sanoq — sotuvchi qoldiqni jismonan sanagan vaqt (qanchalik yangi, shunchalik ishonchli)</small></div>
   <div class="table-wrap">
     <table class="data">
-      <thead><tr><th>Do'kon</th><th>Egasi</th><th class="num">Turlari</th><th class="num">Ombor qiymati (so'm)</th><th></th></tr></thead>
+      <thead><tr><th>Do'kon</th><th>Egasi</th><th class="num">Turlari</th><th class="num">Ombor qiymati (so'm)</th><th>Oxirgi sanoq</th><th></th></tr></thead>
       <tbody>
       {% for r in rows %}
       <tr>
-        <td><a href="{% url 'inspector:shop_inventory' r.shop.pk %}">№{{ r.shop.number }}</a></td>
+        <td><a href="{% url 'inspector:shop_inventory' r.shop.pk %}{{ at_query }}">№{{ r.shop.number }}</a></td>
         <td>{{ r.shop.owner_name }}</td>
         <td class="num">{{ r.items }}</td>
         <td class="num"><b>{{ r.value|intcomma }}</b></td>
-        <td><a class="btn btn-ghost" style="padding:6px 10px" href="{% url 'inspector:shop_inventory' r.shop.pk %}">Ro'yxat</a></td>
+        <td class="num">{% if r.last_count %}<span class="muted">{{ r.last_count|uzdatetime }}</span>{% else %}<span class="badge badge-warn">sanalmagan</span>{% endif %}</td>
+        <td><a class="btn btn-ghost" style="padding:6px 10px" href="{% url 'inspector:shop_inventory' r.shop.pk %}{{ at_query }}">Ma'lumotnoma</a></td>
       </tr>
-      {% empty %}<tr><td colspan="5" class="muted">Ma'lumot yo'q.</td></tr>{% endfor %}
+      {% empty %}<tr><td colspan="6" class="muted">Ma'lumot yo'q.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>

@@ -82,3 +82,99 @@ def close_sold_value(close) -> int | None:
             continue
         value += int(sold_qty(ln.morning_qty, ln.evening_qty, ln.product_id, mv) * ln.unit_price)
     return value
+
+
+# ============================================================================
+# O'ZGARMAS OMBOR JURNALI — qoldiq FAQAT shu funksiya orqali o'zgaradi
+# ============================================================================
+
+
+class NegativeStock(Exception):
+    """Qoldiqdan ko'p chiqarishga urinish (qulf ostida tekshiriladi)."""
+
+
+def record_move(product, kind, *, delta=None, set_to=None, ref="", user=None,
+                allow_negative=True):
+    """Qoldiqni o'zgartiradi VA jurnalga yozadi (xesh zanjiri bilan). Qaytadi: StockMove.
+
+    delta — o'zgarish (+kirim / −sotuv); set_to — sanoq (qoldiq shu songa tenglashadi).
+    Do'kon qatori qulflanadi: bir do'kon zanjiri parallel yozuvlarda buzilmaydi.
+    """
+    from django.db import transaction
+    from django.utils import timezone
+
+    from apps.catalog.models import Product
+    from apps.shops.models import Shop
+
+    from ..models import StockMove
+
+    with transaction.atomic():
+        Shop.objects.select_for_update().filter(pk=product.shop_id).first()
+        p = Product.objects.select_for_update().get(pk=product.pk)
+        before = p.stock
+        after = Decimal(set_to) if set_to is not None else before + Decimal(delta)
+        if not allow_negative and after < 0:
+            raise NegativeStock(
+                f"«{p.name}» qoldig'i {before:g}, so'ralgan {abs(Decimal(delta)):g}."
+            )
+        Product.objects.filter(pk=p.pk).update(stock=after)
+        prev = (
+            StockMove.objects.filter(shop_id=p.shop_id)
+            .order_by("-created_at", "-id")
+            .values_list("hash", flat=True)
+            .first()
+            or ""
+        )
+        m = StockMove(
+            shop_id=p.shop_id, product_id=p.pk, kind=kind,
+            qty=after if kind == StockMove.Kind.OPENING else after - before, balance=after,
+            unit_price=p.sell_price, ref=str(ref)[:60], user=user, created_at=timezone.now(),
+            prev_hash=prev,
+        )
+        m.hash = m.compute_hash()
+        m.save()
+        product.stock = after
+        return m
+
+
+def verify_chain(shop) -> tuple[bool, int | None, int]:
+    """Do'kon jurnali butunmi. Qaytadi: (butun, birinchi buzilgan yozuv id, yozuvlar soni)."""
+    from ..models import StockMove
+
+    prev = ""
+    n = 0
+    for m in StockMove.objects.filter(shop=shop).order_by("created_at", "id").iterator():
+        n += 1
+        if m.prev_hash != prev or m.hash != m.compute_hash():
+            return False, m.pk, n
+        prev = m.hash
+    return True, None, n
+
+
+def stock_at(shops, at) -> dict:
+    """Berilgan VAQTdagi qoldiq: {product_id: (qoldiq, narx, oxirgi harakat vaqti)}.
+
+    Har mahsulot bo'yicha `at` gacha bo'lgan OXIRGI jurnal yozuvi (PostgreSQL DISTINCT ON).
+    """
+    from ..models import StockMove
+
+    rows = (
+        StockMove.objects.filter(shop__in=shops, created_at__lte=at)
+        .order_by("product_id", "-created_at", "-id")
+        .distinct("product_id")
+        .values_list("product_id", "balance", "unit_price", "created_at")
+    )
+    return {pid: (bal, price, t) for pid, bal, price, t in rows}
+
+
+def last_count_at(shops, at) -> dict:
+    """Har do'kon uchun `at` gacha oxirgi JISMONIY sanoq vaqti (kun yakuni)."""
+    from ..models import StockMove
+
+    rows = (
+        StockMove.objects.filter(shop__in=shops, created_at__lte=at, kind=StockMove.Kind.COUNT)
+        .order_by("shop_id", "-created_at")
+        .distinct("shop_id")
+        .values_list("shop_id", "created_at")
+    )
+    return dict(rows)

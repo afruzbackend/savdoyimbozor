@@ -345,15 +345,20 @@ def stock_in(request):
                     ensure_barcode(product)
         in_packs = bool(request.POST.get("in_packs"))
         real_qty = qty * product.pack_coeff if in_packs else qty
-        StockIn.objects.create(
-            shop=shop,
-            product=product,
-            seller=request.user,
-            quantity=qty,
-            in_packs=in_packs,
-            unit_price=price,
-        )
-        Product.objects.filter(pk=product.pk).update(stock=F("stock") + real_qty)
+        from .models import StockMove
+        from .services.stock import record_move
+
+        with transaction.atomic():
+            si = StockIn.objects.create(
+                shop=shop,
+                product=product,
+                seller=request.user,
+                quantity=qty,
+                in_packs=in_packs,
+                unit_price=price,
+            )
+            record_move(product, StockMove.Kind.IN, delta=real_qty, ref=f"StockIn#{si.pk}",
+                        user=request.user)
         messages.success(request, f"Kirim qo'shildi: {product.name} +{real_qty:g}")
         return redirect("seller:stock_in")
     return render(
@@ -444,9 +449,13 @@ def daily_close(request):
                     evening_qty=evening,
                     unit_price=p.sell_price,
                 )
-                # Sanoq = haqiqat: tizim qoldig'i jismoniy sanoqqa tenglashadi
+                # Sanoq = haqiqat: tizim qoldig'i jismoniy sanoqqa tenglashadi (jurnalda "sanoq")
                 # (tez sotuv mahsulotga bog'lanmaydi — aks holda qoldiq cheksiz o'sardi)
-                Product.objects.filter(pk=p.pk).update(stock=evening)
+                from .models import StockMove
+                from .services.stock import record_move
+
+                record_move(p, StockMove.Kind.COUNT, set_to=evening, ref=f"DailyClose#{close.pk}",
+                            user=request.user)
             entered = (
                 Sale.objects.filter(shop=shop, created_at__date=today).aggregate(s=Sum("total"))[
                     "s"
@@ -526,16 +535,21 @@ def returns(request):
         else:
             if not amount:  # kiritilmagan bo'lsa — narx × miqdor
                 amount = int(qty * product.sell_price)
-            with transaction.atomic():
-                locked = Product.objects.select_for_update().get(pk=product.pk)
-                if qty > locked.stock:
-                    messages.error(request, "Qoldiq o'zgardi — qayta urinib ko'ring.")
-                    return redirect("seller:returns")
-                SaleReturn.objects.create(
-                    shop=shop, seller=request.user, product=product,
-                    quantity=qty, amount=amount, reason=reason,
-                )
-                Product.objects.filter(pk=product.pk).update(stock=F("stock") - qty)
+            from .models import StockMove
+            from .services.stock import NegativeStock, record_move
+
+            try:
+                with transaction.atomic():
+                    ret = SaleReturn.objects.create(
+                        shop=shop, seller=request.user, product=product,
+                        quantity=qty, amount=amount, reason=reason,
+                    )
+                    # Qulf ostida qayta tekshiriladi — parallel so'rov qoldiqdan oshirmasin
+                    record_move(product, StockMove.Kind.RETURN, delta=-qty,
+                                ref=f"Return#{ret.pk}", user=request.user, allow_negative=False)
+            except NegativeStock:
+                messages.error(request, "Qoldiq o'zgardi — qayta urinib ko'ring.")
+                return redirect("seller:returns")
             messages.success(request, "Qaytarish qayd etildi. Qoldiq yangilandi.")
         return redirect("seller:returns")
     return render(
@@ -575,17 +589,22 @@ def writeoff(request):
                 f"{product.get_unit_display()}, so'ralgan {qty:g}.",
             )
         else:
-            with transaction.atomic():
-                # Qulflab qayta tekshiramiz — ikki parallel so'rov qoldiqdan oshirib yubormasin
-                locked = Product.objects.select_for_update().get(pk=product.pk)
-                if qty > locked.stock:
-                    messages.error(request, "Qoldiq o'zgardi — qayta urinib ko'ring.")
-                    return redirect("seller:writeoff")
-                WriteOff.objects.create(
-                    shop=shop, seller=request.user, product=product, product_name=product.name,
-                    quantity=qty, photo=request.FILES["photo"], reason=reason,
-                )
-                Product.objects.filter(pk=product.pk).update(stock=F("stock") - qty)
+            from .models import StockMove
+            from .services.stock import NegativeStock, record_move
+
+            try:
+                with transaction.atomic():
+                    wo = WriteOff.objects.create(
+                        shop=shop, seller=request.user, product=product,
+                        product_name=product.name, quantity=qty, photo=request.FILES["photo"],
+                        reason=reason,
+                    )
+                    # Qulf ostida qayta tekshiriladi — parallel so'rov qoldiqdan oshirmasin
+                    record_move(product, StockMove.Kind.WRITEOFF, delta=-qty,
+                                ref=f"WriteOff#{wo.pk}", user=request.user, allow_negative=False)
+            except NegativeStock:
+                messages.error(request, "Qoldiq o'zgardi — qayta urinib ko'ring.")
+                return redirect("seller:writeoff")
             messages.success(request, "Hisobdan chiqarish qayd etildi.")
         return redirect("seller:writeoff")
     return render(

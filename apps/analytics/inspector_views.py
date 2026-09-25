@@ -616,41 +616,73 @@ def appeal_respond(request, pk):
     return back
 
 
+def _parse_at(request):
+    """?sana=YYYY-MM-DD&vaqt=HH:MM → aware datetime (Toshkent). Bo'sh → None (joriy holat)."""
+    from datetime import datetime
+
+    raw_d = (request.GET.get("sana") or "").strip()
+    if not raw_d:
+        return None
+    try:
+        d = datetime.strptime(raw_d, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+    raw_t = (request.GET.get("vaqt") or "").strip() or "23:59"
+    try:
+        t = datetime.strptime(raw_t, "%H:%M").time()
+    except ValueError:
+        t = datetime.strptime("23:59", "%H:%M").time()
+    # Daqiqa OXIRIgacha: "14:00" tanlansa 14:00:35 dagi harakat ham kirsin
+    t = t.replace(second=59, microsecond=999999)
+    at = timezone.make_aware(datetime.combine(d, t))
+    return min(at, timezone.now())
+
+
 @login_required
 def inventory(request, pk=None):
-    """Joriy ombor — har do'konda hozir qancha mahsulot bor (yong'in/nazorat uchun).
+    """Ombor — har do'konda qancha mahsulot bor: HOZIR yoki tanlangan SANA/VAQTda.
 
-    Prokuratura ssenariysi: "bozor yondi, qaysi do'konda qancha mahsulot bor edi".
+    Prokuratura ssenariysi: "bozor yondi, o'sha kuni soat 14:00 da qaysi do'konda nima
+    qancha bor edi" — javob o'zgarmas tovar harakati jurnalidan (StockMove) olinadi.
     """
     from django.db.models import Count, DecimalField, F, Q, Sum
 
     from apps.catalog.models import Product
+    from apps.sales.services.stock import last_count_at, stock_at
 
     markets = Market.objects.filter(id__in=_visible_shops(request).values("market_id")).distinct()
     market = get_object_or_404(markets, pk=pk) if pk else markets.first()
+    at = _parse_at(request)
     rows = []
     total_value = total_items = 0
     if market:
-        # BITTA agregat so'rov: har do'kon bo'yicha qiymat/mahsulot soni (N+1 yo'q)
-        agg = {
-            r["shop"]: r
-            for r in Product.objects.filter(shop__market=market, is_active=True)
-            .values("shop")
-            .annotate(
-                value=Sum(F("stock") * F("sell_price"), output_field=DecimalField()),
-                items=Count("id", filter=Q(stock__gt=0)),
-                products=Count("id"),
-            )
-        }
-        for shop in market.shops.filter(is_active=True).order_by("number"):
-            a = agg.get(shop.id, {})
-            value = int(a.get("value") or 0)
-            items = a.get("items") or 0
+        shops = list(market.shops.filter(is_active=True).order_by("number"))
+        if at is None:
+            # BITTA agregat so'rov: har do'kon bo'yicha qiymat/mahsulot soni (N+1 yo'q)
+            agg = {
+                r["shop"]: (int(r["value"] or 0), r["items"] or 0)
+                for r in Product.objects.filter(shop__market=market, is_active=True)
+                .values("shop")
+                .annotate(
+                    value=Sum(F("stock") * F("sell_price"), output_field=DecimalField()),
+                    items=Count("id", filter=Q(stock__gt=0)),
+                )
+            }
+        else:
+            snap = stock_at(shops, at)
+            shop_of = dict(Product.objects.filter(pk__in=snap).values_list("pk", "shop_id"))
+            agg = {}
+            for pid, (bal, price, _t) in snap.items():
+                if bal > 0:
+                    v, n = agg.get(shop_of[pid], (0, 0))
+                    agg[shop_of[pid]] = (v + int(bal * price), n + 1)
+        counts = last_count_at(shops, at or timezone.now())
+        for shop in shops:
+            value, items = agg.get(shop.id, (0, 0))
             total_value += value
             total_items += items
-            rows.append(
-                {"shop": shop, "value": value, "items": items, "products": a.get("products") or 0}
-            )
+            rows.append({"shop": shop, "value": value, "items": items,
+                         "last_count": counts.get(shop.id)})
         rows.sort(key=lambda r: r["value"], reverse=True)
     return render(
         request,
@@ -661,24 +693,76 @@ def inventory(request, pk=None):
             "rows": rows,
             "total_value": total_value,
             "total_items": total_items,
+            "at": at,
+            "at_query": (f"?sana={at:%Y-%m-%d}&vaqt={at:%H:%M}" if at else ""),
         },
     )
 
 
 @login_required
 def shop_inventory(request, pk):
-    """Bitta do'kon joriy ombori — mahsulotlar ro'yxati (miqdor + qiymat)."""
+    """Bitta do'kon ombori (hozir yoki tanlangan vaqtda) — chop etiladigan ma'lumotnoma.
+
+    Jurnal butunligi (xesh zanjiri) tekshiriladi: yozuv o'zgartirilgan/o'chirilgan bo'lsa ko'rinadi.
+    """
     from apps.catalog.models import Product
+    from apps.sales.models import StockMove
+    from apps.sales.services.stock import last_count_at, stock_at, verify_chain
 
     shop = get_object_or_404(_visible_shops(request), pk=pk)
-    prods = list(Product.objects.filter(shop=shop, is_active=True).order_by("-stock"))
-    for p in prods:
-        p.line_value = int(p.stock * p.sell_price)
-    total = sum(p.line_value for p in prods)
+    at = _parse_at(request)
+    prods = list(Product.objects.filter(shop=shop).order_by("name"))
+    if at is None:
+        lines = [
+            {"p": p, "qty": p.stock, "price": p.sell_price, "last": None}
+            for p in prods if p.is_active
+        ]
+    else:
+        snap = stock_at([shop], at)
+        by_id = {p.pk: p for p in prods}
+        lines = [
+            {"p": by_id[pid], "qty": bal, "price": price, "last": t}
+            for pid, (bal, price, t) in snap.items()
+            if pid in by_id
+        ]
+    for ln in lines:
+        ln["value"] = int(max(ln["qty"], 0) * ln["price"])
+    lines.sort(key=lambda ln: -ln["value"])
+    ok, bad_id, n_moves = verify_chain(shop)
+    moment = at or timezone.now()
+    last_move = (
+        StockMove.objects.filter(shop=shop, created_at__lte=moment)
+        .order_by("-created_at", "-id").first()
+    )
+    first_move = StockMove.objects.filter(shop=shop).order_by("created_at").first()
+    # Tanlangan kundagi harakatlar (o'sha paytgacha) — nima kirdi/chiqdi
+    day_moves = []
+    if at is not None:
+        day_moves = list(
+            StockMove.objects.filter(shop=shop, created_at__date=timezone.localtime(at).date(),
+                                     created_at__lte=at)
+            .select_related("product").order_by("-created_at")[:50]
+        )
     return render(
         request,
         "inspector/shop_inventory.html",
-        {"shop": shop, "products": prods, "total": total},
+        {
+            "shop": shop,
+            "lines": [ln for ln in lines if ln["qty"] != 0],
+            "total": sum(ln["value"] for ln in lines),
+            "at": at,
+            "moment": moment,
+            "last_count": last_count_at([shop], moment).get(shop.id),
+            "chain_ok": ok,
+            "chain_bad": bad_id,
+            "chain_n": n_moves,
+            "fingerprint": last_move.hash[:16] if last_move else "",
+            "journal_start": first_move.created_at if first_move else None,
+            "before_journal": bool(at and first_move and at < first_move.created_at),
+            "day_moves": day_moves,
+            "generated": timezone.now(),
+            "inspector": request.user,
+        },
     )
 
 

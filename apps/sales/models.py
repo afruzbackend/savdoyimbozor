@@ -1,5 +1,7 @@
 """Savdo domeni. Pul = butun son (so'm). Yozuv o'chmaydi (faqat Correction)."""
 
+from datetime import UTC
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -288,3 +290,76 @@ class DebtPayment(TimeStampedModel):
         verbose_name = _("Nasiya to'lovi")
         verbose_name_plural = _("Nasiya to'lovlari")
         indexes = [models.Index(fields=["shop", "-created_at"])]
+
+
+class StockMove(models.Model):
+    """O'ZGARMAS tovar harakati jurnali (append-only) — har kirim/sotuv/chiqarish/sanoq.
+
+    Nima uchun: "yong'in kuni soat 14:00 da har do'konda nima qancha bor edi?" degan
+    savolga (kompensatsiya, prokuratura) ANIQ javob va dalil. Product.stock — faqat joriy
+    holat; tarix shu jurnalda. Har yozuv oldingisining xeshini saqlaydi (zanjir): bitta
+    yozuv o'zgartirilsa yoki o'chirilsa, zanjir buziladi va tekshiruvda ko'rinadi.
+    """
+
+    class Kind(models.TextChoices):
+        OPENING = "opening", _("Boshlang'ich qoldiq")
+        IN = "in", _("Kirim")
+        SALE = "sale", _("Sotuv")
+        WRITEOFF = "writeoff", _("Hisobdan chiqarish")
+        RETURN = "return", _("Qaytarish")
+        COUNT = "count", _("Sanoq (kun yakuni)")
+
+    shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="stock_moves")
+    product = models.ForeignKey(
+        "catalog.Product", on_delete=models.PROTECT, related_name="moves"
+    )
+    kind = models.CharField(_("Tur"), max_length=10, choices=Kind.choices)
+    qty = models.DecimalField(_("O'zgarish"), max_digits=12, decimal_places=3)  # +/−
+    balance = models.DecimalField(_("Qoldiq (keyin)"), max_digits=12, decimal_places=3)
+    unit_price = models.BigIntegerField(_("Narx (o'sha payt)"), default=0)
+    ref = models.CharField(_("Hujjat"), max_length=60, blank=True)  # "Sale#12", "StockIn#5"
+    user = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(_("Vaqt"), db_index=True)
+    prev_hash = models.CharField(max_length=64, blank=True)
+    hash = models.CharField(max_length=64)
+
+    class Meta:
+        verbose_name = _("Tovar harakati")
+        verbose_name_plural = _("Tovar harakatlari jurnali")
+        ordering = ["created_at", "id"]
+        indexes = [
+            models.Index(fields=["shop", "created_at"]),
+            models.Index(fields=["product", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} {self.qty:+g} → {self.balance:g} ({self.ref})"
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValueError("Tovar harakati jurnali o'zgartirilmaydi (faqat yangi yozuv).")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValueError("Tovar harakati jurnali o'chirilmaydi.")
+
+    def compute_hash(self) -> str:
+        return stock_move_hash(
+            self.prev_hash, self.shop_id, self.product_id, self.kind, self.qty,
+            self.balance, self.unit_price, self.ref, self.created_at,
+        )
+
+
+def stock_move_hash(prev, shop_id, product_id, kind, qty, balance, price, ref, at) -> str:
+    """Kanonik xesh: Decimal 3 xonali, vaqt UTC mikrosekundgacha (bazadan qaytganda ham bir xil)."""
+    import hashlib
+    from decimal import Decimal
+
+    def d3(x):
+        return f"{Decimal(x):.3f}"
+
+    raw = "|".join([
+        prev or "", str(shop_id), str(product_id), kind, d3(qty), d3(balance), str(int(price)),
+        ref or "", at.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S.%f"),
+    ])
+    return hashlib.sha256(raw.encode()).hexdigest()
