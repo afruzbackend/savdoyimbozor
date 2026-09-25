@@ -154,3 +154,47 @@ class Appeal(TimeStampedModel):
         verbose_name = _("E'tiroz")
         verbose_name_plural = _("E'tirozlar")
         ordering = ["-created_at"]
+
+
+class Incident(TimeStampedModel):
+    """Favqulodda holat (yong'in, suv toshqini, o'g'irlik...) — bozor holati MUHRLANADI.
+
+    E'lon qilingan paytdagi har do'kon ombori (o'zgarmas jurnaldan) bir marta hisoblanib
+    `snapshot` ga yoziladi va xeshlanadi. Keyin o'zgartirilmaydi — kompensatsiya,
+    sug'urta va prokuratura uchun rasmiy asos. Xesh mos kelmasa sahifada ko'rinadi.
+    """
+
+    class Kind(models.TextChoices):
+        FIRE = "fire", _("Yong'in")
+        FLOOD = "flood", _("Suv toshqini")
+        THEFT = "theft", _("O'g'irlik")
+        COLLAPSE = "collapse", _("Qulash / avariya")
+        OTHER = "other", _("Boshqa")
+
+    market = models.ForeignKey("geo.Market", on_delete=models.PROTECT, related_name="incidents")
+    kind = models.CharField(_("Turi"), max_length=12, choices=Kind.choices)
+    occurred_at = models.DateTimeField(_("Sodir bo'lgan vaqt"), db_index=True)
+    description = models.TextField(_("Tavsif"), blank=True)
+    created_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="incidents"
+    )
+    number = models.CharField(_("Raqam"), max_length=30, blank=True)
+    snapshot = models.JSONField(default=dict)
+    snapshot_hash = models.CharField(max_length=64)
+    total_value = models.BigIntegerField(_("Jami ombor qiymati"), default=0)
+    shops_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = _("Favqulodda holat")
+        verbose_name_plural = _("Favqulodda holatlar")
+        ordering = ["-occurred_at"]
+
+    def __str__(self):
+        return f"{self.number} {self.get_kind_display()} — {self.market}"
+
+    def save(self, *args, **kwargs):
+        if self.pk and type(self).objects.filter(pk=self.pk).exclude(
+            snapshot_hash=self.snapshot_hash
+        ).exists():
+            raise ValueError("Muhrlangan holat o'zgartirilmaydi.")
+        super().save(*args, **kwargs)

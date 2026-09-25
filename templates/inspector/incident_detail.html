@@ -1,0 +1,86 @@
+{% extends 'inspector/base.html' %}
+{% load static humanize uzdate %}
+{% block title %}{{ inc.number }}{% endblock %}
+{% block heading %}{{ inc.number }} · {{ inc.get_kind_display }}{% endblock %}
+{% block topbar_actions %}
+  <a class="btn" href="?print=1">
+    <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-file-text"></use></svg> To'liq paket (PDF)</a>
+  <a class="btn btn-ghost" href="{% url 'inspector:incident_export' inc.pk %}">
+    <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Excel</a>
+{% endblock %}
+{% block content %}
+<div class="print-doc">
+  <div class="print-only doc-head">
+    <div style="font-weight:700;font-size:15pt">Favqulodda holat bo'yicha ombor ma'lumotnomasi · {{ inc.number }}</div>
+    <div>{{ inc.market.name }} · {{ inc.get_kind_display }} · {{ inc.occurred_at|uzdatetime }}</div>
+  </div>
+
+  <div class="grid grid-4" style="margin-bottom:var(--sp-4)">
+    <div class="card stat-card stat-pop"><span class="stat-ic" style="background:var(--bad-bg);color:var(--bad)"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg></span>
+      <div><small class="muted">Hodisa vaqti</small><div style="font-weight:700">{{ inc.occurred_at|uzdatetime }}</div></div></div>
+    <div class="card stat-card stat-pop"><span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-store"></use></svg></span>
+      <div><small class="muted">Do'konlar</small><div class="truth-big num count-up" style="font-size:var(--t-3);line-height:1.1">{{ inc.shops_count }}</div></div></div>
+    <div class="card stat-card stat-pop"><span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg></span>
+      <div><small class="muted">Jami ombor qiymati</small><div class="truth-big num" style="font-size:var(--t-2);line-height:1.1">{{ inc.total_value|intcomma }} <small class="muted">so'm</small></div></div></div>
+    <div class="card stat-card stat-pop"><span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg></span>
+      <div><small class="muted">Mahsulot pozitsiyalari</small><div class="truth-big num count-up" style="font-size:var(--t-3);line-height:1.1">{{ inc.snapshot.total_items }}</div></div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--sp-4)">
+    <div class="chain-box {% if intact %}ok{% else %}bad{% endif %}" style="margin-top:0">
+      {% if intact %}
+        <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg>
+        <span><b>Muhr butun.</b> Holat {{ inc.created_at|uzdatetime }} da muhrlangan, o'shandan beri o'zgartirilmagan.
+          Nazorat xeshi: <b class="num" data-noloc>{{ inc.snapshot_hash|slice:":24" }}…</b></span>
+      {% else %}
+        <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg>
+        <span><b>Diqqat: muhr buzilgan</b> — muhrlangan ma'lumot bazada o'zgartirilgan. Ma'lumotnomaga tayanmang.</span>
+      {% endif %}
+    </div>
+    <div class="grid grid-2" style="margin-top:var(--sp-3);gap:var(--sp-3);font-size:var(--t--1)">
+      <div><span class="muted">E'lon qildi:</span> {{ inc.created_by.get_full_name|default:inc.created_by.username|default:"—" }}</div>
+      <div><span class="muted">Bozor:</span> {{ inc.market.name }}</div>
+    </div>
+    {% if inc.description %}<p style="margin:var(--sp-3) 0 0;white-space:pre-line">{{ inc.description }}</p>{% endif %}
+  </div>
+
+  {% if not print_all %}
+  <form method="get" class="row gap-2" style="margin-bottom:var(--sp-3);align-items:center">
+    <input class="input" name="q" value="{{ q }}" placeholder="Do'kon №, egasi yoki STIR" style="max-width:280px">
+    <button class="btn btn-ghost" type="submit" aria-label="Qidirish"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-search"></use></svg></button>
+  </form>
+  {% endif %}
+
+  <div class="card" style="margin-bottom:var(--sp-4)">
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Do'kon</th><th>Egasi</th><th>STIR</th><th class="num">Turlari</th><th class="num">Qiymat (so'm)</th><th>Oxirgi sanoq</th><th>Jurnal</th><th>Foto</th></tr></thead>
+      <tbody>
+      {% for s in shops %}
+      <tr>
+        <td class="num"><b>№{{ s.number }}</b></td><td>{{ s.owner }}</td><td class="num" data-noloc>{{ s.stir|default:"—" }}</td>
+        <td class="num">{{ s.items }}</td><td class="num"><b>{{ s.value|intcomma }}</b></td>
+        <td class="num">{% if s.last_count_dt %}<span class="muted">{{ s.last_count_dt|uzdatetime }}</span>{% else %}<span class="badge badge-warn">sanalmagan</span>{% endif %}</td>
+        <td>{% if s.chain_ok %}<span class="badge badge-ok">butun</span>{% else %}<span class="badge badge-bad">buzilgan</span>{% endif %}</td>
+        <td>{% if s.photo %}<a href="/media/{{ s.photo }}" target="_blank" rel="noopener">{{ s.photo_date }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+      </tr>
+      {% if print_all and s.lines %}
+      <tr class="pkg-lines"><td colspan="8">
+        <table class="data" style="font-size:var(--t--1);margin:4px 0 10px">
+          <thead><tr><th>Mahsulot</th><th>O'lcham</th><th>Rang</th><th class="num">Qoldiq</th><th class="num">Narx</th><th class="num">Qiymat</th></tr></thead>
+          <tbody>{% for ln in s.lines %}<tr><td>{{ ln.product }}</td><td data-noloc>{{ ln.size|default:"—" }}</td><td>{{ ln.color|default:"—" }}</td>
+            <td class="num">{{ ln.qty|floatformat:'-3' }} {{ ln.unit }}</td><td class="num">{{ ln.price|intcomma }}</td><td class="num">{{ ln.value|intcomma }}</td></tr>{% endfor %}</tbody>
+        </table></td></tr>
+      {% endif %}
+      {% empty %}<tr><td colspan="8" class="muted">Do'kon topilmadi.</td></tr>{% endfor %}
+      </tbody></table></div>
+  </div>
+
+  <p class="faint" style="font-size:var(--t--1)">
+    Qoldiq o'zgarmas tovar harakati jurnalidan (kirim, sotuv, hisobdan chiqarish, kun yakuni sanog'i) hodisa vaqtiga hisoblangan
+    va {{ inc.created_at|uzdatetime }} da muhrlangan. Hujjat {{ generated|uzdatetime }} da ko'rildi.</p>
+  <div class="print-only sign-row"><div>Tuzdi: ______________________</div><div>Tasdiqladi: ______________________</div></div>
+</div>
+{% endblock %}
+{% block extra_js %}{% if print_all %}
+<script>addEventListener('load', function(){ setTimeout(function(){ window.print(); }, 400); });</script>
+{% endif %}{% endblock %}

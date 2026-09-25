@@ -71,7 +71,7 @@ class AuditMiddleware(MiddlewareMixin):
     # Inspektor Excel eksporti (ilgari prefiks noto'g'ri edi — eksport yozilmasdi)
     AUDITED_GET_PREFIXES = ("/hisobot/eksport/",)
     # Nazoratchi do'kon ma'lumotini / dalil to'plamini ochgani (kim, qaysi do'kon)
-    VIEW_RE = re.compile(r"^/(dokon/\d+/(dalil/)?|tekshiruv/\d+/akt/)$")
+    VIEW_RE = re.compile(r"^/(dokon/\d+/(dalil/)?|tekshiruv/\d+/akt/|hodisalar/\d+/|ombor/dokon/\d+/)$")
 
     def process_response(self, request, response):
         try:
@@ -98,7 +98,9 @@ class AuditMiddleware(MiddlewareMixin):
             and response.status_code == 200
             and self.VIEW_RE.match(path)
         )
-        if not (is_post or is_export or is_view):
+        # View o'zi "buni yoz" desa (masalan hodisa Excel'i) — GET bo'lsa ham yoziladi
+        forced = bool(getattr(request, "audit_action", None) or getattr(request, "audit_detail", ""))
+        if not (is_post or is_export or is_view or forced):
             return
         from .models import AuditLog
 

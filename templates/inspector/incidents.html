@@ -1,0 +1,35 @@
+{% extends 'inspector/base.html' %}
+{% load static humanize uzdate %}
+{% block title %}Favqulodda holatlar{% endblock %}
+{% block heading %}Favqulodda holatlar{% endblock %}
+{% block topbar_actions %}
+<a class="btn btn-danger" href="{% url 'inspector:incident_create' %}">
+  <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg> Hodisa e'lon qilish</a>
+{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:var(--sp-4)">
+  <p class="muted" style="margin:0">Yong'in, suv toshqini yoki o'g'irlik bo'lganda hodisani e'lon qiling: o'sha paytdagi
+    har do'kon ombori <b>muhrlanadi</b> (keyin o'zgartirib bo'lmaydi) — kompensatsiya, sug'urta va tergov uchun rasmiy asos.</p>
+</div>
+<div class="card">
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>Raqam</th><th>Hodisa</th><th>Bozor</th><th>Sodir bo'lgan</th><th class="num">Do'konlar</th><th class="num">Jami ombor (so'm)</th><th></th></tr></thead>
+    <tbody>
+    {% for i in incidents %}
+    <tr class="row-bad">
+      <td class="num" data-noloc><a href="{% url 'inspector:incident_detail' i.pk %}"><b>{{ i.number }}</b></a></td>
+      <td><span class="badge badge-bad">{{ i.get_kind_display }}</span></td>
+      <td>{{ i.market.name }}</td>
+      <td class="num">{{ i.occurred_at|uzdatetime }}</td>
+      <td class="num">{{ i.shops_count }}</td>
+      <td class="num"><b>{{ i.total_value|intcomma }}</b></td>
+      <td><a class="btn btn-ghost" style="padding:6px 10px" href="{% url 'inspector:incident_detail' i.pk %}">Ochish</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" class="empty">
+      <img class="emoji-xl" src="{% static 'emoji/check.svg' %}" alt="" style="width:44px;height:44px"><br>
+      Hodisa qayd etilmagan.</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+</div>
+{% endblock %}

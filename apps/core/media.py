@@ -48,6 +48,14 @@ def _allowed(user, path: str) -> bool:
         from apps.sales.models import WriteOff
 
         return WriteOff.objects.filter(photo=path, shop__in=shops).exists()
+    if top == "stockins":  # kirim nakladnoyi
+        from apps.sales.models import StockIn
+
+        return StockIn.objects.filter(invoice_photo=path, shop__in=shops).exists()
+    if top == "closes":  # kun yakuni rasta fotosi
+        from apps.sales.models import DailyClose
+
+        return DailyClose.objects.filter(photo=path, shop__in=shops).exists()
     if top == "inspections" and user.is_inspector:
         from apps.analytics.models import Inspection
 

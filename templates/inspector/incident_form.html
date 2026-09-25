@@ -1,0 +1,33 @@
+{% extends 'inspector/base.html' %}
+{% load static %}
+{% block title %}Hodisa e'lon qilish{% endblock %}
+{% block heading %}Hodisa e'lon qilish{% endblock %}
+{% block content %}
+<div class="card" style="max-width:620px">
+  <div class="msg warning" style="margin-top:0">E'lon qilingach tanlangan vaqtdagi barcha do'konlar ombori <b>muhrlanadi</b> va
+    o'zgartirib bo'lmaydi. Vaqtni imkon qadar aniq kiriting (masalan, yong'in boshlangan payt).</div>
+  <form method="post" class="stack gap-3">{% csrf_token %}
+    <div class="field"><label class="label">Bozor</label>
+      <select class="select-native" name="market" required>
+        <option value="" disabled {% if markets|length != 1 %}selected{% endif %}>Tanlang</option>
+        {% for m in markets %}<option value="{{ m.pk }}" {% if markets|length == 1 %}selected{% endif %}>{{ m.name }}</option>{% endfor %}
+      </select></div>
+    <div class="field"><label class="label">Hodisa turi</label>
+      <div class="kind-grid">
+        {% for v, l in kinds %}
+        <label class="kind-pill"><input type="radio" name="kind" value="{{ v }}" required><span>{{ l }}</span></label>
+        {% endfor %}
+      </div></div>
+    <div class="row gap-3" style="align-items:flex-end;flex-wrap:wrap">
+      <div>{% include 'components/_datefield.html' with name='sana' label='Sana' %}</div>
+      <div class="field" style="margin:0;flex:0 0 120px"><label class="label">Soat</label>
+        <input class="input num" name="vaqt" placeholder="14:00" inputmode="numeric" maxlength="5"
+               pattern="[0-2][0-9]:[0-5][0-9]" required></div>
+    </div>
+    <div class="field"><label class="label">Tavsif (ixtiyoriy)</label>
+      <textarea class="textarea" name="description" rows="3" placeholder="Masalan: 3-qatorda yong'in, taxminan 20 ta rasta zarar ko'rgan"></textarea></div>
+    <button class="btn btn-danger btn-lg" type="submit">
+      <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg> E'lon qilish va holatni muhrlash</button>
+  </form>
+</div>
+{% endblock %}

@@ -737,3 +737,14 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
   transition:background .12s,color .12s,border-color .12s}
 .size-pill[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:#fff}
 .size-add{width:96px;height:36px;padding:4px 10px}
+
+/* Hodisa turi tanlagich (radio o'rniga katta tugmalar) */
+.kind-grid{display:flex;flex-wrap:wrap;gap:8px}
+.kind-pill{position:relative;cursor:pointer}
+.kind-pill input{position:absolute;opacity:0;pointer-events:none}
+.kind-pill span{display:inline-flex;align-items:center;height:40px;padding:0 14px;border:1px solid var(--border-strong);
+  border-radius:var(--r-2);font-weight:600;background:var(--surface);transition:background .12s,border-color .12s,color .12s}
+.kind-pill input:checked+span{background:var(--bad);border-color:var(--bad);color:#fff}
+.kind-pill input:focus-visible+span{outline:2px solid var(--bad);outline-offset:2px}
+.field:has(.field-err) .kind-pill span{border-color:var(--bad)}
+@media print{.pkg-lines td{padding-top:0}}

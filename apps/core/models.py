@@ -71,6 +71,11 @@ class SystemSettings(models.Model):
     )
     rounding_max = models.PositiveIntegerField(_("Yaxlitlash maksimum (so'm)"), default=1000)
 
+    # Kirim dalili: shu summadan (so'm) katta kirimga nakladnoy fotosi MAJBURIY
+    stockin_photo_min = models.PositiveBigIntegerField(
+        _("Nakladnoy majburiy summa (so'm)"), default=1_000_000
+    )
+
     # Xavfsizlik
     login_max_attempts = models.PositiveSmallIntegerField(_("Maks kirish urinishi"), default=5)
     login_lock_minutes = models.PositiveSmallIntegerField(_("Blok davomiyligi (daq)"), default=15)

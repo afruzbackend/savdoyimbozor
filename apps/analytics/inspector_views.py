@@ -1015,3 +1015,145 @@ def export_excel(request):
     resp["Content-Disposition"] = f'attachment; filename="hisobot_{start}_{end}.xlsx"'
     wb.save(resp)
     return resp
+
+
+# ============================================================================
+# FAVQULODDA HOLAT — bozor omborini muhrlash (yong'in, suv toshqini...)
+# ============================================================================
+
+
+def _visible_markets(request):
+    return Market.objects.filter(id__in=_visible_shops(request).values("market_id")).distinct()
+
+
+@login_required
+def incidents_list(request):
+    from .models import Incident
+
+    items = Incident.objects.filter(market__in=_visible_markets(request)).select_related(
+        "market", "created_by"
+    )
+    return render(request, "inspector/incidents.html", {"incidents": items})
+
+
+@login_required
+def incident_create(request):
+    """Hodisani e'lon qilish: bozor + tur + sana/vaqt → shu paytdagi holat MUHRLANADI."""
+    from django.contrib import messages
+
+    from .incidents import declare_incident
+    from .models import Incident
+
+    markets = _visible_markets(request)
+    if request.method == "POST":
+        market = markets.filter(pk=_pk(request.POST.get("market"))).first()
+        kind = request.POST.get("kind")
+        at = _parse_at_post(request)
+        errors = []
+        if market is None:
+            errors.append("bozor")
+        if kind not in Incident.Kind.values:
+            errors.append("hodisa turi")
+        if at is None:
+            errors.append("sana va soat")
+        if errors:
+            messages.error(request, "Tanlang: " + ", ".join(errors) + ".")
+            return redirect("inspector:incident_create")
+        inc = declare_incident(market, kind, at, request.POST.get("description", "").strip(),
+                               request.user)
+        request.audit_detail = (
+            f"Favqulodda holat {inc.number}: {inc.get_kind_display()}, {market.name}, "
+            f"{timezone.localtime(at):%d.%m.%Y %H:%M}"
+        )
+        messages.success(request, f"{inc.number} muhrlandi: {inc.shops_count} ta do'kon holati saqlandi.")
+        return redirect("inspector:incident_detail", pk=inc.pk)
+    return render(request, "inspector/incident_form.html",
+                  {"markets": markets, "kinds": Incident.Kind.choices})
+
+
+def _parse_at_post(request):
+    """POST sana (YYYY-MM-DD) + soat (HH:MM) → aware datetime, kelajak bo'lmasin."""
+    from datetime import datetime
+
+    try:
+        d = datetime.strptime((request.POST.get("sana") or "").strip(), "%Y-%m-%d").date()
+        t = datetime.strptime((request.POST.get("vaqt") or "").strip(), "%H:%M").time()
+    except ValueError:
+        return None
+    at = timezone.make_aware(datetime.combine(d, t.replace(second=59, microsecond=999999)))
+    return at if at <= timezone.now() + timedelta(minutes=1) else None
+
+
+@login_required
+def incident_detail(request, pk):
+    from .incidents import snapshot_intact
+    from .models import Incident
+
+    inc = get_object_or_404(
+        Incident.objects.select_related("market", "created_by"),
+        pk=pk, market__in=_visible_markets(request),
+    )
+    from django.utils.dateparse import parse_datetime
+
+    shops = [dict(s, last_count_dt=parse_datetime(s["last_count"]) if s.get("last_count") else None)
+             for s in inc.snapshot.get("shops", [])]
+    q = (request.GET.get("q") or "").strip().lower()
+    if q:
+        shops = [s for s in shops if q in str(s["number"]).lower() or q in (s["owner"] or "").lower()
+                 or q in (s["stir"] or "")]
+    return render(
+        request,
+        "inspector/incident_detail.html",
+        {
+            "inc": inc,
+            "shops": sorted(shops, key=lambda s: -s["value"]),
+            "intact": snapshot_intact(inc),
+            "print_all": request.GET.get("print") == "1",
+            "q": q,
+            "generated": timezone.now(),
+        },
+    )
+
+
+@login_required
+def incident_export(request, pk):
+    """Muhrlangan holat Excel'da: Umumiy varaq + har do'kon mahsulotlari bitta jadvalda."""
+    import openpyxl
+    from django.http import HttpResponse
+
+    from .models import Incident
+
+    inc = get_object_or_404(Incident, pk=pk, market__in=_visible_markets(request))
+
+    def cell(v):
+        return "'" + v if isinstance(v, str) and v[:1] in ("=", "+", "@") else v
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Umumiy"
+    ws.append([f"{inc.number} — {inc.get_kind_display()}", inc.market.name,
+               timezone.localtime(inc.occurred_at).strftime("%d.%m.%Y %H:%M")])
+    ws.append(["Nazorat xeshi", inc.snapshot_hash])
+    ws.append([])
+    ws.append(["Do'kon", "Egasi", "STIR", "Telefon", "Mahsulot turlari", "Qiymat (so'm)",
+               "Oxirgi sanoq", "Jurnal butun"])
+    for s in inc.snapshot.get("shops", []):
+        ws.append([cell(s["number"]), cell(s["owner"]), cell(s["stir"]), cell(s["phone"]),
+                   s["items"], s["value"], s["last_count"] or "—",
+                   "ha" if s["chain_ok"] else "BUZILGAN"])
+    ws2 = wb.create_sheet("Mahsulotlar")
+    ws2.append(["Do'kon", "Mahsulot", "O'lcham", "Rang", "Barkod", "Qoldiq", "Birlik",
+                "Narx", "Qiymat"])
+    for s in inc.snapshot.get("shops", []):
+        for ln in s["lines"]:
+            ws2.append([cell(s["number"]), cell(ln["product"]), ln["size"], ln["color"],
+                        cell(ln["barcode"]), float(ln["qty"]), ln["unit"], ln["price"],
+                        ln["value"]])
+    resp = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    resp["Content-Disposition"] = f'attachment; filename="{inc.number}.xlsx"'
+    wb.save(resp)
+    request.audit_action = "export"
+    request.audit_detail = f"Favqulodda holat {inc.number} Excel"
+    return resp

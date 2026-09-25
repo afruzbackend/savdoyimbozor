@@ -32,6 +32,10 @@ class StockIn(TimeStampedModel):
     in_packs = models.BooleanField(_("Qopda"), default=False)
     unit_price = models.BigIntegerField(_("Kelish narxi (so'm)"), default=0)
     source = models.CharField(_("Manba"), max_length=30, default="manual")
+    # Kirim DALILI: kompensatsiya kutilganda kirimni oshirib yozishga qarshi
+    supplier_name = models.CharField(_("Yetkazib beruvchi"), max_length=200, blank=True)
+    supplier_stir = models.CharField(_("Yetkazib beruvchi STIR"), max_length=15, blank=True)
+    invoice_photo = models.ImageField(_("Nakladnoy fotosi"), upload_to="stockins/%Y/%m/", blank=True)
 
     class Meta:
         verbose_name = _("Kirim")
@@ -155,6 +159,8 @@ class DailyClose(TimeStampedModel):
     computed_sales = models.BigIntegerField(_("Hisoblangan savdo"), default=0)
     entered_sales = models.BigIntegerField(_("Kiritilgan savdo"), default=0)
     note = models.CharField(max_length=200, blank=True)
+    # Kun yakunidagi rasta fotosi — qoldiqning ko'rinadigan dalili (yong'in/kompensatsiya)
+    photo = models.ImageField(_("Rasta fotosi"), upload_to="closes/%Y/%m/", blank=True)
 
     class Meta:
         verbose_name = _("Kun yakuni")
