@@ -4,7 +4,7 @@
   <td class="num">{{ a.date }}</td>
   <td><a href="{% url 'inspector:shop_detail' a.shop.pk %}">№{{ a.shop.number }} {{ a.shop.owner_name }}</a>
       <div class="muted" style="font-size:var(--t--1)">{{ a.shop.market.name }}</div></td>
-  <td>{{ a.reason }}</td>
+  <td><div class="faint" style="font-size:var(--t--2);font-weight:600">{{ a.get_kind_display }}</div>{{ a.reason }}</td>
   <td><span class="badge badge-{% if a.level == 'red' %}bad{% elif a.level == 'yellow' %}warn{% else %}ok{% endif %}">{{ a.get_level_display }}</span></td>
   <td><span class="badge badge-neutral">{{ a.get_status_display }}</span></td>
   <td style="white-space:nowrap">

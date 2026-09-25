@@ -30,9 +30,13 @@ class Command(BaseCommand):
             today = timezone.localdate()
             days = [today - timedelta(days=d) for d in range(opts["days"])]
 
+        from apps.analytics.gate import check_day
+
         total = 0
         for day in days:
             n = recompute_for_date(day)
             total += n
-            self.stdout.write(f"  {day}: {n} do'kon hisoblandi")
+            gate = check_day(day)  # darvoza ↔ kirim (faqat oynasi yopilgan kunlar)
+            extra = f", {gate} ta hujjatsiz kirim signali" if gate else ""
+            self.stdout.write(f"  {day}: {n} do'kon hisoblandi{extra}")
         self.stdout.write(self.style.SUCCESS(f"Tayyor. {total} yozuv, {len(days)} kun."))

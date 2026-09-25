@@ -28,6 +28,12 @@ def _readonly_block(request):
     return None
 
 
+def _gate_rows(shop):
+    from apps.analytics.gate import shop_summary
+
+    return shop_summary(shop)
+
+
 def _pk(value) -> int:
     """So'rovdan kelgan ID — raqam bo'lmasa 0 ("abc" bilan 500 xato bo'lmasin)."""
     from apps.core.format import to_int
@@ -270,6 +276,7 @@ def shop_detail(request, pk):
         "register_closes": shop.register_closes.order_by("-date")[:10],
         "writeoffs": shop.writeoffs.select_related("seller").order_by("-created_at")[:10],
         "stock_ins": shop.stock_ins.select_related("product").order_by("-created_at")[:10],
+        "gate_rows": _gate_rows(shop),
     }
     return render(request, "inspector/shop_detail.html", ctx)
 

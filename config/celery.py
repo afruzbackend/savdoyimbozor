@@ -21,6 +21,11 @@ app.conf.beat_schedule = {
         "task": "apps.analytics.tasks.recompute_yesterday",
         "schedule": crontab(hour=1, minute=0),
     },
+    # Darvoza kamerasi ↔ kirim: kechagi tushirishlar (oxirgi oyna 14:00 da yopiladi)
+    "check-gate-yesterday": {
+        "task": "apps.analytics.tasks.check_gate_yesterday",
+        "schedule": crontab(hour=14, minute=10),
+    },
     # Har kecha 02:30 da zaxira nusxa (baza + fotolar, tashqi joyga)
     "nightly-backup": {
         "task": "apps.core.tasks.nightly_backup",

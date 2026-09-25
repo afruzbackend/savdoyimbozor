@@ -78,6 +78,7 @@ class Alert(TimeStampedModel):
         ZERO_SALES = "zero_sales", _("Savdo kiritilmagan")
         ANOMALY = "anomaly", _("Savdo keskin tushdi")
         BUYER_REPORT = "buyer_report", _("Xaridor xabari")
+        GATE_UNRECORDED = "gate_unrecorded", _("Hujjatsiz kirim")
 
     shop = models.ForeignKey("shops.Shop", on_delete=models.CASCADE, related_name="alerts")
     date = models.DateField()

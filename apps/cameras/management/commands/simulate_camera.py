@@ -99,11 +99,63 @@ class Command(BaseCommand):
             payload={"kind": "covered", "duration_seconds": 45},
         )
 
+        gate_events = self._gate(shops, today, opts["days"])
+
+        from apps.analytics.gate import check_day
+
+        gate_alerts = 0
         for d in range(opts["days"]):
             recompute_for_date(today - timedelta(days=d))
+            gate_alerts += check_day(today - timedelta(days=d))
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"{len(cams)} kamera, {total_events} tashrif hodisasi yaratildi. Rostlik yangilandi."
+                f"{len(cams)} kamera, {total_events} tashrif, {gate_events} darvoza hodisasi "
+                f"({gate_alerts} hujjatsiz kirim signali). Rostlik yangilandi."
             )
         )
+
+    def _gate(self, shops, today, days):
+        """Darvoza kamerasi: har kirimdan oldin tushirish (mos) + bitta do'konga hujjatsiz tushirish."""
+        from apps.sales.models import StockIn
+
+        gates = {}
+        for s in shops:
+            if s.market_id not in gates:
+                cam, _ = Camera.objects.get_or_create(
+                    market=s.market, kind=Camera.Kind.GATE, shop=None,
+                    defaults={"name": "Asosiy darvoza (ANPR)"},
+                )
+                cam.last_seen = timezone.now()
+                cam.status = Camera.Status.ONLINE
+                cam.save(update_fields=["last_seen", "status"])
+                gates[s.market_id] = cam
+        CameraEvent.objects.filter(type=CameraEvent.Type.GATE_IN).delete()
+        since = today - timedelta(days=days - 1)
+        n = 0
+
+        def plate():
+            return f"01{random.choice('ABDEHKMNS')}{random.randint(100, 999)}{random.choice('ABDEHKMNS')}{random.choice('ABDEHKMNS')}"
+
+        for si in StockIn.objects.filter(shop__in=shops, created_at__date__gte=since).select_related("shop"):
+            CameraEvent.objects.create(
+                camera=gates[si.shop.market_id], shop=si.shop, type=CameraEvent.Type.GATE_IN,
+                count=(c := random.randint(1, 6)), payload={"plate": plate(), "count": c},
+                ts=si.created_at - timedelta(minutes=random.randint(15, 70)),
+            )
+            n += 1
+        # Hujjatsiz kirim: tovar keladi, lekin kirim yozilmaydi (keyin chekmas sotiladi)
+        hider = shops[4] if len(shops) > 4 else shops[-1]
+        for d in range(days):
+            day = today - timedelta(days=d)
+            for hh, mm in ((7, 20), (15, 5)):
+                ts = timezone.make_aware(timezone.datetime.combine(day, timezone.datetime.min.time())
+                                         + timedelta(hours=hh, minutes=mm))
+                if ts > timezone.now():
+                    continue
+                CameraEvent.objects.create(
+                    camera=gates[hider.market_id], shop=hider, type=CameraEvent.Type.GATE_IN,
+                    count=(c := random.randint(4, 9)), payload={"plate": plate(), "count": c}, ts=ts,
+                )
+                n += 1
+        return n

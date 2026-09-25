@@ -179,6 +179,27 @@
     </div>
     {% endif %}
 
+    {% if gate_rows %}
+    <div class="card">
+      <div class="card-header"><span class="card-title">Darvoza kamerasi va kirim</span>
+        <small class="faint">Tovar tushirilgan, lekin kirim yozilmagan bo'lsa — hujjatsiz kirim</small></div>
+      <div class="table-wrap"><table class="data" style="font-size:var(--t--1)">
+        <thead><tr><th>Sana</th><th class="num">Tushirish</th><th class="num">Qop/quti</th><th class="num">Kirim yozuvi</th><th>Holat</th></tr></thead>
+        <tbody>
+        {% for g in gate_rows %}
+        <tr{% if g.missing and not g.pending %} class="row-bad"{% endif %}>
+          <td class="num">{{ g.date|date:"d.m" }}</td>
+          <td class="num">{{ g.events }}</td>
+          <td class="num">{{ g.units }}</td>
+          <td class="num">{{ g.stockins }}</td>
+          <td>{% if not g.missing %}<span class="badge badge-ok">mos</span>
+            {% elif g.pending %}<span class="badge badge-neutral">kutilmoqda</span> <small class="muted num">{% for t in g.missing %}{{ t|time:"H:i" }}{% if not forloop.last %}, {% endif %}{% endfor %}</small>
+            {% else %}<span class="badge badge-bad">yozilmagan: {{ g.missing|length }}</span> <small class="muted num">{% for t in g.missing %}{{ t|time:"H:i" }}{% if not forloop.last %}, {% endif %}{% endfor %}</small>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody></table></div>
+    </div>
+    {% endif %}
     {% if stock_ins %}
     <div class="card">
       <div class="card-header"><span class="card-title">Kirimlar va dalillar</span>
