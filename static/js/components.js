@@ -274,6 +274,41 @@
     });
   }
   window.confirmModal = confirmModal;
+
+  // Xaridorga QR chek: sotuvchi ekranini xaridorga buradi, xaridor telefon kamerasi bilan skanerlaydi
+  function showReceiptQR(d) {
+    if (!d || !d.qr) return;
+    var bd = document.createElement("div");
+    bd.className = "modal-backdrop";
+    bd.innerHTML =
+      '<div class="modal-card center receipt-modal" role="dialog" aria-modal="true" aria-label="Xaridorga chek">' +
+      '<div class="card-title" style="margin:0 0 var(--sp-1)">Xaridorga chek</div>' +
+      '<div class="receipt-amt num" data-noloc></div>' +
+      '<div class="receipt-qr"><img alt="Chek QR kodi" width="240" height="240"></div>' +
+      '<p class="muted" style="margin:var(--sp-2) 0 var(--sp-4);font-size:var(--t--1)">' +
+      "Xaridor telefon kamerasi bilan skanerlaydi: chekni ko'radi, summa noto'g'ri bo'lsa xabar beradi.</p>" +
+      '<div class="receipt-code num" data-noloc></div>' +
+      '<button type="button" class="btn btn-block" data-act="close">Yopish</button>' +
+      "</div>";
+    bd.querySelector("img").src = d.qr;
+    bd.querySelector(".receipt-amt").textContent = (window.BN ? window.BN.fmt(d.total) : d.total) + " so'm";
+    bd.querySelector(".receipt-code").textContent = d.url || "";
+    function done() { document.removeEventListener("keydown", onKey, true); bd.remove(); }
+    function onKey(e) { if (e.key === "Escape") { e.preventDefault(); done(); } }
+    bd.addEventListener("click", function (e) {
+      if (e.target === bd || e.target.closest('[data-act="close"]')) done();
+    });
+    document.addEventListener("keydown", onKey, true);
+    document.body.appendChild(bd);
+    if (window.i18nApply) window.i18nApply(bd);
+    bd.querySelector('[data-act="close"]').focus();
+  }
+  window.showReceiptQR = showReceiptQR;
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-receipt-qr]");
+    if (!b) return;
+    showReceiptQR({ qr: b.dataset.receiptQr, url: b.dataset.receiptUrl, total: +b.dataset.receiptTotal });
+  });
   document.addEventListener("submit", function (e) {
     var form = e.target;
     if (!form.matches || !form.matches("form[data-confirm]") || form.__confirmed) return;

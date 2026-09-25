@@ -248,3 +248,20 @@ def test_no_raw_template_comments_on_seller_pages(sclient, shop, path):
     r = sclient.get(path, HTTP_HOST=SELLER_HOST)
     assert r.status_code == 200
     assert "{#" not in r.content.decode() and "#}" not in r.content.decode()
+
+
+# ---------- Audit IP soxtalashtirilmaydi ----------
+
+def test_client_ip_ignores_spoofed_forwarded_for(settings, rf):
+    from apps.core.net import client_ip
+
+    req = rf.get("/", HTTP_X_FORWARDED_FOR="6.6.6.6", REMOTE_ADDR="10.0.0.5")
+    settings.BEHIND_PROXY = False
+    assert client_ip(req) == "10.0.0.5"  # to'g'ridan-to'g'ri: sarlavhaga ishonilmaydi
+    settings.BEHIND_PROXY = True
+    # nginx: X-Forwarded-For = "<mijoz yozgani>, <haqiqiy IP>", X-Real-IP = haqiqiy IP
+    req = rf.get("/", HTTP_X_FORWARDED_FOR="6.6.6.6, 203.0.113.9", HTTP_X_REAL_IP="203.0.113.9",
+                 REMOTE_ADDR="172.18.0.3")
+    assert client_ip(req) == "203.0.113.9"
+    req = rf.get("/", HTTP_X_FORWARDED_FOR="6.6.6.6, 203.0.113.9", REMOTE_ADDR="172.18.0.3")
+    assert client_ip(req) == "203.0.113.9"

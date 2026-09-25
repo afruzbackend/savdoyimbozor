@@ -5,6 +5,7 @@ x-django-env: &django_env
   DATABASE_URL: postgres://bozor:${DB_PASSWORD:-bozor}@db:5432/bozor
   CELERY_BROKER_URL: redis://redis:6379/0
   CELERY_RESULT_BACKEND: redis://redis:6379/1
+  CACHE_URL: redis://redis:6379/2
   ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,web,nginx}
   CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost,http://127.0.0.1}
   # Lokal Docker demo http://localhost orqali — HTTPS majburlash va secure-cookie o'chirilgan.
@@ -15,6 +16,8 @@ x-django-env: &django_env
   SECURE_HSTS_SECONDS: "0"
   # Media nginx orqali, lekin Django ruxsat tekshiradi (X-Accel-Redirect)
   MEDIA_X_ACCEL: "True"
+  # nginx X-Real-IP beradi — audit jurnalidagi IP soxtalashtirilmaydi
+  BEHIND_PROXY: "True"
   # Zaxira: har kecha 02:30 (celery beat). Tashqi joyga yuborish SHART (server bozorda bo'lsa):
   # masalan: BACKUP_UPLOAD_CMD="rclone copy {path} offsite:bozor-backup"
   BACKUP_DIR: /backups

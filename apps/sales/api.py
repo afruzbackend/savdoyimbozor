@@ -70,9 +70,14 @@ def create_sale_api(request):
     from django.db import IntegrityError, transaction
 
     def _ok(s, code):
+        from .public_views import receipt_url
+
+        url = receipt_url(request, s)  # xaridorga QR chek manzili
         return Response(
             {"id": s.id, "total": s.total, "discount": s.discount, "rounding": s.rounding,
-             "created_at": s.created_at.strftime("%H:%M")},
+             "created_at": s.created_at.strftime("%H:%M"),
+             "receipt_url": url, "receipt_qr": f"/chek/{s.public_code}/qr.svg",
+             "receipt_code": s.public_code},
             status=code,
         )
 
@@ -122,16 +127,7 @@ def create_sale_api(request):
         refresh_today_if_stale()
     except Exception:  # noqa: BLE001 — sotuv javobi kechikmasin
         pass
-    return Response(
-        {
-            "id": sale.id,
-            "total": sale.total,
-            "discount": sale.discount,
-            "rounding": sale.rounding,
-            "created_at": sale.created_at.strftime("%H:%M"),
-        },
-        status=status.HTTP_201_CREATED,
-    )
+    return _ok(sale, status.HTTP_201_CREATED)
 
 
 @api_view(["GET"])

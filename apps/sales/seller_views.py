@@ -126,6 +126,12 @@ def home(request):
         from .models import CashOpen
 
         need_opening = not CashOpen.objects.filter(shop=shop, date=today).exists()
+    # So'nggi sotuvlar: har biriga xaridor QR cheki (kod bo'lmasa bir marta yaratiladi)
+    from .public_views import receipt_url
+
+    recent = list(sales.order_by("-created_at")[:8]) if shop is not None else []
+    for s in recent:
+        s.receipt_link = receipt_url(request, s)
     return render(
         request,
         "seller/home.html",
@@ -134,7 +140,7 @@ def home(request):
             "need_opening": need_opening,
             "today_total": agg["total"] or 0,
             "today_count": agg["n"] or 0,
-            "recent": sales.order_by("-created_at")[:8],
+            "recent": recent,
             "low_stock": low_stock,
             "trade_catalog": trade_catalog,   # shop yo'nalishiga mos mahsulot turlari
             "product_count": product_count,

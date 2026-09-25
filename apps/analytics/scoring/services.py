@@ -333,7 +333,7 @@ def recompute_for_date(day, final: bool | None = None) -> int:
     insp_by_market = {}
     for s in shops:
         if s.market_id not in insp_by_market:
-            insp_by_market[s.market_id] = s.market.inspectors.first()
+            insp_by_market[s.market_id] = s.market.duty_inspector()
     # Qoldiq bahosi (DailyClose asosida) — 2 so'rov (close + lines), StockIn — 1 so'rov
     from apps.sales.services.stock import close_sold_value
 
@@ -566,7 +566,7 @@ def _generate_cash_mismatch_alerts(day, cfg, existing_alerts=None, insp_by_marke
             )
         inspector = insp_by_market.get(z.shop.market_id)
         if inspector is None and z.shop.market_id not in insp_by_market:
-            inspector = z.shop.market.inspectors.first()
+            inspector = z.shop.market.duty_inspector()
         alert = Alert.objects.create(
             shop_id=z.shop_id,
             date=day,

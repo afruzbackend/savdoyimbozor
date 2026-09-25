@@ -68,7 +68,7 @@
   /* ---- Tipografik shkala (modular 1.2) ---- */
   --font-sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
   --font-serif:'Spectral',Georgia,serif;
-  --t--1:.833rem; --t-0:1rem; --t-1:1.2rem; --t-2:1.44rem;
+  --t--2:.72rem; --t--1:.833rem; --t-0:1rem; --t-1:1.2rem; --t-2:1.44rem;
   --t-3:1.728rem; --t-4:2.074rem; --t-5:2.488rem; --t-6:3.15rem;
 
   /* ---- Bo'shliq (4px bazasi) ---- */

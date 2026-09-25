@@ -169,6 +169,13 @@ REST_FRAMEWORK = {
 }
 
 # --- Celery ---
+# Kesh: prod'da Redis (bir necha gunicorn worker'da UMUMIY — sozlamalar keshi, suiiste'mol
+# cheklovlari). Bo'sh bo'lsa — jarayon ichidagi LocMem (dev).
+CACHE_URL = env("CACHE_URL", default="")
+if CACHE_URL:
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache",
+                          "LOCATION": CACHE_URL}}
+
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://127.0.0.1:6379/0")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://127.0.0.1:6379/1")
 CELERY_TASK_ALWAYS_EAGER = env("CELERY_TASK_ALWAYS_EAGER")  # dev'da Redis yo'q bo'lsa True
@@ -191,6 +198,16 @@ BACKUP_KEEP = env.int("BACKUP_KEEP", default=14)  # nechta oxirgi nusxa saqlanad
 PG_DUMP_BIN = env("PG_DUMP_BIN", default="pg_dump")
 # Masalan: rclone copy {path} offsite:bozor-backup   ({path} — fayl yo'li)
 BACKUP_UPLOAD_CMD = env("BACKUP_UPLOAD_CMD", default="")
+
+# nginx (yoki boshqa proksi) ortida: mijoz IP'si X-Real-IP dan olinadi (apps.core.net.client_ip).
+# To'g'ridan-to'g'ri ochiq bo'lsa False qoldiring — aks holda sarlavhani soxtalashtirish mumkin.
+BEHIND_PROXY = env.bool("BEHIND_PROXY", default=False)
+
+# --- Xaridorga QR chek ---
+# QR ichidagi manzil xaridor telefonidan ochilishi kerak: ommaviy domen (https://bozor.soliq.uz).
+# Bo'sh bo'lsa — so'rov kelgan manzil olinadi (lokal demo).
+PUBLIC_BASE_URL = env("PUBLIC_BASE_URL", default="")
+RECEIPT_REPORT_DAYS = env.int("RECEIPT_REPORT_DAYS", default=7)  # xaridor necha kun ichida yozadi
 
 # --- Soliq / onlayn kassa deklaratsiyasi (apps.cash.adapters) ---
 # Aniq kontrakt Soliq qo'mitasi bilan kelishuvda belgilanadi; shu yerda faqat sozlanadi.

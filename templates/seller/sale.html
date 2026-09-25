@@ -84,6 +84,13 @@
     <span x-text="saving?'Saqlanmoqda...':'Sotildi'"></span>
   </button>
 
+  {# Oxirgi sotuv cheki — xaridor QR'ni skanerlaydi #}
+  <button type="button" class="btn btn-ghost btn-block receipt-btn" x-show="lastReceipt" x-cloak
+          @click="window.showReceiptQR(lastReceipt)">
+    <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-receipt"></use></svg>
+    Xaridorga chek (QR) · <b class="num" x-text="lastReceipt ? window.BN.fmt(lastReceipt.total)+&quot; so'm&quot; : ''"></b>
+  </button>
+
   {# Muvaffaqiyat animatsiyasi #}
   <div class="sale-ok" x-ref="okOverlay" aria-hidden="true">
     <div class="sale-ok-card">
@@ -102,7 +109,7 @@
     Alpine.data('saleScreen', () => ({
       cfg: window.__PRICING__,
       amount: 0, discount: 0, rounding: 0, pay: 'cash', wholesale: false,
-      saving: false, pending: 0, customOpen: false, customVal: '',
+      saving: false, pending: 0, customOpen: false, customVal: '', lastReceipt: null,
       debtorName: '', debtorPhone: '', debtorErr: false, debtorDue: '', dueErr: false,
       init() {
         this.$watch('debtorDue', (v) => { if (v) this.dueErr = false; });
@@ -205,6 +212,7 @@
         }
         const d = await r.json();
         this.showOk(d.total);
+        if (d.receipt_qr) this.lastReceipt = { total: d.total, url: d.receipt_url, qr: d.receipt_qr, code: d.receipt_code };
         this.reset();
       },
       showOk(total) {

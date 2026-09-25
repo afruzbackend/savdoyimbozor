@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static humanize uzdate %}
+{% block title %}Savdo cheki № {{ sale.public_code }}{% endblock %}
+{% block head %}
+<meta name="robots" content="noindex,nofollow">
+<style>
+  .rc-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:28px 16px 40px;
+    background:radial-gradient(1200px 500px at 50% -10%, color-mix(in srgb,var(--primary) 12%,transparent), transparent 70%),var(--bg)}
+  .rc-brand{display:flex;align-items:center;gap:10px;margin-bottom:18px;color:var(--ink-muted);font-size:var(--t--1)}
+  .rc-brand .emblem{width:34px;height:34px;border-radius:50%}
+  .rc-brand b{color:var(--ink);font-family:var(--font-serif);font-size:var(--t-1)}
+  .rc-paper{position:relative;width:100%;max-width:400px;background:var(--surface);color:var(--ink);
+    padding:26px 22px 30px;filter:drop-shadow(0 6px 14px rgba(20,18,14,.12));
+    animation:rcPrint .7s cubic-bezier(.2,.8,.25,1) both}
+  /* Qog'oz chekning tishli qirralari */
+  .rc-paper::before,.rc-paper::after{content:"";position:absolute;left:0;right:0;height:10px;
+    background:linear-gradient(-45deg,transparent 7px,var(--surface) 0) 0 0/14px 10px repeat-x,
+               linear-gradient(45deg,transparent 7px,var(--surface) 0) 0 0/14px 10px repeat-x}
+  .rc-paper::before{top:-10px;transform:scaleY(-1)}
+  .rc-paper::after{bottom:-10px}
+  /* Printerdan chiqayotgan chek: yuqoridan pastga ochiladi (tishli qirra va soya kesilmaydi) */
+  @keyframes rcPrint{from{clip-path:inset(-20px -40px 100% -40px);transform:translateY(-14px)}
+    to{clip-path:inset(-20px -40px -60px -40px);transform:none}}
+  .rc-head{text-align:center;border-bottom:1px dashed var(--border-strong);padding-bottom:14px;margin-bottom:12px}
+  .rc-shop{font-family:var(--font-serif);font-size:var(--t-2);font-weight:600;line-height:1.2}
+  .rc-meta{color:var(--ink-muted);font-size:var(--t--1);margin-top:4px}
+  .rc-items{width:100%;border-collapse:collapse;font-size:var(--t--1)}
+  .rc-items td{padding:6px 0;vertical-align:top}
+  .rc-items td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .rc-items .sub{color:var(--ink-faint);font-size:var(--t--2)}
+  .rc-sum{border-top:1px dashed var(--border-strong);margin-top:8px;padding-top:10px;font-size:var(--t--1)}
+  .rc-sum .row{display:flex;justify-content:space-between;padding:2px 0}
+  .rc-total{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;
+    font-family:var(--font-serif);font-size:var(--t-3);font-weight:700}
+  .rc-stamp{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:18px;
+    color:var(--ok);font-size:var(--t--1);font-weight:600}
+  .rc-stamp svg{animation:rcStamp .5s .55s cubic-bezier(.2,.9,.3,1.4) both}
+  @keyframes rcStamp{from{transform:scale(0) rotate(-40deg);opacity:0}to{transform:none;opacity:1}}
+  .rc-code{text-align:center;margin-top:6px;letter-spacing:.18em;color:var(--ink-faint);font-size:var(--t--2)}
+  .rc-note{max-width:400px;margin:22px 0 0;color:var(--ink-faint);font-size:var(--t--2);text-align:center}
+  .rc-report{width:100%;max-width:400px;margin-top:22px}
+  .rc-report summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-weight:600}
+  .rc-report summary::-webkit-details-marker{display:none}
+  @media (prefers-reduced-motion:reduce){.rc-paper,.rc-stamp svg{animation:none}}
+</style>
+{% endblock %}
+{% block body %}
+<main class="rc-page">
+  <div class="rc-brand">{% include 'components/_emblem.html' %}<div><b>Bozor Nazorat</b><br>savdo yozuvi</div></div>
+
+  <article class="rc-paper" aria-label="Savdo cheki">
+    <header class="rc-head">
+      <div class="rc-shop">{{ shop.market.name }} · №{{ shop.number }}</div>
+      <div class="rc-meta">{{ shop.owner_name }}{% if shop.stir %} · STIR <span class="num" data-noloc>{{ shop.stir }}</span>{% endif %}</div>
+      <div class="rc-meta num">{{ sale.created_at|uzdatetime }}</div>
+    </header>
+
+    <table class="rc-items">
+      {% for it in items %}
+      <tr><td>{{ it.product_name|default:"Mahsulot" }}
+            <div class="sub num">{{ it.quantity|floatformat:"-3" }} × {{ it.unit_price|intcomma }}</div></td>
+          <td class="n">{{ it.line_total|intcomma }}</td></tr>
+      {% empty %}
+      <tr><td>Savdo</td><td class="n">{{ sale.subtotal|intcomma }}</td></tr>
+      {% endfor %}
+    </table>
+
+    <div class="rc-sum">
+      {% if sale.discount %}<div class="row"><span>Chegirma</span><span class="num">−{{ sale.discount|intcomma }}</span></div>{% endif %}
+      {% if sale.rounding %}<div class="row"><span>Yaxlitlash</span><span class="num">−{{ sale.rounding|intcomma }}</span></div>{% endif %}
+      <div class="row"><span>To'lov</span><span>{{ sale.get_payment_type_display }}</span></div>
+      <div class="rc-total"><span>Jami</span><span class="num">{{ sale.total|intcomma }} so'm</span></div>
+    </div>
+
+    <div class="rc-stamp">
+      <svg class="icon" width="22" height="22"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg>
+      Bozor nazorati tizimida qayd etilgan
+    </div>
+    <div class="rc-code num" data-noloc>{{ sale.public_code }}</div>
+  </article>
+
+  <section class="rc-report card">
+    {% if sent or reported %}
+      <div class="row gap-2" style="align-items:flex-start">
+        <svg class="icon" style="color:var(--ok);flex:none"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>
+        <div><b>Rahmat, xabaringiz qabul qilindi.</b>
+          <div class="muted" style="font-size:var(--t--1)">Farq bo'lsa, bozor nazoratchisi tekshiradi. Ismingiz va telefoningiz so'ralmaydi.</div></div>
+      </div>
+    {% elif can_report %}
+      <details {% if error %}open{% endif %}>
+        <summary><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg>
+          To'lagan summangiz boshqacha edimi?</summary>
+        <p class="muted" style="font-size:var(--t--1);margin:var(--sp-2) 0 var(--sp-3)">
+          Chekdagidan ko'p to'lagan bo'lsangiz, bu yerga yozing — nazoratchi tekshiradi. Anonim: ismingiz so'ralmaydi.
+          Xabar {{ report_days }} kun ichida qabul qilinadi.</p>
+        {% if error %}<div class="msg error" style="margin:0 0 var(--sp-3)">{{ error }}</div>{% endif %}
+        <form method="post" action="{% url 'receipt_report' sale.public_code %}" class="stack gap-2">
+          {% csrf_token %}
+          <div class="field"><label class="label" for="paid">Men to'lagan summa (so'm)</label>
+            <input class="input num" id="paid" name="paid_amount" inputmode="numeric" autocomplete="off" required
+                   placeholder="{{ sale.total|intcomma }}"></div>
+          <div class="field"><label class="label" for="cm">Izoh <small class="muted">(ixtiyoriy)</small></label>
+            <input class="input" id="cm" name="comment" maxlength="300" placeholder="Masalan: 3 kg oldim, chekda 2 kg"></div>
+          <button class="btn" type="submit">Xabar berish</button>
+        </form>
+      </details>
+    {% else %}
+      {% if error %}<div class="msg error" style="margin:0">{{ error }}</div>
+      {% else %}<p class="muted" style="margin:0;font-size:var(--t--1)">Bu chek bo'yicha xabar berish muddati tugagan.</p>{% endif %}
+    {% endif %}
+  </section>
+
+  <p class="rc-note">Bu fiskal chek emas: sotuvchi bozor nazorati tizimiga kiritgan savdo yozuvining xaridorga ko'rinadigan nusxasi.</p>
+</main>
+{% endblock %}

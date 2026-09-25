@@ -5,6 +5,7 @@ from .models import (
     DailyClose,
     DailyCloseLine,
     Debt,
+    ReceiptReport,
     RegisterClose,
     Sale,
     SaleItem,
@@ -59,3 +60,9 @@ admin.site.register(WriteOff)
 admin.site.register(Correction)
 admin.site.register(Debt)
 admin.site.register(RegisterClose)
+
+
+@admin.register(ReceiptReport)
+class ReceiptReportAdmin(admin.ModelAdmin):
+    list_display = ("sale", "paid_amount", "created_at", "alert")
+    readonly_fields = ("sale", "paid_amount", "comment", "alert", "created_at")

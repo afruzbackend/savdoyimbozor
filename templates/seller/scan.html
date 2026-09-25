@@ -70,6 +70,13 @@
     <button class="btn btn-lg btn-block" :disabled="total<=0||saving" @click="submit()">
       <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>
       <span x-text="saving?'Saqlanmoqda...':'Sotildi'"></span></button>
+
+    {# Oxirgi sotuv cheki — xaridor QR'ni skanerlaydi #}
+    <button type="button" class="btn btn-ghost btn-block receipt-btn" x-show="lastReceipt" x-cloak
+            @click="window.showReceiptQR(lastReceipt)">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-receipt"></use></svg>
+      Xaridorga chek (QR) · <b class="num" x-text="lastReceipt ? window.BN.fmt(lastReceipt.total)+&quot; so'm&quot; : ''"></b>
+    </button>
   </div>
 
   {# Muvaffaqiyat animatsiyasi #}
@@ -89,7 +96,7 @@
   window.__PRICING__ = {{ pricing_config|safe }};
   document.addEventListener('alpine:init', () => {
     Alpine.data('scanSale', () => ({
-      cfg: window.__PRICING__, q: '', results: [], cart: [], discount: 0, pay: 'cash', saving: false,
+      cfg: window.__PRICING__, q: '', results: [], cart: [], discount: 0, pay: 'cash', saving: false, lastReceipt: null,
       debtorName: '', debtorPhone: '', debtorErr: false, debtorDue: '', dueErr: false,
       customOpen: false, customVal: '',
       init(){ this.$watch('debtorDue', (v)=>{ if(v) this.dueErr=false; }); },
@@ -141,7 +148,9 @@
           try{ const err=await r.json(); if(err.detail) m=err.detail; }catch(e){}
           window.toast(m,'bad'); return; }
         const d=await r.json();
-        this.showOk(d.total); this.reset(); },
+        this.showOk(d.total);
+        if(d.receipt_qr) this.lastReceipt={total:d.total,url:d.receipt_url,qr:d.receipt_qr,code:d.receipt_code};
+        this.reset(); },
       showOk(total){ const o=this.$refs.okOverlay; if(!o){return;}
         if(this.$refs.okAmt) this.$refs.okAmt.textContent=window.BN.fmt(total)+' so\'m';
         o.classList.remove('show'); void o.offsetWidth; o.classList.add('show');

@@ -151,5 +151,6 @@ class AuditMiddleware(MiddlewareMixin):
 
     @staticmethod
     def _ip(request):
-        xff = request.META.get("HTTP_X_FORWARDED_FOR")
-        return xff.split(",")[0].strip() if xff else request.META.get("REMOTE_ADDR")
+        from apps.core.net import client_ip
+
+        return client_ip(request) or None

@@ -69,6 +69,8 @@ class Sale(TimeStampedModel):
     # Qurilma bergan noyob id — offline navbatdan qayta yuborilganda dublikat bo'lmasin
     client_uid = models.CharField(_("Qurilma ID"), max_length=64, blank=True, default="")
     note = models.CharField(_("Izoh"), max_length=200, blank=True)
+    # Xaridorga QR chek: taxmin qilib bo'lmaydigan kod (/chek/<kod>/, login shart emas)
+    public_code = models.CharField(max_length=16, null=True, blank=True, unique=True)
 
     class Meta:
         verbose_name = _("Sotuv")
@@ -88,6 +90,50 @@ class Sale(TimeStampedModel):
 
     def __str__(self):
         return f"{self.shop} — {self.total} so'm"
+
+    # O/0, I/1, L chiqarilgan — xaridor qo'lda terganda adashmasin
+    CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+    def ensure_public_code(self) -> str:
+        """Chek kodi (bo'lmasa yaratiladi). 31^10 ≈ 8·10^14 — terib topib bo'lmaydi."""
+        if self.public_code:
+            return self.public_code
+        import secrets
+
+        from django.db import IntegrityError, transaction
+
+        for _attempt in range(5):
+            code = "".join(secrets.choice(self.CODE_ALPHABET) for _ in range(10))
+            try:
+                with transaction.atomic():
+                    updated = Sale.objects.filter(pk=self.pk, public_code__isnull=True).update(
+                        public_code=code
+                    )
+            except IntegrityError:
+                continue  # juda kam uchraydigan to'qnashuv — boshqa kod
+            if not updated:  # parallel so'rov allaqachon bergan
+                code = Sale.objects.values_list("public_code", flat=True).get(pk=self.pk)
+            self.public_code = code
+            return code
+        raise RuntimeError("Chek kodi yaratilmadi")
+
+
+class ReceiptReport(TimeStampedModel):
+    """Xaridor chek sahifasidan: "men boshqa summa to'ladim". Chekka bitta xabar."""
+
+    sale = models.OneToOneField(Sale, on_delete=models.CASCADE, related_name="buyer_report")
+    paid_amount = models.BigIntegerField(_("Xaridor to'lagan (so'm)"))
+    comment = models.CharField(_("Izoh"), max_length=300, blank=True)
+    alert = models.ForeignKey(
+        "analytics.Alert", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
+    class Meta:
+        verbose_name = _("Xaridor xabari")
+        verbose_name_plural = _("Xaridor xabarlari")
+
+    def __str__(self):
+        return f"{self.sale_id}: {self.paid_amount}"
 
 
 class SaleItem(models.Model):

@@ -73,13 +73,16 @@
   {% if recent %}
   <div class="table-wrap">
     <table class="data">
-      <thead><tr><th>Vaqt</th><th>To'lov</th><th class="num">Chegirma</th><th class="num">Summa</th></tr></thead>
+      <thead><tr><th>Vaqt</th><th>To'lov</th><th class="num">Chegirma</th><th class="num">Summa</th><th><span class="sr-only">Chek</span></th></tr></thead>
       <tbody>
       {% for s in recent %}
         <tr><td class="num">{{ s.created_at|date:"H:i" }}</td>
           <td>{{ s.get_payment_type_display }}{% if s.is_wholesale %} · ulgurji{% endif %}</td>
           <td class="num">{% if s.discount %}{{ s.discount|intcomma }}{% else %}—{% endif %}</td>
-          <td class="num"><b>{{ s.total|intcomma }}</b></td></tr>
+          <td class="num"><b>{{ s.total|intcomma }}</b></td>
+          <td style="width:1%"><button type="button" class="btn-quiet btn-icon" title="Xaridorga chek (QR)" aria-label="Xaridorga chek (QR)"
+                data-receipt-qr="/chek/{{ s.public_code }}/qr.svg" data-receipt-url="{{ s.receipt_link }}" data-receipt-total="{{ s.total }}">
+            <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-receipt"></use></svg></button></td></tr>
       {% endfor %}
       </tbody>
     </table>

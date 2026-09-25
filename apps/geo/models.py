@@ -37,6 +37,11 @@ class Market(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    def duty_inspector(self):
+        """Signal biriktiriladigan tekshiruvchi. Prokuror (kuzatuvchi) ham shu bozorga
+        biriktirilishi mumkin — unga signal BERILMAYDI (u faqat ko'radi)."""
+        return self.inspectors.filter(role="inspector", is_active=True).order_by("pk").first()
+
 
 class Row(TimeStampedModel):
     """Bozor ichidagi qator (rasta liniyasi) — xarita va solishtirish uchun."""
