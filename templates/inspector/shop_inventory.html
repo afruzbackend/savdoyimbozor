@@ -34,6 +34,12 @@
         <span><b>Diqqat: jurnal buzilgan</b> (yozuv #{{ chain_bad }}) — ma'lumot o'zgartirilgan bo'lishi mumkin.</span>
       {% endif %}
     </div>
+    {% if close_photo %}
+    <div class="close-photo">
+      <a href="/media/{{ close_photo.photo.name }}" target="_blank" rel="noopener"><img src="/media/{{ close_photo.photo.name }}" alt="Rasta fotosi"></a>
+      <div><b>Rasta fotosi</b><div class="muted" style="font-size:var(--t--1)">{{ close_photo.date|uzdate }} kun yakunida olingan — qoldiqning ko'rinadigan dalili</div></div>
+    </div>
+    {% endif %}
     {% if before_journal %}
     <div class="msg warning" style="margin:var(--sp-3) 0 0">Tanlangan vaqt jurnal boshlanishidan ({{ journal_start|uzdatetime }}) oldin — bu davr uchun ma'lumot yo'q.</div>
     {% endif %}

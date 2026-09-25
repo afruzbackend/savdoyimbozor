@@ -1,5 +1,5 @@
 {% extends 'seller/base.html' %}
-{% load humanize %}
+{% load humanize static %}
 {% block title %}Kun yakuni{% endblock %}
 {% block heading %}Kun yakuni{% endblock %}
 {% block content %}
@@ -10,7 +10,7 @@
   <div class="msg info">Bugun yakunlangan: hisoblangan <b class="num">{{ existing.computed_sales|intcomma }}</b> ·
      kiritilgan <b class="num">{{ existing.entered_sales|intcomma }}</b> so'm. Qayta yuborsangiz yangilanadi.</div>
   {% endif %}
-  <form method="post">{% csrf_token %}
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}
     <div class="table-wrap"><table class="data">
       <thead><tr><th>Mahsulot</th><th class="num">Narx</th><th class="num">Ertalab</th><th class="num" title="Bugungi kirim − hisobdan chiqarish/qaytarish">±</th><th>Kechqurun</th></tr></thead>
       <tbody>
@@ -25,6 +25,18 @@
       {% empty %}<tr><td colspan="5" class="muted">Mahsulot yo'q.</td></tr>{% endfor %}
       </tbody></table></div>
     <small class="faint">Sanalmagan (bo'sh) mahsulot hisobga olinmaydi. Kechagi sanoq bo'lsa ertalabki qoldiq qulflangan.</small>
+
+    <div class="evidence-box" style="margin-top:var(--sp-4)">
+      <div class="field" style="margin:0"><label class="label">Rasta fotosi {% if existing.photo %}<small class="muted">(bugun olingan — yangisi ixtiyoriy)</small>{% endif %}</label>
+        <label class="file-drop">
+          <input type="file" name="photo" accept="image/*" capture="environment" hidden>
+          <span class="file-btn"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-camera"></use></svg> Rastani suratga olish</span>
+          <span class="file-name muted" data-noloc>{% if existing.photo %}Saqlangan{% else %}Tanlanmagan{% endif %}</span>
+        </label>
+        <div class="hint">Butun rasta ko'rinsin. Yong'in yoki tekshiruvda qoldiqning dalili bo'ladi.</div>
+        {% if existing.photo %}<a href="/media/{{ existing.photo.name }}" target="_blank" rel="noopener" class="hint">Bugungi fotoni ko'rish</a>{% endif %}
+      </div>
+    </div>
 
     <div class="card" style="background:var(--surface-sunken);margin-top:var(--sp-4)">
       <div class="card-title" style="margin-bottom:var(--sp-2)">Kassa (naqd sanoq — majburiy)</div>

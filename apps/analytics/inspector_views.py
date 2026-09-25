@@ -765,11 +765,18 @@ def shop_inventory(request, pk):
                                      created_at__lte=at)
             .select_related("product").order_by("-created_at")[:50]
         )
+    from apps.sales.models import DailyClose
+
+    close_photo = (
+        DailyClose.objects.filter(shop=shop, date__lte=timezone.localtime(moment).date())
+        .exclude(photo="").order_by("-date").first()
+    )
     return render(
         request,
         "inspector/shop_inventory.html",
         {
             "shop": shop,
+            "close_photo": close_photo,
             "lines": [ln for ln in lines if ln["qty"] != 0],
             "total": sum(ln["value"] for ln in lines),
             "at": at,

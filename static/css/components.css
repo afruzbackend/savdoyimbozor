@@ -750,3 +750,6 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 @media print{.pkg-lines td{padding-top:0}}
 .evidence-box{border:1px dashed var(--border-strong);border-radius:var(--r-2);padding:var(--sp-3);margin-bottom:var(--sp-3);
   background:color-mix(in srgb,var(--surface-sunken) 55%,transparent)}
+.close-photo{display:flex;gap:var(--sp-3);align-items:center;margin-top:var(--sp-3)}
+.close-photo img{width:120px;height:90px;object-fit:cover;border-radius:var(--r-2);border:1px solid var(--border)}
+@media print{.close-photo img{width:200px;height:150px}}

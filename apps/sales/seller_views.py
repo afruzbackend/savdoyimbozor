@@ -522,6 +522,20 @@ def daily_close(request):
         if counted is None or counted < 0:
             messages.error(request, "Sandiqdagi sanalgan naqdni kiriting (0 bo'lsa 0 yozing).")
             return redirect("seller:daily_close")
+        # Rasta fotosi — qoldiqning ko'rinadigan dalili (yong'in/kompensatsiya). Mahsulot
+        # sanalgan bo'lsa majburiy; qayta yopishda eski foto qoladi (yangisi ixtiyoriy)
+        photo = request.FILES.get("photo")
+        any_counted = any(
+            str(request.POST.get(f"evening_{p.id}") or "").strip() for p in prods
+        )
+        if photo is not None:
+            err = _photo_error(photo)
+            if err:
+                messages.error(request, err)
+                return redirect("seller:daily_close")
+        elif any_counted and not (existing and existing.photo):
+            messages.error(request, "Rastani suratga oling — kun yakuni fotosi majburiy.")
+            return redirect("seller:daily_close")
         from .services.cash import close_register
 
         with transaction.atomic():
@@ -566,6 +580,8 @@ def daily_close(request):
             )
             close.computed_sales = computed
             close.entered_sales = entered
+            if photo is not None:
+                close.photo = photo
             close.save()
         # Kassa (Z-hisobot) — kun yakunining majburiy qismi (maydalik + nasiya qaytishi hisobda)
         _z, diff = close_register(

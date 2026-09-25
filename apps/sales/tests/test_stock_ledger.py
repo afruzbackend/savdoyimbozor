@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from apps.sales.models import StockMove
 from apps.sales.services.stock import stock_at, verify_chain
-from conftest import INSPECTOR_HOST, SELLER_HOST
+from conftest import INSPECTOR_HOST, SELLER_HOST, photo_file
 
 
 def _sale(client, body):
@@ -26,7 +26,7 @@ def test_every_movement_is_journaled(sclient, shop, product):
                  HTTP_HOST=SELLER_HOST)
     _sale(sclient, {"items": [{"product_id": product.pk, "name": "x", "qty": 5,
                                "unit_price": 10000}], "mode": "scan"})
-    sclient.post("/kun-yakuni/", {f"evening_{product.pk}": "44", "counted_cash": "50000"},
+    sclient.post("/kun-yakuni/", {"photo": photo_file(), f"evening_{product.pk}": "44", "counted_cash": "50000"},
                  HTTP_HOST=SELLER_HOST)
     moves = list(StockMove.objects.filter(product=product).order_by("created_at", "id"))
     assert [m.kind for m in moves] == ["in", "sale", "count"]
@@ -117,3 +117,21 @@ def test_inspector_finds_size_across_shops(iclient, shop):
     r = iclient.get("/qidiruv/?p=ko'ylak&size=m", HTTP_HOST=INSPECTOR_HOST)
     items = r.context["items"]
     assert [p.size for p in items] == ["M"]  # L qoldiqda yo'q — chiqmaydi
+
+
+@pytest.mark.django_db
+def test_daily_close_requires_stall_photo(sclient, shop, product):
+    from apps.sales.models import DailyClose
+
+    sclient.post("/kun-yakuni/", {f"evening_{product.pk}": "5", "counted_cash": "0"},
+                 HTTP_HOST=SELLER_HOST)
+    assert not DailyClose.objects.filter(shop=shop).exists()
+    sclient.post("/kun-yakuni/", {f"evening_{product.pk}": "5", "counted_cash": "0",
+                                  "photo": photo_file()}, HTTP_HOST=SELLER_HOST)
+    c = DailyClose.objects.get(shop=shop)
+    assert c.photo
+    # Qayta yopishda eski foto qoladi — yangisi shart emas
+    sclient.post("/kun-yakuni/", {f"evening_{product.pk}": "4", "counted_cash": "0"},
+                 HTTP_HOST=SELLER_HOST)
+    c.refresh_from_db()
+    assert c.photo and c.lines.get().evening_qty == Decimal("4")

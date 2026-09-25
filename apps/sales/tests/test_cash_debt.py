@@ -6,7 +6,7 @@ import pytest
 from django.utils import timezone
 
 from apps.sales.models import CashOpen, Debt, DebtPayment, RegisterClose, Sale
-from conftest import SELLER_HOST
+from conftest import SELLER_HOST, photo_file
 
 
 def _sale(client, body):
@@ -105,7 +105,7 @@ def test_stock_in_is_not_counted_as_sold(sclient, shop, product):
     r = _sale(sclient, {"items": [{"product_id": product.pk, "name": product.name, "qty": 30,
                                    "unit_price": 10000}], "mode": "scan"})
     assert r.status_code == 201
-    sclient.post("/kun-yakuni/", {f"evening_{product.pk}": "120", "counted_cash": "300000"},
+    sclient.post("/kun-yakuni/", {"photo": photo_file(), f"evening_{product.pk}": "120", "counted_cash": "300000"},
                  HTTP_HOST=SELLER_HOST)
     from apps.sales.models import DailyClose
 
@@ -130,7 +130,7 @@ def test_morning_locked_after_previous_count(sclient, shop, product):
     c = DailyClose.objects.create(shop=shop, date=y)
     DailyCloseLine.objects.create(close=c, product=product, product_name=product.name,
                                   morning_qty=90, evening_qty=80, unit_price=product.sell_price)
-    sclient.post("/kun-yakuni/", {f"morning_{product.pk}": "10", f"evening_{product.pk}": "10",
+    sclient.post("/kun-yakuni/", {"photo": photo_file(), f"morning_{product.pk}": "10", f"evening_{product.pk}": "10",
                                   "counted_cash": "0"}, HTTP_HOST=SELLER_HOST)
     ln = DailyClose.objects.get(shop=shop, date=timezone.localdate()).lines.get()
     assert ln.morning_qty == Decimal("80")  # kechagi kechki sanoq, 10 emas

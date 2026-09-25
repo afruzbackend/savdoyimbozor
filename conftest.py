@@ -93,3 +93,21 @@ def aclient(admin_user):
 
 SELLER_HOST = "sotuvchi.localhost"
 INSPECTOR_HOST = "nazorat.localhost"
+
+
+def photo_file(name="rasta.jpg"):
+    """Haqiqiy (Pillow) rasm — foto tekshiruvidan o'tadi (kun yakuni, kirim, chiqarish)."""
+    import io
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (4, 3), (120, 90, 30)).save(buf, format="JPEG")
+    return SimpleUploadedFile(name, buf.getvalue(), content_type="image/jpeg")
+
+
+@pytest.fixture(autouse=True)
+def _media_tmp(settings, tmp_path):
+    """Testlarda yuklangan fotolar haqiqiy media/ papkasini ifloslamasin."""
+    settings.MEDIA_ROOT = str(tmp_path / "media")
