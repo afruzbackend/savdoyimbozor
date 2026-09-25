@@ -1,0 +1,61 @@
+{% extends 'errors/_base.html' %}
+{% block title %}Sahifa eskirdi{% endblock %}
+{% block code %}403 · sessiya{% endblock %}
+{% block code_label %}403{% endblock %}
+{% block tone %}primary{% endblock %}
+{% block scene_css %}
+/* Qum soati: qum oqadi, tugagach soat 180° aylanadi. Sikl chegarasida (180°→0°) qum ham
+   almashadi — soat simmetrik bo'lgani uchun ko'zga sakrash ko'rinmaydi. */
+.hg{transform-box:view-box;transform-origin:180px 108px;animation:flip 5s 1s cubic-bezier(.7,0,.3,1) infinite}
+@keyframes flip{0%,74%{rotate:0deg}90%,100%{rotate:180deg}}
+.sand-top{transform-box:fill-box;transform-origin:50% 100%;animation:drain 5s 1s linear infinite}
+@keyframes drain{0%{scale:1 1}74%,100%{scale:1 0}}
+.sand-bot{transform-box:fill-box;transform-origin:50% 100%;animation:fill 5s 1s linear infinite}
+@keyframes fill{0%{scale:1 0}74%,100%{scale:1 1}}
+.stream{stroke-dasharray:3 4;animation:stream .35s linear infinite,streamVis 5s 1s linear infinite}
+@keyframes stream{to{stroke-dashoffset:-7}}
+@keyframes streamVis{0%,72%{opacity:1}74%,100%{opacity:0}}
+.hg-in{animation:hgIn .8s .15s var(--ease-back) both;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes hgIn{from{translate:0 30px;scale:.85;opacity:0}to{translate:0 0;scale:1;opacity:1}}
+/* Atrofdagi soat nuqtalari ketma-ket yonadi */
+.tick{opacity:.25;animation:tick 2.4s ease-in-out infinite}
+@keyframes tick{0%,100%{opacity:.25}30%{opacity:1}}
+{% endblock %}
+{% block scene %}
+<svg viewBox="0 0 360 220">
+  <defs>
+    <clipPath id="topGlass"><path d="M160 58h40c0 22-14 30-18 40h-4c-4-10-18-18-18-40z"/></clipPath>
+    <clipPath id="botGlass"><path d="M160 158h40c0-22-14-30-18-40h-4c-4 10-18 18-18 40z"/></clipPath>
+  </defs>
+  <g class="px1">
+    <ellipse class="s-shadow" cx="180" cy="200" rx="90" ry="7"/>
+    <line x1="80" y1="196" x2="280" y2="196" class="s-line" stroke-width="2" stroke-linecap="round"/>
+    <g fill="var(--primary)">
+      <circle class="tick" cx="180" cy="26" r="3" style="animation-delay:0s"/>
+      <circle class="tick" cx="246" cy="52" r="3" style="animation-delay:.2s"/>
+      <circle class="tick" cx="272" cy="108" r="3" style="animation-delay:.4s"/>
+      <circle class="tick" cx="246" cy="164" r="3" style="animation-delay:.6s"/>
+      <circle class="tick" cx="114" cy="164" r="3" style="animation-delay:1s"/>
+      <circle class="tick" cx="88" cy="108" r="3" style="animation-delay:1.2s"/>
+      <circle class="tick" cx="114" cy="52" r="3" style="animation-delay:1.4s"/>
+    </g>
+  </g>
+  <g class="px2"><g class="hg-in"><g class="hg">
+    <rect x="148" y="48" width="64" height="10" rx="4" fill="var(--accent)"/>
+    <rect x="148" y="158" width="64" height="10" rx="4" fill="var(--accent)"/>
+    <path d="M154 58v100M206 58v100" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" opacity=".7"/>
+    <path d="M160 58h40c0 22-14 30-18 40h-4c-4-10-18-18-18-40zM160 158h40c0-22-14-30-18-40h-4c-4 10-18 18-18 40z"
+          fill="var(--surface)" fill-opacity=".6" stroke="var(--line)" stroke-width="2"/>
+    <g clip-path="url(#topGlass)"><rect class="sand-top" x="158" y="66" width="44" height="34" fill="#e2b25a"/></g>
+    <line class="stream" x1="180" y1="98" x2="180" y2="146" stroke="#e2b25a" stroke-width="2.5" stroke-linecap="round"/>
+    <g clip-path="url(#botGlass)"><rect class="sand-bot" x="158" y="128" width="44" height="30" fill="#e2b25a"/></g>
+  </g></g></g>
+</svg>
+{% endblock %}
+{% block digits %}<span class="digit"><span>4</span></span><span class="digit"><span>0</span></span><span class="digit"><span>3</span></span>{% endblock %}
+{% block heading %}Sahifa eskirdi{% endblock %}
+{% block text %}Xavfsizlik uchun sahifa muddati tugadi: u uzoq ochiq qolgan yoki boshqa oynada tizimdan chiqilgan. Sahifani yangilab, amalni qaytadan bajaring — kiritgan ma'lumotingizni qayta yozish kerak bo'lishi mumkin.{% endblock %}
+{% block actions %}
+  <button class="btn btn-primary" type="button" onclick="location.assign(document.referrer && document.referrer.indexOf(location.origin)===0 ? document.referrer : '/')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5"/></svg>Sahifani yangilash</button>
+  <a class="btn btn-ghost" href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Bosh sahifaga</a>
+{% endblock %}

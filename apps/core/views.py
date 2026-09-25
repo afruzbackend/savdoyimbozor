@@ -62,3 +62,15 @@ def service_worker(request):
 def panel_home(request):
     """Super admin bosh sahifasi (P4'da to'ldiriladi)."""
     return render(request, "panel/home.html")
+
+
+@login_required
+def error_preview(request, code):
+    """Xato sahifalarini ko'rish (namoyish/dizayn tekshiruvi): /prefs/xato/404/ va h.k."""
+    from django.http import Http404
+
+    templates = {"400": "400.html", "403": "403.html", "404": "404.html", "500": "500.html",
+                 "csrf": "403_csrf.html"}
+    if code not in templates:
+        raise Http404
+    return render(request, templates[code])

@@ -218,3 +218,33 @@ def test_login_attempts_audited_once_with_ip(seller):
     assert len(logs) == 2  # har urinish bitta yozuv (ikki marta emas)
     assert "Xato parol" in logs[0].detail and logs[0].ip == "10.0.0.7"
     assert logs[1].detail == "Muvaffaqiyatli kirish" and logs[1].interface == "seller"
+
+
+# ---------- Xato sahifalari (motion-dizayn) ----------
+
+@pytest.mark.django_db
+def test_error_pages_render_custom_scenes(client, sclient):
+    r = client.get("/bunday-sahifa-yoq/")
+    assert r.status_code == 404 and "Bu rasta bo" in r.content.decode()
+    # CSRF — "Sahifa eskirdi"
+    c = Client(enforce_csrf_checks=True)
+    r = c.post("/login/", {"username": "x", "password": "y"})
+    assert r.status_code == 403 and "Sahifa eskirdi" in r.content.decode()
+    # 500 shablon so'rovsiz ham chiqadi (Django server_error kabi)
+    from django.template import loader
+
+    html = loader.get_template("500.html").render()
+    assert "Tarozi biroz qiyshaydi" in html and "{#" not in html
+    for code in ("400", "403", "404", "500", "csrf"):
+        r = sclient.get(f"/prefs/xato/{code}/", HTTP_HOST=SELLER_HOST)
+        assert r.status_code == 200 and "{#" not in r.content.decode()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("path", ["/", "/sotuv/", "/skaner/", "/nasiya/", "/mahsulotlar/", "/kirim/",
+                                  "/kassa/", "/kun-yakuni/", "/qaytarish/", "/e-tiroz/"])
+def test_no_raw_template_comments_on_seller_pages(sclient, shop, path):
+    """Ko'p qatorli {# #} izoh sahifaga matn bo'lib chiqmasin."""
+    r = sclient.get(path, HTTP_HOST=SELLER_HOST)
+    assert r.status_code == 200
+    assert "{#" not in r.content.decode() and "#}" not in r.content.decode()

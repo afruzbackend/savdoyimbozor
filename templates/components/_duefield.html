@@ -1,6 +1,6 @@
 {% load static %}
-{# Nasiya qaytarish sanasi — MAJBURIY, bo'sh boshlanadi, tez tugmalar bilan (bozorda tez).
-   Parametrlar: name (standart "due_date"), label, model (Alpine x-model uchun ixtiyoriy nom). #}
+{% comment %} Nasiya qaytarish sanasi — MAJBURIY, bo'sh boshlanadi, tez tugmalar bilan (bozorda tez).
+   Parametrlar: name (standart "due_date"), label, model (Alpine x-model uchun ixtiyoriy nom). {% endcomment %}
 <div class="field due-field" x-data="dateField('', true)" @click.outside="open=false"
      @due-reset.window="value=null"
      {% if model %}x-effect="{{ model }} = iso"{% endif %}>

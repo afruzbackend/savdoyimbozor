@@ -1,24 +1,85 @@
-<!doctype html>
-<html lang="uz"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tizim xatosi — Bozor Nazorat</title>
-<style>
-  *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f5f3ee;color:#222}
-  .err{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    text-align:center;gap:12px;padding:24px}
-  .code{font-size:72px;font-weight:800;color:#bf7d16;line-height:1}
-  h1{font-size:22px;margin:0}
-  p{color:#666;margin:0;max-width:420px}
-  a{margin-top:12px;display:inline-block;padding:10px 18px;border-radius:8px;
-    background:#3a4e8c;color:#fff;text-decoration:none;font-weight:600}
-  @media (prefers-color-scheme:dark){body{background:#16140f;color:#eee}p{color:#aaa}}
-</style>
-</head><body>
-<div class="err">
-  <div class="code">500</div>
-  <h1>Tizimda vaqtinchalik xatolik</h1>
-  <p>Kutilmagan xatolik yuz berdi. Biroz o'tib qayta urinib ko'ring. Xatolik texnik xizmatga qayd etildi.</p>
-  <a href="/">Bosh sahifaga</a>
-</div>
-</body></html>
+{% extends 'errors/_base.html' %}
+{% block title %}Tizim xatosi{% endblock %}
+{% block code %}500{% endblock %}
+{% block code_label %}500{% endblock %}
+{% block tone %}warn{% endblock %}
+{% block scene_css %}
+/* Tarozi muvozanat topolmaydi: yelka tebranadi, pallalar doim vertikal osilib turadi */
+.beam{transform-box:view-box;transform-origin:180px 70px;animation:tilt 4.2s .6s ease-in-out infinite both}
+.pan-l{transform-box:view-box;transform-origin:92px 72px;animation:untilt 4.2s .6s ease-in-out infinite both}
+.pan-r{transform-box:view-box;transform-origin:268px 72px;animation:untilt 4.2s .6s ease-in-out infinite both}
+@keyframes tilt{0%{rotate:-15deg}18%{rotate:10deg}34%{rotate:-7deg}48%{rotate:5deg}60%{rotate:-9deg}76%{rotate:6deg}100%{rotate:-15deg}}
+@keyframes untilt{0%{rotate:15deg}18%{rotate:-10deg}34%{rotate:7deg}48%{rotate:-5deg}60%{rotate:9deg}76%{rotate:-6deg}100%{rotate:15deg}}
+.scale-in{animation:scaleIn .8s .15s var(--ease-back) both;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes scaleIn{from{transform:translateY(40px) scale(.9);opacity:0}to{transform:none;opacity:1}}
+/* Tishli g'ildiraklar aylanadi va vaqti-vaqti bilan TIQILADI */
+.gear-a{transform-box:fill-box;transform-origin:center;animation:jam 3.4s linear infinite}
+.gear-b{transform-box:fill-box;transform-origin:center;animation:jamRev 3.4s linear infinite}
+@keyframes jam{0%{rotate:0deg}62%{rotate:230deg}64%{rotate:224deg}66%{rotate:234deg}68%{rotate:227deg}70%{rotate:232deg}100%{rotate:360deg}}
+@keyframes jamRev{0%{rotate:0deg}62%{rotate:-307deg}64%{rotate:-299deg}66%{rotate:-312deg}68%{rotate:-303deg}70%{rotate:-309deg}100%{rotate:-480deg}}
+/* Tiqilganda uchqun va tutun */
+.spark{opacity:0;animation:spark 3.4s linear infinite}
+@keyframes spark{0%,61%{opacity:0;scale:.4}64%{opacity:1;scale:1.2}70%{opacity:0;scale:.8}100%{opacity:0}}
+.spark{transform-box:fill-box;transform-origin:center}
+.smoke circle{fill:var(--muted);opacity:0;transform-box:fill-box;transform-origin:center;animation:smoke 3.4s ease-out infinite}
+.smoke circle:nth-child(2){animation-delay:.35s}.smoke circle:nth-child(3){animation-delay:.7s}
+@keyframes smoke{0%,60%{opacity:0;translate:0 0;scale:.4}70%{opacity:.35}100%{opacity:0;translate:6px -44px;scale:2.2}}
+/* Ogohlantirish chirog'i */
+.lamp{animation:lamp 1.1s steps(2,jump-none) infinite}
+@keyframes lamp{0%{opacity:1}100%{opacity:.25}}
+.lamp-glow{animation:lampGlow 1.1s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes lampGlow{0%,100%{opacity:.55;scale:1}50%{opacity:0;scale:2.4}}
+{% endblock %}
+{% block scene %}
+<svg viewBox="0 0 360 220">
+  <defs>
+    <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2b25a"/><stop offset="1" stop-color="var(--warn)"/></linearGradient>
+  </defs>
+  <g class="px1">
+    <ellipse class="s-shadow" cx="180" cy="202" rx="130" ry="8"/>
+    <line x1="40" y1="196" x2="320" y2="196" class="s-line" stroke-width="2" stroke-linecap="round"/>
+    <!-- Orqa fondagi tishli g'ildiraklar -->
+    <g opacity=".9">
+      <g class="gear-a"><circle cx="30" cy="30" r="22" fill="none" stroke="var(--line)" stroke-width="9" stroke-dasharray="6 5.5"/>
+        <circle cx="30" cy="30" r="16" fill="var(--surface)" stroke="var(--line)" stroke-width="3"/><circle cx="30" cy="30" r="5" fill="var(--line)"/></g>
+      <g class="gear-b"><circle cx="58" cy="58" r="15" fill="none" stroke="var(--line)" stroke-width="8" stroke-dasharray="5 4.6"/>
+        <circle cx="58" cy="58" r="10" fill="var(--surface)" stroke="var(--line)" stroke-width="3"/><circle cx="58" cy="58" r="3.5" fill="var(--line)"/></g>
+      <g class="spark"><path d="M46 44l7-5M50 51l9 1M42 39l2-9" stroke="var(--warn)" stroke-width="2.5" stroke-linecap="round"/></g>
+      <g class="smoke"><circle cx="44" cy="42" r="5"/><circle cx="48" cy="39" r="4"/><circle cx="41" cy="37" r="4.5"/></g>
+    </g>
+  </g>
+  <g class="px2"><g class="scale-in">
+    <!-- Asos va ustun -->
+    <path d="M136 196l14-22h60l14 22z" fill="#4a453b"/>
+    <rect x="175" y="72" width="10" height="104" rx="4" fill="url(#brass)"/>
+    <circle class="lamp-glow" cx="180" cy="186" r="5" fill="var(--bad)"/>
+    <circle class="lamp" cx="180" cy="186" r="4" fill="var(--bad)"/>
+    <!-- Yelka (tebranadi) -->
+    <g class="beam">
+      <rect x="86" y="66" width="188" height="8" rx="4" fill="url(#brass)"/>
+      <!-- Chap palla: toshlar -->
+      <g class="pan-l">
+        <path d="M92 72l-22 52M92 72l22 52" stroke="var(--ink)" stroke-width="1.5" opacity=".6"/>
+        <path d="M64 124h56a28 12 0 0 1-56 0z" fill="url(#brass)"/>
+        <rect x="80" y="110" width="24" height="14" rx="3" fill="var(--ink)" opacity=".8"/>
+        <text x="92" y="120.5" text-anchor="middle" font-family="Inter,sans-serif" font-weight="800" font-size="8" fill="var(--surface)">1 kg</text>
+      </g>
+      <!-- O'ng palla: "?" -->
+      <g class="pan-r">
+        <path d="M268 72l-22 52M268 72l22 52" stroke="var(--ink)" stroke-width="1.5" opacity=".6"/>
+        <path d="M240 124h56a28 12 0 0 1-56 0z" fill="url(#brass)"/>
+        <circle cx="268" cy="113" r="11" fill="var(--bad)"/>
+        <text x="268" y="117.5" text-anchor="middle" font-family="Inter,sans-serif" font-weight="800" font-size="13" fill="#fff">?</text>
+      </g>
+    </g>
+    <circle cx="180" cy="70" r="7" fill="var(--ink)"/><circle cx="180" cy="70" r="2.5" fill="url(#brass)"/>
+  </g></g>
+</svg>
+{% endblock %}
+{% block digits %}<span class="digit"><span>5</span></span><span class="digit"><span>0</span></span><span class="digit"><span>0</span></span>{% endblock %}
+{% block heading %}Tarozi biroz qiyshaydi{% endblock %}
+{% block text %}Tizimda kutilmagan xatolik yuz berdi. Texnik xizmat xabardor qilindi — bir necha soniyadan so'ng qayta urinib ko'ring.{% endblock %}
+{% block actions %}
+  <button class="btn btn-primary" type="button" onclick="location.reload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5"/></svg>Qayta urinish</button>
+  <a class="btn btn-ghost" href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Bosh sahifaga</a>
+{% endblock %}

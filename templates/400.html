@@ -1,0 +1,69 @@
+{% extends 'errors/_base.html' %}
+{% block title %}Noto'g'ri so'rov{% endblock %}
+{% block code %}400{% endblock %}
+{% block code_label %}400{% endblock %}
+{% block tone %}accent{% endblock %}
+{% block scene_css %}
+/* Kassadan chek bosqichma-bosqich chiqadi (printer ritmi — steps) */
+.paper{animation:print 1.5s .5s steps(9,end) both}
+@keyframes print{from{transform:translateY(96px)}to{transform:none}}
+.ln{transform-box:fill-box;transform-origin:0 50%;animation:ln .35s var(--ease-out) both}
+@keyframes ln{from{transform:scaleX(0)}to{transform:none}}
+/* Muhr zarb bilan tushadi, sahna silkinadi, siyoh sachraydi */
+.stamp{transform-box:fill-box;transform-origin:center;animation:stamp .45s 2.15s cubic-bezier(.6,-.2,.7,1.4) both}
+@keyframes stamp{0%{opacity:0;scale:2.4;rotate:-4deg}70%{opacity:1;scale:.92;rotate:-13deg}100%{opacity:1;scale:1;rotate:-12deg}}
+.hit{animation:hit .4s 2.45s ease-out both}
+@keyframes hit{0%,100%{translate:0 0}20%{translate:-4px 2px}40%{translate:4px -2px}60%{translate:-2px 1px}80%{translate:2px 0}}
+.ink circle{fill:var(--bad);opacity:0;transform-box:fill-box;transform-origin:center;animation:ink .6s 2.5s ease-out both}
+.ink circle:nth-child(2){animation-delay:2.53s}.ink circle:nth-child(3){animation-delay:2.56s}.ink circle:nth-child(4){animation-delay:2.59s}
+@keyframes ink{0%{opacity:.9;scale:.2}100%{opacity:0;scale:1.6;translate:var(--dx) var(--dy)}}
+.printer-led{animation:led .5s .5s steps(2,jump-none) 4 both}
+@keyframes led{0%{opacity:1}100%{opacity:.2}}
+{% endblock %}
+{% block scene %}
+<svg viewBox="0 0 360 220">
+  <defs><clipPath id="paperClip"><rect x="130" y="0" width="100" height="128"/></clipPath></defs>
+  <g class="px1">
+    <ellipse class="s-shadow" cx="180" cy="202" rx="120" ry="8"/>
+    <line x1="50" y1="196" x2="310" y2="196" class="s-line" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <g class="hit"><g class="px2">
+    <!-- Chek qog'ozi (kassadan chiqadi) -->
+    <g clip-path="url(#paperClip)">
+      <g class="paper">
+        <path d="M142 34h76v94h-76zM142 34l6-5 6 5 6-5 6 5 6-5 6 5 6-5 6 5 6-5 6 5 6-5 7 5" fill="var(--surface)" stroke="var(--line)" stroke-width="1.5"/>
+        <rect class="ln" style="animation-delay:.7s" x="152" y="46" width="40" height="4" rx="2" fill="var(--muted)" opacity=".6"/>
+        <rect class="ln" style="animation-delay:.85s" x="152" y="58" width="56" height="3" rx="1.5" fill="var(--muted)" opacity=".4"/>
+        <rect class="ln" style="animation-delay:1s" x="152" y="67" width="48" height="3" rx="1.5" fill="var(--muted)" opacity=".4"/>
+        <rect class="ln" style="animation-delay:1.15s" x="152" y="76" width="52" height="3" rx="1.5" fill="var(--muted)" opacity=".4"/>
+        <rect class="ln" style="animation-delay:1.3s" x="152" y="85" width="36" height="3" rx="1.5" fill="var(--muted)" opacity=".4"/>
+        <path d="M152 97h56" stroke="var(--line)" stroke-dasharray="3 3"/>
+        <rect class="ln" style="animation-delay:1.5s" x="152" y="104" width="28" height="5" rx="2" fill="var(--ink)" opacity=".7"/>
+        <rect class="ln" style="animation-delay:1.6s" x="186" y="104" width="22" height="5" rx="2" fill="var(--ink)" opacity=".7"/>
+      </g>
+    </g>
+    <!-- Kassa apparati -->
+    <rect x="112" y="124" width="136" height="68" rx="10" fill="var(--ink)" opacity=".88"/>
+    <rect x="124" y="124" width="112" height="6" rx="3" fill="var(--bg)" opacity=".7"/>
+    <rect x="124" y="140" width="62" height="20" rx="4" fill="#1b3a2a"/>
+    <text x="155" y="154.5" text-anchor="middle" font-family="Inter,monospace" font-weight="700" font-size="10" fill="#6ee7a8">— — —</text>
+    <g fill="var(--surface)" opacity=".85">
+      <rect x="196" y="140" width="10" height="8" rx="2"/><rect x="210" y="140" width="10" height="8" rx="2"/><rect x="224" y="140" width="10" height="8" rx="2"/>
+      <rect x="196" y="152" width="10" height="8" rx="2"/><rect x="210" y="152" width="10" height="8" rx="2"/><rect x="224" y="152" width="10" height="8" rx="2"/>
+    </g>
+    <circle class="printer-led" cx="232" cy="178" r="3.5" fill="var(--ok)"/>
+    <!-- "XATO" muhri -->
+    <g class="stamp">
+      <rect x="146" y="62" width="68" height="30" rx="6" fill="none" stroke="var(--bad)" stroke-width="3.5"/>
+      <text x="180" y="83" text-anchor="middle" font-family="Inter,sans-serif" font-weight="900" font-size="16" letter-spacing="3" fill="var(--bad)">XATO</text>
+    </g>
+    <g class="ink">
+      <circle cx="146" cy="64" r="3" style="--dx:-12px;--dy:-8px"/><circle cx="214" cy="62" r="2.5" style="--dx:12px;--dy:-10px"/>
+      <circle cx="148" cy="92" r="2.5" style="--dx:-10px;--dy:10px"/><circle cx="212" cy="92" r="3" style="--dx:12px;--dy:8px"/>
+    </g>
+  </g></g>
+</svg>
+{% endblock %}
+{% block digits %}<span class="digit"><span>4</span></span><span class="digit"><span>0</span></span><span class="digit"><span>0</span></span>{% endblock %}
+{% block heading %}So'rov tushunarsiz{% endblock %}
+{% block text %}Yuborilgan ma'lumot noto'g'ri formatda keldi. Sahifani yangilab, amalni qaytadan bajarib ko'ring.{% endblock %}

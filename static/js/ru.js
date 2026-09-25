@@ -879,11 +879,35 @@ window.RU_DICT = {
   "Har biri alohida qoldiq va barkod bilan": "Каждый со своим остатком и штрихкодом:",
   "ta variant yaratiladi.": "вариантов будет создано.",
   "Allaqachon bor:": "Уже есть:",
+  // Xato sahifalari (400/403/404/500/sessiya)
+  "Xato": "Ошибка",
+  "Bu rasta bo'sh": "Этот прилавок пуст",
+  "Siz izlagan sahifa topilmadi: u ko'chirilgan, o'chirilgan yoki manzil xato yozilgan bo'lishi mumkin.": "Страница не найдена: возможно, она перемещена, удалена или адрес введён с ошибкой.",
+  "Bu eshik siz uchun yopiq": "Эта дверь для вас закрыта",
+  "Bu bo'limga kirish huquqingiz yo'q. Agar bu xato deb hisoblasangiz, administrator bilan bog'laning.": "У вас нет доступа к этому разделу. Если считаете это ошибкой — свяжитесь с администратором.",
+  "Faqat administrator uchun": "Только для администратора",
+  "Bu bo'lim faqat super admin uchun. Kirish huquqi kerak bo'lsa, administrator bilan bog'laning.": "Раздел только для супер-администратора. Если нужен доступ — свяжитесь с администратором.",
+  "Tarozi biroz qiyshaydi": "Весы немного перекосились",
+  "Tizimda kutilmagan xatolik yuz berdi. Texnik xizmat xabardor qilindi — bir necha soniyadan so'ng qayta urinib ko'ring.": "В системе произошла непредвиденная ошибка. Техподдержка уведомлена — повторите попытку через несколько секунд.",
+  "Qayta urinish": "Повторить",
+  "So'rov tushunarsiz": "Запрос непонятен",
+  "Yuborilgan ma'lumot noto'g'ri formatda keldi. Sahifani yangilab, amalni qaytadan bajarib ko'ring.": "Отправленные данные в неверном формате. Обновите страницу и повторите действие.",
+  "Sahifa eskirdi": "Страница устарела",
+  "Xavfsizlik uchun sahifa muddati tugadi: u uzoq ochiq qolgan yoki boshqa oynada tizimdan chiqilgan. Sahifani yangilab, amalni qaytadan bajaring — kiritgan ma'lumotingizni qayta yozish kerak bo'lishi mumkin.": "В целях безопасности срок страницы истёк: она долго была открыта или в другом окне выполнен выход. Обновите страницу и повторите действие — возможно, данные придётся ввести заново.",
+  "Sahifani yangilash": "Обновить страницу",
+  "Bosh sahifaga": "На главную",
+  "Orqaga": "Назад",
+  "YOPIQ": "ЗАКРЫТО",
+  "BO'SH": "ПУСТО",
+  "XATO": "ОШИБКА",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
    Tartib muhim — aniqroq/uzunroq bo'laklar oldin. Faqat RU rejimida qo'llanadi. */
 window.RU_FRAGMENTS = [
+  ["Xato 403 · sessiya", "Ошибка 403 · сессия"],
+  ["Xato 40", "Ошибка 40"],
+  ["Xato 50", "Ошибка 50"],
   ["Jurnal butun: ", "Журнал цел: "],
   [" ta yozuv, hech biri o'zgartirilmagan yoki o'chirilmagan.", " записей, ни одна не изменена и не удалена."],
   ["Nazorat kodi: ", "Контрольный код: "],
