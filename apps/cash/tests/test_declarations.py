@@ -241,3 +241,12 @@ def test_shop_fiscal_id_unique_in_panel(aclient, shop, market):
     aclient.post(f"/dokon/{shop.pk}/", data, HTTP_HOST="panel.localhost")
     shop.refresh_from_db()
     assert shop.fiscal_id == "FM-9"
+
+
+def test_parse_amount_export_formats():
+    assert parse_amount("1.234.567") == 1234567
+    assert parse_amount("1,250,000.00") == 1250000
+    assert parse_amount("1.250.000,50") == 1250001
+    assert parse_amount("1 250 000 so'm") == 1250000
+    assert parse_amount("1250000 UZS") == 1250000
+    assert parse_date(46289) == datetime.date(2026, 9, 24)  # Excel seriya raqami

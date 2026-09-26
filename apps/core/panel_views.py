@@ -419,10 +419,9 @@ def login_sheet(request):
 def import_cash(request):
     """Kassa/deklaratsiya Excel. Ustunlar: STIR, Sana(YYYY-MM-DD), Summa."""
     if request.method == "POST" and request.FILES.get("file"):
-        import datetime
-
         from django.utils import timezone
 
+        from apps.cash.adapters.base import AdapterError, parse_amount, parse_date
         from apps.cash.models import CashRecord
         from apps.core.format import excel_str
 
@@ -454,32 +453,22 @@ def import_cash(request):
                 continue
             shop = matches[0]
             try:
-                d = row[1]
-                if isinstance(d, datetime.datetime):
-                    d = d.date()
-                elif isinstance(d, str):
-                    d = d.strip()
-                    for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y"):
-                        try:
-                            d = datetime.datetime.strptime(d, fmt).date()
-                            break
-                        except ValueError:
-                            continue
-                    else:
-                        raise ValueError("sana formati")
-                if not isinstance(d, datetime.date):
+                # Soliq API bilan BITTA o'quvchi: "1,250,000.00", "1.250.000", "1 250 000 so'm",
+                # Excel sana seriyasi (46289) — hammasi tushunarli (oldin ko'pi "noto'g'ri" deb tashlanardi)
+                if row[1] in (None, ""):
                     raise ValueError("sana yo'q")
+                d = parse_date(row[1])
                 if d > today:
                     raise ValueError(f"sana kelajakda ({d:%d.%m.%Y})")
-                amount = to_int(row[2] if len(row) > 2 else None)
-                if amount is None or amount < 0:
-                    raise ValueError("summa noto'g'ri")
+                amount = parse_amount(row[2] if len(row) > 2 else None)
+                if amount < 0:
+                    raise ValueError("summa manfiy")
                 CashRecord.objects.update_or_create(
                     shop=shop, date=d, source="excel", defaults={"amount": amount}
                 )
                 dates.add(d)
                 added += 1
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError, AdapterError) as e:
                 skipped += 1
                 reasons.append(f"{idx}: {e}")
         # Ta'sirlangan kunlar bo'yicha rostlikni qayta hisoblaymiz

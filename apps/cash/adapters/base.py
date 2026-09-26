@@ -35,6 +35,9 @@ def parse_date(value) -> datetime.date:
         return (timezone.localtime(value) if timezone.is_aware(value) else value).date()
     if isinstance(value, datetime.date):
         return value
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and 20000 < value < 80000:
+        # Excel katakchasi "Umumiy" formatda bo'lsa sana seriya raqami bo'lib keladi: 46289 → 2026-09-24
+        return (datetime.date(1899, 12, 30) + datetime.timedelta(days=int(value)))
     text = str(value or "").strip()
     try:
         dt = datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
@@ -50,10 +53,14 @@ def parse_date(value) -> datetime.date:
 
 
 _THOUSANDS = re.compile(r"^-?\d{1,3}(,\d{3})+$")
+_THOUSANDS_DOT = re.compile(r"^-?\d{1,3}(\.\d{3})+$")
+_CURRENCY = re.compile(r"(so['ʻ’`]?m|sum|сум|uzs)\.?", re.I)
 
 
 def parse_amount(value, divisor: int = 1) -> int:
-    """Summa → butun so'm. "1 234 567", "1,234,567", "1234567.50", 123456700 (tiyin, divisor=100)."""
+    """Summa → butun so'm. Soliq/buxgalteriya eksportlarida uchraydigan hamma ko'rinish:
+    "1 234 567", "1,234,567", "1.234.567", "1,234,567.50", "1.234.567,50", "1 234 567 so'm",
+    "1234567.50", 123456700 (tiyin, divisor=100). Oxirgi ajratgich — o'nlik (2 xona), qolgani ming."""
     if value is None or value == "":
         raise AdapterError("summa yo'q")
     if isinstance(value, bool):
@@ -61,10 +68,18 @@ def parse_amount(value, divisor: int = 1) -> int:
     if isinstance(value, (int, float)):
         text = str(value)
     else:
-        text = str(value).replace(" ", "").replace(" ", "")
-        if "," in text and ("." in text or _THOUSANDS.match(text)):
-            text = text.replace(",", "")  # ming ajratgich
-        text = text.replace(",", ".")  # o'nlik vergul
+        text = _CURRENCY.sub("", str(value))
+        text = text.replace(" ", "").replace("\u00a0", "").replace("\u202f", "").replace("'", "")
+        if "," in text and "." in text:
+            # Ikkalasi bor: oxirgisi o'nlik ("1,250,000.00" yoki "1.250.000,00")
+            dec = "," if text.rfind(",") > text.rfind(".") else "."
+            text = text.replace("." if dec == "," else ",", "").replace(dec, ".")
+        elif text.count(",") > 1 or _THOUSANDS.match(text):
+            text = text.replace(",", "")  # ming ajratgich: "1,234,567"
+        elif text.count(".") > 1 or _THOUSANDS_DOT.match(text):
+            text = text.replace(".", "")  # ming ajratgich: "1.234.567"
+        else:
+            text = text.replace(",", ".")  # o'nlik vergul: "12,5"
     try:
         number = Decimal(text)
     except InvalidOperation as e:

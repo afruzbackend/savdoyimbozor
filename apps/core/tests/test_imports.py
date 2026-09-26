@@ -81,3 +81,22 @@ def test_import_cash(aclient, shop):
     r = aclient.post("/import/kassa/", {"file": f}, HTTP_HOST=PANEL_HOST)
     assert r.status_code == 302
     assert CashRecord.objects.filter(shop=shop, amount=500000).exists()
+
+
+@pytest.mark.django_db
+def test_import_cash_understands_real_export_formats(aclient, shop):
+    """Soliq/buxgalteriya eksportidagi ko'rinishlar — oldin ko'pi "summa noto'g'ri" deb tashlanardi."""
+    import datetime
+
+    rows = [["STIR", "Sana", "Summa"],
+            [shop.stir, "2026-09-01", "1,250,000.00"],
+            [shop.stir, "02.09.2026", "1.250.000"],
+            [shop.stir, "2026-09-03", "1 250 000 so'm"],
+            [shop.stir, "2026-09-04", "1.250.000,50"],
+            [shop.stir, 46275, 700000],  # Excel "Umumiy" format: sana seriya raqami (2026-09-10)
+            [shop.stir, datetime.datetime(2026, 9, 5), 1500000.0]]
+    aclient.post("/import/kassa/", {"file": _xlsx(rows)}, HTTP_HOST=PANEL_HOST)
+    got = dict(CashRecord.objects.filter(shop=shop).values_list("date", "amount"))
+    assert got == {datetime.date(2026, 9, 1): 1_250_000, datetime.date(2026, 9, 2): 1_250_000,
+                   datetime.date(2026, 9, 3): 1_250_000, datetime.date(2026, 9, 4): 1_250_001,
+                   datetime.date(2026, 9, 10): 700_000, datetime.date(2026, 9, 5): 1_500_000}
