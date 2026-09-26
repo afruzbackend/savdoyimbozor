@@ -112,6 +112,8 @@ DATABASES = {
     )
 }
 DATABASES["default"]["CONN_MAX_AGE"] = 60
+# Qayta ishlatilayotgan ulanish uzilgan bo'lsa (PostgreSQL qayta ishga tushgan) — so'rov yiqilmasin
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -242,6 +244,31 @@ TAX_API_AMOUNT_DIVISOR = env.int("TAX_API_AMOUNT_DIVISOR", default=1)  # tiyinda
 TAX_API_TIMEOUT = env.int("TAX_API_TIMEOUT", default=30)
 TAX_INBOX_DIR = env("TAX_INBOX_DIR", default=str(BASE_DIR / "tax_inbox"))
 TAX_SYNC_DAYS = env.int("TAX_SYNC_DAYS", default=3)  # kechikkan tuzatishlar uchun oxirgi N kun
+
+# --- Monitoring ---
+# Xatolar: Sentry protokoli. Tavsiya — o'z serverimizdagi GlitchTip (ma'lumot chet elga chiqmaydi).
+SENTRY_DSN = env("SENTRY_DSN", default="")
+SENTRY_ENV = env("SENTRY_ENV", default="production")
+SENTRY_TRACES = env.float("SENTRY_TRACES", default=0.0)  # unumdorlik izlari ulushi (0–1)
+# /healthz/ batafsil javobi uchun (X-Health-Token sarlavhasi); bo'sh — faqat admin ko'radi
+HEALTH_TOKEN = env("HEALTH_TOKEN", default="")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"plain": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "plain"}},
+    "root": {"handlers": ["console"], "level": "WARNING"},
+    "loggers": {
+        "apps": {"level": env("APP_LOG_LEVEL", default="INFO")},
+        "django.request": {"level": "ERROR"},  # 5xx xatolar gunicorn/docker logiga
+    },
+}
+
+from apps.core.monitoring import init as _init_monitoring  # noqa: E402
+
+_init_monitoring(SENTRY_DSN, environment=SENTRY_ENV, traces=SENTRY_TRACES,
+                 release=env("APP_RELEASE", default=""))
 
 # --- Telegram ogohlantirish (ixtiyoriy) ---
 # Qizil signal chiqqanda biriktirilgan inspektorga xabar. Bo'sh bo'lsa — jim o'tadi.

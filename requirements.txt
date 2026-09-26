@@ -14,6 +14,7 @@ redis>=5.0
 
 # --- Production ---
 gunicorn
+sentry-sdk[django,celery]>=2.0  # SENTRY_DSN bo'lsa (GlitchTip/Sentry)
 
 # --- Dev / sifat ---
 ruff

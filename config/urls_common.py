@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path, re_path
 
+from apps.core import views as core_views
 from apps.core.media import protected_media
 from apps.core.views import service_worker
 from apps.sales import public_views as receipt
@@ -13,6 +14,7 @@ common_patterns = [
     path("prefs/", include("apps.core.urls")),  # tema/til almashtirish, styleguide
     path("api/", include("apps.api.urls")),  # DRF
     path("sw.js", service_worker, name="service_worker"),  # PWA/offline — ildiz doirasi
+    path("healthz/", core_views.healthz, name="healthz_root"),  # monitoring (Uptime Kuma, Docker)
     # Xaridorga QR chek — ochiq (login shart emas), kod yagona kalit
     path("chek/<str:code>/", receipt.receipt, name="receipt"),
     path("chek/<str:code>/qr.svg", receipt.receipt_qr, name="receipt_qr"),

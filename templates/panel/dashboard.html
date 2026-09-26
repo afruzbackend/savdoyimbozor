@@ -42,6 +42,20 @@
       <button class="btn btn-ghost" type="submit"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Hozir olish</button></form>
   </div>
 </div>
+<div class="card" style="margin-bottom:var(--sp-4)">
+  <div class="card-header"><span class="card-title">Tizim holati
+    {% if health.status == 'ok' %}<span class="badge badge-ok">joyida</span>{% elif health.status == 'degraded' %}<span class="badge badge-warn">e'tibor kerak</span>{% else %}<span class="badge badge-bad">nosoz</span>{% endif %}</span>
+    <small class="faint">Monitoring: <span data-noloc>/healthz/</span></small></div>
+  <div class="health-grid">
+    {% for c in health.checks %}
+    <div class="health-item {{ c.status }}" title="{{ c.detail }}">
+      <span class="dot"></span>
+      <div style="min-width:0"><b>{% if c.name == 'database' %}Baza{% elif c.name == 'cache' %}Kesh{% elif c.name == 'disk' %}Disk{% elif c.name == 'backup' %}Zaxira{% elif c.name == 'celery' %}Fon vazifalari{% elif c.name == 'cameras' %}Kameralar{% elif c.name == 'tax_sync' %}Soliq sinxron{% else %}SMS{% endif %}</b>
+        <div class="muted health-detail">{{ c.detail }}</div></div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
 <div class="card backup-card {% if not sms_backend %}{% elif sms_week.failed %}warn{% else %}ok{% endif %}" style="margin-bottom:var(--sp-4)">
   <div class="row gap-3" style="align-items:center;flex-wrap:wrap">
     <span class="stat-ic"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-bell"></use></svg></span>

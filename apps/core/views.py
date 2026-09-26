@@ -42,7 +42,26 @@ def styleguide(request):
 
 
 def healthz(request):
-    return HttpResponse("ok")
+    """Holat: ochiq — {"status"} (baza+kesh), token (X-Health-Token) yoki admin — batafsil.
+
+    Baza/kesh ishlamasa 503 — yuk balanslovchi/Docker shu bilan konteynerni qayta ishga tushiradi.
+    """
+    import hmac
+
+    from django.conf import settings
+    from django.http import JsonResponse
+
+    from .health import run
+
+    token = settings.HEALTH_TOKEN
+    user = getattr(request, "user", None)
+    detailed = bool(token and hmac.compare_digest(request.headers.get("X-Health-Token", ""), token)) \
+        or bool(user and user.is_authenticated and getattr(user, "is_superadmin", False))
+    data = run(full=detailed)
+    resp = JsonResponse(data if detailed else {"status": data["status"]},
+                        status=503 if data["status"] == "fail" else 200)
+    resp["Cache-Control"] = "no-store"
+    return resp
 
 
 def service_worker(request):

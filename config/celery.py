@@ -11,6 +11,11 @@ app.autodiscover_tasks()
 
 # Rejalashtirilgan fon vazifalari (spec 2-bo'lim):
 app.conf.beat_schedule = {
+    # Monitoring: fon vazifalari tirikligi (/healthz/ → celery)
+    "heartbeat": {
+        "task": "apps.core.tasks.heartbeat",
+        "schedule": crontab(minute="*"),
+    },
     # Har 5 daqiqada bugungi rostlik ballarini yangilash
     "recompute-today": {
         "task": "apps.analytics.tasks.recompute_today",

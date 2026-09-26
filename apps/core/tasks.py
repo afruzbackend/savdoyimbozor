@@ -8,3 +8,11 @@ from django.core.management import call_command
 def nightly_backup():
     """Har kecha zaxira nusxa (baza + fotolar) — tashqi joyga yuborish bilan."""
     call_command("backup")
+
+
+@shared_task
+def heartbeat():
+    """Har daqiqa: "fon vazifalari tirik" belgisi (/healthz/ va panel kartasi tekshiradi)."""
+    from apps.core.health import beat
+
+    beat()

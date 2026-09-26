@@ -64,8 +64,15 @@ def dashboard(request):
         "recent_audit": AuditLog.objects.select_related("user")[:10],
         **_backup_status(),
         **_sms_status(),
+        "health": _health(),
     }
     return render(request, "panel/dashboard.html", ctx)
+
+
+def _health() -> dict:
+    from .health import run
+
+    return run(full=True)
 
 
 def _sms_status() -> dict:

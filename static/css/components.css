@@ -807,3 +807,15 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 .backup-grid span{padding:8px 10px;border:1px dashed var(--border-strong);border-radius:var(--r-2);text-align:center;
   font-weight:600;letter-spacing:.08em}
 @media print{.twofa-backup .btn{display:none}}
+
+
+/* Panel: tizim holati */
+.health-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:var(--sp-2)}
+.health-item{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-2)}
+.health-item .dot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:6px;background:var(--ink-faint)}
+.health-item.ok .dot{background:var(--ok)}
+.health-item.warn .dot{background:var(--warn)}
+.health-item.fail .dot{background:var(--bad);animation:healthPulse 1.4s ease-out infinite}
+.health-detail{font-size:var(--t--2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes healthPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--bad) 60%,transparent)}100%{box-shadow:0 0 0 8px transparent}}
+@media (prefers-reduced-motion:reduce){.health-item.fail .dot{animation:none}}
