@@ -72,3 +72,19 @@ def excel_str(value) -> str:
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
     return str(value).strip()
+
+
+# Excel formula in'ektsiyasi (OWASP): shu belgilar bilan boshlangan matn formula bo'lib ishlaydi
+_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def excel_safe(value):
+    """Eksport katakchasi: foydalanuvchi matni "=HYPERLINK(...)" bo'lsa formula bo'lib ketmasin —
+    oldiga ' qo'yiladi (Excel uni matn deb ko'rsatadi). Sonlar tegilmaydi."""
+    if isinstance(value, str) and value[:1] in _FORMULA_START:
+        return "'" + value
+    return value
+
+
+def excel_row(values):
+    return [excel_safe(v) for v in values]

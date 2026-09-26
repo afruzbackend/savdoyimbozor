@@ -70,3 +70,37 @@ def test_other_market_incident_hidden(iclient, market):
     other = Market.objects.create(region=market.region, name="Boshqa bozor")
     inc = declare_incident(other, "fire", timezone.now(), "", None)
     assert iclient.get(f"/hodisalar/{inc.pk}/", HTTP_HOST=INSPECTOR_HOST).status_code == 404
+
+
+@pytest.mark.django_db
+def test_exports_neutralize_excel_formulas(iclient, shop, product, market):
+    """Sotuvchi erkin matni (rang, o'lcham, egasi) "=HYPERLINK(...)" bo'lsa — Excel'da formula
+    bo'lib ishlamaydi (oldin favqulodda holat eksportida o'lcham/rang himoyasiz edi, "-" esa hech qayerda)."""
+    import io
+
+    import openpyxl
+
+    from apps.analytics.incidents import declare_incident
+    from apps.analytics.models import DailyScore
+    from apps.core.format import excel_safe
+
+    assert excel_safe("-2+3+cmd|' /C calc'!A0").startswith("'") and excel_safe(-5) == -5
+    evil = '=HYPERLINK("http://x","bos")'
+    from apps.sales.models import StockMove
+    from apps.sales.services.stock import record_move
+
+    product.color, product.size = evil, "-1+1"
+    product.save()
+    record_move(product, StockMove.Kind.IN, delta=Decimal("3"), ref="test")  # muhr jurnaldan oladi
+    shop.owner_name = "@SUM(1)"
+    shop.save()
+    inc = declare_incident(market, "fire", timezone.now(), "", None)
+    wb = openpyxl.load_workbook(io.BytesIO(iclient.get(f"/hodisalar/{inc.pk}/excel/",
+                                                       HTTP_HOST=INSPECTOR_HOST).content))
+    cells = [c.value for row in wb["Mahsulotlar"].iter_rows(min_row=2) for c in row]
+    cells += [c.value for row in wb["Umumiy"].iter_rows(min_row=5) for c in row]
+    assert "'" + evil in cells and "'-1+1" in cells and "'@SUM(1)" in cells
+    assert not any(isinstance(v, str) and v[:1] in "=+-@" for v in cells)
+    DailyScore.objects.create(shop=shop, date=timezone.localdate(), truth_pct=50, measured=True)
+    wb = openpyxl.load_workbook(io.BytesIO(iclient.get("/hisobot/eksport/", HTTP_HOST=INSPECTOR_HOST).content))
+    assert "'@SUM(1)" in [c.value for row in wb.active.iter_rows(min_row=2) for c in row]

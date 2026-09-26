@@ -1056,21 +1056,19 @@ def export_excel(request):
         )
     )
 
-    def cell(v):
-        # Excel formula in'ektsiyasi: "=..." bilan boshlangan matn formula bo'lib ketmasin
-        return "'" + v if isinstance(v, str) and v[:1] in ("=", "+", "@") else v
+    from apps.core.format import excel_row  # har katak formula in'ektsiyasidan himoyalangan
 
     for r in rows:
         ws.append(
-            [
-                cell(r["shop__market__name"]),
-                cell(r["shop__number"]),
-                cell(r["shop__stir"]),
-                cell(r["shop__owner_name"]),
+            excel_row([
+                r["shop__market__name"],
+                r["shop__number"],
+                r["shop__stir"],
+                r["shop__owner_name"],
                 round(r["t"]) if r["t"] is not None else "—",
                 int(r["e"] or 0),
                 int(r["c"] or 0),
-            ]
+            ])
         )
     from django.http import HttpResponse
 
@@ -1192,30 +1190,29 @@ def incident_export(request, pk):
 
     inc = get_object_or_404(Incident, pk=pk, market__in=_visible_markets(request))
 
-    def cell(v):
-        return "'" + v if isinstance(v, str) and v[:1] in ("=", "+", "@") else v
+    from apps.core.format import excel_row  # HAR katak: o'lcham/rang ham sotuvchi erkin matni
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Umumiy"
-    ws.append([f"{inc.number} — {inc.get_kind_display()}", inc.market.name,
-               timezone.localtime(inc.occurred_at).strftime("%d.%m.%Y %H:%M")])
+    ws.append(excel_row([f"{inc.number} — {inc.get_kind_display()}", inc.market.name,
+                         timezone.localtime(inc.occurred_at).strftime("%d.%m.%Y %H:%M")]))
     ws.append(["Nazorat xeshi", inc.snapshot_hash])
     ws.append([])
     ws.append(["Do'kon", "Egasi", "STIR", "Telefon", "Mahsulot turlari", "Qiymat (so'm)",
                "Oxirgi sanoq", "Jurnal butun"])
     for s in inc.snapshot.get("shops", []):
-        ws.append([cell(s["number"]), cell(s["owner"]), cell(s["stir"]), cell(s["phone"]),
-                   s["items"], s["value"], s["last_count"] or "—",
-                   "ha" if s["chain_ok"] else "BUZILGAN"])
+        ws.append(excel_row([s["number"], s["owner"], s["stir"], s["phone"],
+                             s["items"], s["value"], s["last_count"] or "—",
+                             "ha" if s["chain_ok"] else "BUZILGAN"]))
     ws2 = wb.create_sheet("Mahsulotlar")
     ws2.append(["Do'kon", "Mahsulot", "O'lcham", "Rang", "Barkod", "Qoldiq", "Birlik",
                 "Narx", "Qiymat"])
     for s in inc.snapshot.get("shops", []):
         for ln in s["lines"]:
-            ws2.append([cell(s["number"]), cell(ln["product"]), ln["size"], ln["color"],
-                        cell(ln["barcode"]), float(ln["qty"]), ln["unit"], ln["price"],
-                        ln["value"]])
+            ws2.append(excel_row([s["number"], ln["product"], ln["size"], ln["color"],
+                                  ln["barcode"], float(ln["qty"]), ln["unit"], ln["price"],
+                                  ln["value"]]))
     resp = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
