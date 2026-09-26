@@ -45,7 +45,7 @@
       <thead><tr><th>Sana</th><th>Mahsulot</th><th class="num">Miqdor</th><th>Sabab</th><th>Foto</th></tr></thead>
       <tbody>
       {% for w in recent %}<tr><td class="num">{{ w.created_at|date:"d.m H:i" }}</td><td>{{ w.product_name }}</td>
-        <td class="num">{{ w.quantity|floatformat:"-3" }}</td><td class="muted">{{ w.reason|default:"—" }}</td>
+        <td class="num">{{ w.quantity|floatformat:"-3" }} <span>{{ w.product.get_unit_display|default:"" }}</span></td><td class="muted">{{ w.reason|default:"—" }}</td>
         <td>{% if w.photo %}<a href="{{ w.photo.url }}" target="_blank">ko'rish</a>{% endif %}</td></tr>
       {% empty %}<tr><td colspan="5" class="muted">Yozuv yo'q.</td></tr>{% endfor %}
       </tbody></table></div>

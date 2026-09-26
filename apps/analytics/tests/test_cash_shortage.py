@@ -80,10 +80,25 @@ def test_hidden_sales_computed(shop, seller):
 
 
 @pytest.mark.django_db
-def test_zero_sales_with_stock_is_red(shop, seller, product):
-    """Do'kon ochiq, tovari bor, lekin 0 savdo kiritilgan — qizil signal."""
+def test_zero_sales_with_stock_only_is_yellow(shop, seller, product):
+    """Do'kon ochiq, tovari bor, 0 savdo — signal bor, lekin dalil kuchsiz: sariq
+    (kiyim/elektronika do'konida xaridorsiz kun tabiiy). Sotuvchi baribir tushuntiradi."""
     day = timezone.localdate()
     # product fikstura'sida stock=100, savdo yo'q
+    recompute_for_date(day, final=True)
+    a = Alert.objects.get(shop=shop, date=day, kind=Alert.Kind.ZERO_SALES)
+    assert a.level == "yellow"
+
+
+@pytest.mark.django_db
+def test_zero_sales_with_camera_visitors_is_red(shop, seller, product):
+    """Kamera xaridorlarni ko'rdi, savdo esa 0 — kuchli dalil: qizil."""
+    from apps.cameras.models import Camera, CameraEvent
+
+    day = timezone.localdate()
+    cam = Camera.objects.create(shop=shop, market=shop.market, name="k")
+    for _ in range(5):
+        CameraEvent.objects.create(camera=cam, shop=shop, type="visit", count=1, ts=timezone.now())
     recompute_for_date(day, final=True)
     a = Alert.objects.get(shop=shop, date=day, kind=Alert.Kind.ZERO_SALES)
     assert a.level == "red"

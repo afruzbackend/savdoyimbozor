@@ -12,20 +12,32 @@
     </form>
     <p class="hint" style="margin-top:var(--sp-3)">Savdo turi do'kon ochishda tanlanadi va sotuvchiga
       shu yo'nalishga mos tayyor mahsulot ro'yxatini beradi.</p>
+    <p class="hint">Xaridor ulushi — kamera bahosi uchun: peshtaxtaga kelganlarning qanchasi xarid qiladi
+      (non ~0,7, kiyim ~0,25). Bo'sh — umumiy sozlama. «Ma'lumot bo'yicha» — shu turdagi yashil
+      do'konlarning 30 kunlik cheklar/tashriflar nisbati (qavsda kunlar soni).</p>
   </div>
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Mavjud turlar</div>
     <div class="table-wrap"><table class="data">
-      <thead><tr><th>Nomi</th><th class="num">Do'konlar</th><th class="num">Mahsulot turlari</th><th></th></tr></thead>
+      <thead><tr><th>Nomi</th><th class="num">Do'konlar</th><th class="num">Mahsulot turlari</th><th>Xaridor ulushi</th><th></th></tr></thead>
       <tbody>
       {% for c in categories %}
         <tr><td>{{ c.name }}</td><td class="num">{{ c.nshops }}</td><td class="num">{{ c.nprod }}</td>
+          <td>
+            <form method="post" class="row gap-1" style="align-items:center">{% csrf_token %}
+              <input type="hidden" name="action" value="ratio"><input type="hidden" name="id" value="{{ c.pk }}">
+              <input class="input num" name="buyer_ratio" inputmode="decimal" style="width:72px;padding:6px 8px"
+                     value="{{ c.buyer_ratio|default_if_none:'' }}" placeholder="{{ global_ratio }}" aria-label="Xaridor ulushi">
+              <button class="btn-ghost" style="padding:4px 10px">Saqlash</button>
+            </form>
+            {% if c.suggest %}<div class="faint pc-sub"><span>Ma'lumot bo'yicha:</span> <b class="num">{{ c.suggest.0 }}</b> <span class="num">({{ c.suggest.1 }})</span></div>{% endif %}
+          </td>
           <td class="num">
             <form method="post" style="display:inline" data-confirm="Savdo turi o'chirilsinmi?" data-confirm-ok="Ha, o'chirish" data-danger>{% csrf_token %}
               <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ c.pk }}">
               <button class="btn-ghost" style="padding:4px 10px;color:var(--bad)">O'chirish</button></form></td>
         </tr>
-      {% empty %}<tr><td colspan="4" class="muted">Savdo turi yo'q.</td></tr>{% endfor %}
+      {% empty %}<tr><td colspan="5" class="muted">Savdo turi yo'q.</td></tr>{% endfor %}
       </tbody>
     </table></div>
   </div>

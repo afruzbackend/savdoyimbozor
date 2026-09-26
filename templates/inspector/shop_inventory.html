@@ -72,7 +72,7 @@
       <tbody>
       {% for m in day_moves %}
         <tr><td class="num">{{ m.created_at|date:"H:i" }}</td><td>{{ m.product.name }}</td><td>{{ m.get_kind_display }}</td>
-          <td class="num {% if m.qty > 0 %}ok-text{% elif m.qty < 0 %}bad-text{% endif %}">{% if m.qty > 0 %}+{% endif %}{{ m.qty|floatformat:'-3' }}</td>
+          <td class="num {% if m.qty > 0 %}ok-text{% elif m.qty < 0 %}bad-text{% endif %}">{% if m.qty > 0 %}+{% endif %}{{ m.qty|floatformat:'-3' }} <span>{{ m.product.get_unit_display }}</span></td>
           <td class="num">{{ m.balance|floatformat:'-3' }}</td><td class="muted num" data-noloc>{{ m.ref }}</td></tr>
       {% endfor %}
       </tbody></table></div>

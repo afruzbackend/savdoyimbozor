@@ -183,6 +183,58 @@ def _stock_estimate(shop, day):
     return value if value and value > 0 else None
 
 
+def buyer_ratio_for(shop, cfg) -> float:
+    """Kamera bahosi uchun xaridorga aylanish ulushi: savdo turiniki, bo'lmasa umumiy."""
+    cat = shop.category if shop.category_id else None
+    return float(cat.buyer_ratio if cat is not None and cat.buyer_ratio else cfg.buyer_ratio)
+
+
+def suggested_buyer_ratios(days: int = 30) -> dict:
+    """Savdo turi bo'yicha ma'lumotdan chiqqan xaridor ulushi: {toifa_id: (ulush, kunlar_soni)}.
+
+    Faqat rostligi YASHIL (kassa/qoldiq bilan tasdiqlangan) do'kon-kunlar: cheklar / tashriflar.
+    Yashiruvchilar hisobga kirmaydi — aks holda ular ulushni pasaytirib o'zlarini oqlab olardi.
+    Admin uchun TAVSIYA (panelda ko'rsatiladi), avtomatik qo'llanmaydi.
+    """
+    from collections import defaultdict
+    from datetime import timedelta
+
+    from django.db.models import Count
+    from django.db.models.functions import TruncDate
+    from django.utils import timezone as _tz
+
+    from apps.analytics.models import DailyScore
+    from apps.cameras.models import CameraEvent
+    from apps.core.dates import day_start
+    from apps.core.models import SystemSettings
+    from apps.sales.models import Sale
+
+    cfg = SystemSettings.get_solo()
+    start = _tz.localdate() - timedelta(days=days)
+    green = {(r["shop_id"], r["date"]): r["shop__category_id"] for r in DailyScore.objects.filter(
+        date__gte=start, measured=True, truth_pct__gte=cfg.green_threshold,
+        shop__category__isnull=False,
+    ).values("shop_id", "date", "shop__category_id")}
+    if not green:
+        return {}
+    since = day_start(start)
+    visits = {(r["shop_id"], r["d"]): r["n"] for r in CameraEvent.objects.filter(
+        type="visit", ts__gte=since, shop_id__in={k[0] for k in green},
+    ).annotate(d=TruncDate("ts")).values("shop_id", "d").annotate(n=Count("id"))}
+    checks = {(r["shop_id"], r["d"]): r["n"] for r in Sale.objects.filter(
+        created_at__gte=since, shop_id__in={k[0] for k in visits},
+    ).annotate(d=TruncDate("created_at")).values("shop_id", "d").annotate(n=Count("id"))}
+    acc = defaultdict(lambda: [0, 0, 0])  # cheklar, tashriflar, kunlar
+    for key, cat_id in green.items():
+        v = visits.get(key, 0)
+        if v:
+            a = acc[cat_id]
+            a[0] += checks.get(key, 0)
+            a[1] += v
+            a[2] += 1
+    return {cat: (round(min(1.0, max(0.05, c / v)), 2), n) for cat, (c, v, n) in acc.items() if n >= 5}
+
+
 def _camera_estimate(shop, day, buyer_ratio, market_avg_check=0):
     """Kamera bahosi: tashriflar × buyer_ratio × o'rtacha chek. Kamera bo'lmasa None.
 
@@ -292,7 +344,7 @@ def recompute_for_date(day, final: bool | None = None) -> int:
     from apps.catalog.models import Product
     from apps.sales.models import DailyClose, Sale
 
-    shops = list(Shop.objects.filter(is_active=True).select_related("market"))
+    shops = list(Shop.objects.filter(is_active=True).select_related("market", "category"))
     ids = [s.id for s in shops]
 
     # Kiritilgan savdo + chek soni (do'kon bo'yicha, 1 so'rov)
@@ -333,15 +385,16 @@ def recompute_for_date(day, final: bool | None = None) -> int:
     for shop_id, key, price in _price_rows(Product.objects.filter(shop_id__in=ids, is_active=True)):
         prices_by[shop_id].append((key, price))
     # Anomaliya uchun 30-kunlik tarix — 1 so'rov
+    # Anomaliya tarixi: 8 hafta (bir xil hafta kuni bilan solishtirish uchun) — 1 so'rov
     prior_by = defaultdict(list)
     prior_qs = DailyScore.objects.filter(
         shop_id__in=ids,
         date__lt=day,
-        date__gte=day - timedelta(days=30),
+        date__gte=day - timedelta(days=56),
         entered_sales__gt=0,
-    ).values("shop", "entered_sales")
+    ).values("shop", "date", "entered_sales")
     for r in prior_qs:
-        prior_by[r["shop"]].append(r["entered_sales"])
+        prior_by[r["shop"]].append((r["date"], r["entered_sales"]))
     # Inspektor — bozor bo'yicha (do'kon boshiga takror so'rov emas)
     insp_by_market = {}
     for s in shops:
@@ -385,7 +438,7 @@ def recompute_for_date(day, final: bool | None = None) -> int:
             avg_check = max(
                 own_avg, avg_check_by_market.get((shop.market_id, shop.category_id), 0)
             )
-            cam = int(visits * float(cfg.buyer_ratio) * avg_check) if avg_check > 0 else None
+            cam = int(visits * buyer_ratio_for(shop, cfg) * avg_check) if avg_check > 0 else None
         stock_val = stock_val_by.get(shop.id) if shop.id in has_close else None
         if stock_val is not None and stock_val <= 0:
             stock_val = None
@@ -436,7 +489,11 @@ def recompute_for_date(day, final: bool | None = None) -> int:
             continue
 
         # Nol-savdo: ochiq kun, tovari yoki kamera oqimi bor, lekin 0 savdo kiritilgan
-        has_activity = cam or (stock_val and stock_val > 0) or (shop.id in stock_shop_ids)
+        # Dalil kuchi: kamera xaridorni ko'rdi yoki kun yakuni sanog'i tovar kamayganini ko'rsatdi —
+        # qizil. Faqat "qoldiqda tovar bor" — sariq: kiyim/elektronika do'konida bir kun
+        # xaridorsiz o'tishi tabiiy, uni yashiruvchi bilan bir qatorga qo'yib bo'lmaydi.
+        strong = bool(visits) or bool(stock_val and stock_val > 0)
+        has_activity = strong or (shop.id in stock_shop_ids)
         if entered == 0 and has_activity:
             if (shop.id, Alert.Kind.ZERO_SALES) not in existing_alerts:
                 existing_alerts.add((shop.id, Alert.Kind.ZERO_SALES))
@@ -444,16 +501,21 @@ def recompute_for_date(day, final: bool | None = None) -> int:
                     shop=shop,
                     date=day,
                     kind=Alert.Kind.ZERO_SALES,
-                    level="red",
-                    reason="Do'kon ochiq, ammo shu kuni savdo kiritilmagan (tovar/kamera oqimi bor)",
+                    level="red" if strong else "yellow",
+                    reason=(
+                        "Do'kon ochiq, ammo shu kuni savdo kiritilmagan (tovar/kamera oqimi bor)"
+                        if strong else
+                        "Do'kon ochiq, tovar bor, ammo shu kuni savdo kiritilmagan (kamera/sanoq dalili yo'q)"
+                    ),
                     assigned_to=inspector,
                 )
-                try:
-                    from apps.analytics.notifications import notify_alert
+                if strong:  # Telegram — faqat kuchli dalilda (sariq signal ro'yxatda kutadi)
+                    try:
+                        from apps.analytics.notifications import notify_alert
 
-                    notify_alert(za)
-                except Exception:  # noqa: BLE001
-                    pass
+                        notify_alert(za)
+                    except Exception:  # noqa: BLE001
+                        pass
             continue  # nol-savdoda rostlik signali ortiqcha
 
         # Anomaliya: bugungi savdo 30-kunlik o'rtachadan keskin tushsa (batched tarix)
@@ -529,13 +591,36 @@ def _generate_writeoff_alerts(day, cfg, shops, existing_alerts, insp_by_market):
         )
 
 
+WEEKDAYS = ["dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba", "yakshanba"]
+
+
+def _anomaly_baseline(day, prior):
+    """Taqqoslash asosi: (o'rtacha, izoh) yoki None.
+
+    Bozorda hafta kunlari keskin farq qiladi (yakshanba — eng gavjum, dushanba — sust). Hamma kunlar
+    o'rtachasi bilan solishtirilsa har dushanba soxta "keskin tushdi" chiqardi. Shuning uchun avval
+    so'nggi 8 haftaning SHU hafta kunlari (kamida 3 ta), bo'lmasa so'nggi 30 kun (kamida 5 ta).
+    prior: [(sana, savdo)].
+    """
+    from datetime import timedelta
+
+    same = [v for d, v in prior if d.weekday() == day.weekday()]
+    if len(same) >= 3:
+        return sum(same) / len(same), f"odatda {WEEKDAYS[day.weekday()]} kunlari"
+    recent = [v for d, v in prior if d >= day - timedelta(days=30)]
+    if len(recent) >= 5:
+        return sum(recent) / len(recent), "odatda"
+    return None
+
+
 def _anomaly_from(shop, day, entered, prior, cfg, inspector):
-    """Bugungi savdo 30-kunlik o'rtachadan keskin tushsa — signal. Qaytadi: yaratildimi (bool)."""
+    """Bugungi savdo odatdagidan (shu hafta kuni) keskin tushsa — signal. Qaytadi: yaratildimi."""
     from apps.analytics.models import Alert
 
-    if len(prior) < 5:  # yetarli tarix bo'lmasa — baholamaymiz
+    base = _anomaly_baseline(day, prior)
+    if base is None:  # yetarli tarix bo'lmasa — baholamaymiz
         return False
-    avg = sum(prior) / len(prior)
+    avg, label = base
     if avg <= 0:
         return False
     drop_pct = round((1 - entered / avg) * 100)
@@ -549,7 +634,7 @@ def _anomaly_from(shop, day, entered, prior, cfg, inspector):
         level=lvl,
         reason=(
             f"Savdo keskin tushdi: shu kuni {som(entered)} so'm, "
-            f"odatda ~{som(avg)} so'm ({drop_pct}% kam)"
+            f"{label} ~{som(avg)} so'm ({drop_pct}% kam)"
         ),
         assigned_to=inspector,
     )

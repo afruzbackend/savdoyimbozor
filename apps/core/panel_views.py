@@ -1,5 +1,6 @@
 """Super admin paneli: hisob ochish, import, sozlamalar, audit."""
 
+from decimal import Decimal, InvalidOperation
 from functools import wraps
 
 from django.conf import settings as django_settings
@@ -880,6 +881,25 @@ def categories(request):
             else:
                 ShopCategory.objects.create(name=name)
                 messages.success(request, "Savdo turi qo'shildi.")
+        elif act == "ratio":
+            # Kamera bahosi uchun xaridor ulushi (bo'sh — umumiy sozlama)
+            cat = ShopCategory.objects.filter(pk=_pk(request.POST.get("id"))).first()
+            raw = (request.POST.get("buyer_ratio") or "").strip().replace(",", ".")
+            try:
+                val = Decimal(raw).quantize(Decimal("0.01")) if raw else None
+            except InvalidOperation:
+                val = Decimal("-1")
+            if cat is None:
+                messages.error(request, "Savdo turi topilmadi.")
+            elif val is not None and not (Decimal("0.05") <= val <= 1):
+                messages.error(request, "Xaridor ulushi 0,05 dan 1 gacha bo'lsin (masalan 0,3).")
+            else:
+                old_val = cat.buyer_ratio
+                cat.buyer_ratio = val
+                cat.save(update_fields=["buyer_ratio"])
+                request.audit_detail = f"{cat.name}: xaridor ulushi {old_val or '—'} → {val or 'umumiy'}"
+                messages.success(request, f"«{cat.name}»: xaridor ulushi saqlandi. Rostlik keyingi "
+                                          "hisoblashda yangilanadi.")
         elif act == "delete":
             cat = ShopCategory.objects.filter(pk=_pk(request.POST.get("id"))).first()
             if cat is None:
@@ -897,19 +917,22 @@ def categories(request):
         return redirect("panel:categories")
     from django.db.models import Count
 
+    from apps.analytics.scoring.services import suggested_buyer_ratios
+
+    suggest = suggested_buyer_ratios()
+    cats = list(ShopCategory.objects.annotate(
+        nshops=Count("shops", distinct=True), nprod=Count("product_categories", distinct=True)))
+    for c in cats:
+        c.suggest = suggest.get(c.pk)
     return render(
         request,
         "panel/categories.html",
-        {"categories": ShopCategory.objects.annotate(
-            nshops=Count("shops", distinct=True),
-            nprod=Count("product_categories", distinct=True))},
+        {"categories": cats, "global_ratio": SystemSettings.get_solo().buyer_ratio},
     )
 
 
 def _product_category_fields(request, cat=None):
     """Formadan mahsulot turi maydonlari (xato bo'lsa — matn qaytadi)."""
-    from decimal import Decimal, InvalidOperation
-
     from apps.catalog import variants
     from apps.catalog.models import ProductCategory, Unit, VariantKind
 

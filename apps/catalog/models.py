@@ -33,6 +33,13 @@ class ShopCategory(TimeStampedModel):
     """Do'kon yo'nalishi: meva-sabzavot, kiyim, oziq-ovqat..."""
 
     name = models.CharField(_("Do'kon toifasi"), max_length=120, unique=True)
+    # Kamera bahosi: peshtaxtaga kelganlarning qanchasi xarid qiladi. Turga qarab keskin farq
+    # qiladi (non ~0,7, kiyim ~0,25) — bitta umumiy ulushda kiyim do'koni nohaq "yashiruvchi"
+    # bo'lib chiqardi. Bo'sh — SystemSettings.buyer_ratio.
+    buyer_ratio = models.DecimalField(
+        _("Xaridorga aylanish ulushi"), max_digits=4, decimal_places=2, null=True, blank=True,
+        help_text=_("Bo'sh — umumiy sozlama"),
+    )
 
     class Meta:
         verbose_name = _("Do'kon toifasi")

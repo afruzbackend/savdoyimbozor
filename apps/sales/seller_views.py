@@ -1224,58 +1224,54 @@ def rating(request):
 
 
 def _product_ranks(shop, since):
-    """Har o'z mahsulotining bozordagi bir toifadagilar orasida sotilish o'rni."""
+    """Har mahsulot TURI bo'yicha do'konning bozordagi o'rni — shu turni sotadigan do'konlar
+    orasida, 30 kunlik savdo SUMMASI bo'yicha.
+
+    Summa (so'm), dona emas: bir turda razmer/qadoq/birlik aralash ("Choy — 250 g" dona, quyma
+    choy kg) — sonlarni qo'shib bo'lmaydi; har razmer alohida "mahsulot" bo'lib o'zaro raqobat
+    qilmasin. Faqat o'z turlari ko'rinadi, boshqalar maxfiy.
+    """
     from collections import defaultdict
 
     from django.core.cache import cache
     from django.db.models import Sum
 
-    my_prods = list(Product.objects.filter(
-        shop=shop, is_active=True, category__isnull=False
-    ).select_related("category"))
-    cats = sorted({p.category_id for p in my_prods})
-    if not cats:
+    my_cats = {c.pk: c.name for c in ProductCategory.objects.filter(
+        products__shop=shop, products__is_active=True).distinct()}
+    if not my_cats:
         return []
-    # Faqat sotuvchi mahsulotlari toifalari bo'yicha (butun bozorning hamma mahsuloti emas) va
-    # (bozor, toifalar, kun) bo'yicha 10 daqiqa kesh — eng og'ir so'rov (SaleItem × Sale)
-    key = f"rating:prod:{shop.market_id}:{since.isoformat()}:{','.join(map(str, cats))}"
+    cats = sorted(my_cats)
+    # (bozor, turlar, kun) bo'yicha 10 daqiqa kesh — eng og'ir so'rov (SaleItem × Sale)
+    key = f"rating:cat:{shop.market_id}:{since.isoformat()}:{','.join(map(str, cats))}"
     sold = cache.get(key)
     if sold is None:
         sold = {
-            row["product"]: row["q"]
+            (row["sale__shop"], row["product__category"]): int(row["t"] or 0)
             for row in SaleItem.objects.filter(
                 sale__shop__market_id=shop.market_id,
                 **since_day("sale__created_at", since),
                 product__category_id__in=cats,
             )
-            .values("product")
-            .annotate(q=Sum("quantity"))
+            .values("sale__shop", "product__category")
+            .annotate(t=Sum("line_total"))
         }
         cache.set(key, sold, RATING_CACHE_SECONDS)
-    # Bozordagi shu toifalardagi mahsulotlar toifa bo'yicha guruhlanadi
-    cat_products = defaultdict(list)  # category_id -> [(product_id, qty)]
-    for mp in Product.objects.filter(
-        shop__market_id=shop.market_id, category_id__in=cats, is_active=True
-    ).values("id", "category_id"):
-        cat_products[mp["category_id"]].append((mp["id"], sold.get(mp["id"], 0)))
+    # Shu turni sotadigan (faol mahsuloti bor) do'konlar
+    sellers = defaultdict(set)
+    for sid, cid in Product.objects.filter(
+        shop__market_id=shop.market_id, shop__is_active=True, category_id__in=cats, is_active=True
+    ).values_list("shop_id", "category_id").distinct():
+        sellers[cid].add(sid)
 
     ranks = []
-    for p in my_prods:
-        qty = sold.get(p.id, 0)
-        if not qty:
-            continue  # sotilmagan mahsulot reytingda ko'rsatilmaydi
-        ordered = [pid for pid, _ in sorted(cat_products[p.category_id], key=lambda x: -x[1])]
-        pos = ordered.index(p.id) + 1 if p.id in ordered else len(ordered)
-        ranks.append(
-            {
-                "name": p.name,
-                "category": p.category.name,
-                "pos": pos,
-                "total": len(ordered),
-                "qty": qty,
-            }
-        )
-    ranks.sort(key=lambda r: r["pos"])
+    for cid, name in my_cats.items():
+        amount = sold.get((shop.id, cid), 0)
+        if not amount:
+            continue  # sotilmagan tur reytingda ko'rsatilmaydi
+        ordered = sorted(sellers[cid] | {shop.id}, key=lambda sid: -sold.get((sid, cid), 0))
+        ranks.append({"name": name, "pos": ordered.index(shop.id) + 1, "total": len(ordered),
+                      "amount": amount})
+    ranks.sort(key=lambda r: (r["pos"], -r["amount"]))
     return ranks[:10]
 
 

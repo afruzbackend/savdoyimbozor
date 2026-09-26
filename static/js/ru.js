@@ -1427,6 +1427,19 @@ window.RU_DICT = {
   "Variant (M, 42, 250 g)": "Вариант (M, 42, 250 г)",
   "Hisobdan chiqarish signali": "Сигнал о списании",
   "Narx asosi": "База цены",
+  // ---- Xaridor ulushi, anomaliya (hafta kuni), reyting ----
+  "Xaridor ulushi": "Доля покупателей",
+  "Ma'lumot bo'yicha": "По данным",
+  "Xaridor ulushi — kamera bahosi uchun: peshtaxtaga kelganlarning qanchasi xarid qiladi (non ~0,7, kiyim ~0,25). Bo'sh — umumiy sozlama. «Ma'lumot bo'yicha» — shu turdagi yashil do'konlarning 30 kunlik cheklar/tashriflar nisbati (qavsda kunlar soni).": "Доля покупателей — для оценки по камере: какая часть подошедших к прилавку покупает (хлеб ~0,7, одежда ~0,25). Пусто — общая настройка. «По данным» — отношение чеков к визитам за 30 дней у «зелёных» магазинов этого вида (в скобках — число дней).",
+  "Bu — umumiy qiymat. Savdo turiga alohida (non, kiyim...) —": "Это общее значение. Отдельно для вида торговли (хлеб, одежда...) —",
+  "sahifasida.": "на странице.",
+  "Xaridor ulushi 0,05 dan 1 gacha bo'lsin (masalan 0,3).": "Доля покупателей — от 0,05 до 1 (например 0,3).",
+  "Do'kon ochiq, tovar bor, ammo shu kuni savdo kiritilmagan (kamera/sanoq dalili yo'q)": "Магазин открыт, товар есть, но продажи за день не внесены (нет данных камеры/пересчёта)",
+  "O'xshash do'konlar (shu tur)": "Похожие магазины (этот вид)",
+  "o'xshash do'konlar": "похожие магазины",
+  "Mahsulot turlaringiz reytingi": "Рейтинг ваших видов товаров",
+  "Har mahsulot turingiz bo'yicha — bozorda shu turni sotadigan do'konlar orasida, savdo summasi bo'yicha (30 kun). Razmer va qadoqlar birga hisoblanadi.": "По каждому вашему виду товара — среди магазинов рынка, торгующих им, по сумме продаж (30 дней). Размеры и упаковки считаются вместе.",
+  "qadoq": "упак.",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
@@ -1436,6 +1449,14 @@ window.RU_FRAGMENTS = [
 
   // Razmerli tovar
   ["razmerini tanlang: ", "выберите размер: "],
+  [": xaridor ulushi saqlandi. Rostlik keyingi hisoblashda yangilanadi.", ": доля покупателей сохранена. Правдивость обновится при следующем расчёте."],
+  [" so'm, odatda dushanba kunlari ~", " сум, обычно по понедельникам ~"],
+  [" so'm, odatda seshanba kunlari ~", " сум, обычно по вторникам ~"],
+  [" so'm, odatda chorshanba kunlari ~", " сум, обычно по средам ~"],
+  [" so'm, odatda payshanba kunlari ~", " сум, обычно по четвергам ~"],
+  [" so'm, odatda juma kunlari ~", " сум, обычно по пятницам ~"],
+  [" so'm, odatda shanba kunlari ~", " сум, обычно по субботам ~"],
+  [" so'm, odatda yakshanba kunlari ~", " сум, обычно по воскресеньям ~"],
   [" bilan sanaladi — miqdor butun son bo'lsin ", " считается поштучно — количество должно быть целым "],
   ["(kiritildi: ", "(введено: "],
   ["Hisobdan chiqarish me'yordan ko'p (30 kun): ", "Списание сверх нормы (30 дней): "],

@@ -38,7 +38,7 @@
       {% for r in recent %}<tr>
         <td class="num">{{ r.created_at|date:"d.m H:i" }}</td>
         <td>{{ r.product.name|default:"—" }}</td>
-        <td class="num">{% if r.quantity %}{{ r.quantity|floatformat:"-3" }}{% else %}—{% endif %}</td>
+        <td class="num">{% if r.quantity %}{{ r.quantity|floatformat:"-3" }} <span>{{ r.product.get_unit_display|default:"" }}</span>{% else %}—{% endif %}</td>
         <td>{{ r.reason|default:"—" }}</td>
         <td class="num">{{ r.amount|intcomma }}</td></tr>
       {% empty %}<tr><td colspan="5" class="muted">Qaytarish yo'q.</td></tr>{% endfor %}

@@ -54,8 +54,8 @@
   <table>
     <tr><td>Kiritilgan savdo (30 kun)</td><td class="num">{{ entered_total|intcomma }} so'm</td></tr>
     <tr><td>Deklaratsiya (kassa)</td><td class="num">{{ cash_total|intcomma }} so'm</td></tr>
-    <tr><td>O'rtacha chegirma</td><td class="num">{{ invest.shop_discount }}% (bozor: {{ invest.market_discount }}%)</td></tr>
-    <tr><td>Tannarxga yaqin sotuvlar</td><td class="num">{{ invest.near_cost_pct }}% ({{ invest.near_cost }}/{{ invest.near_cost_total }})</td></tr>
+    <tr><td>O'rtacha chegirma</td><td class="num">{{ invest.shop_discount }}% (<span>o'xshash do'konlar:</span> {{ invest.market_discount }}%)</td></tr>
+    <tr><td>Tannarxga yaqin sotuvlar</td><td class="num">{{ invest.near_cost_pct }}% ({{ invest.near_cost }}/{{ invest.near_cost_total }}){% if invest.peer_near_cost_pct is not None %} · <span>o'xshash do'konlar:</span> {{ invest.peer_near_cost_pct }}%{% endif %}</td></tr>
   </table>
 
   <h2>Signallar</h2>

@@ -193,25 +193,32 @@ def _investigation(shop, peers, start, today):
         sub = agg["s"] or 0
         return round((agg["d"] or 0) / sub * 100, 1) if sub else 0.0
 
-    # Tannarxga yaqin sotuvlar (narx tannarxdan ≤10% yuqori) — dumping/yashirish belgisi
-    items = SaleItem.objects.filter(
-        sale__shop=shop,
-        **days_between("sale__created_at", *rng),
-        product__isnull=False,
-        product__buy_price__gt=0,
-    ).select_related("product")
-    near = total = 0
-    for it in items:
-        total += 1
-        if it.unit_price <= it.product.buy_price * 1.1:
-            near += 1
+    # Tannarxga yaqin sotuvlar (narx tannarxdan ≤10% yuqori) — dumping/yashirish belgisi.
+    # Ustama savdo turiga bog'liq (elektronikada tabiatan kichik, mevada katta), shuning uchun
+    # o'xshash do'konlar (bir bozor + bir tur) ulushi bilan birga beriladi: signal — farq.
+    from django.db.models import Count, F, Q
 
+    def near_cost(shops):
+        agg = SaleItem.objects.filter(
+            sale__shop__in=shops, **days_between("sale__created_at", *rng),
+            product__isnull=False, product__buy_price__gt=0,
+        ).aggregate(n=Count("id"), near=Count("id", filter=Q(unit_price__lte=F("product__buy_price") * 1.1)))
+        return agg["near"] or 0, agg["n"] or 0
+
+    near, total = near_cost([shop])
+    pct = round(near / total * 100) if total else 0
+    p_near, p_total = near_cost(list(peers)) if peers else (0, 0)
+    peer_pct = round(p_near / p_total * 100) if p_total else None
+    shop_disc, market_disc = discount_pct([shop]), discount_pct(list(peers) + [shop])
     return {
-        "shop_discount": discount_pct([shop]),
-        "market_discount": discount_pct(list(peers) + [shop]),
+        "shop_discount": shop_disc,
+        "market_discount": market_disc,
+        "discount_flag": shop_disc > market_disc + 5,
         "near_cost": near,
         "near_cost_total": total,
-        "near_cost_pct": round(near / total * 100) if total else 0,
+        "near_cost_pct": pct,
+        "peer_near_cost_pct": peer_pct,
+        "near_cost_flag": pct >= (max(30, peer_pct + 20) if peer_pct is not None else 30),
     }
 
 
@@ -275,7 +282,7 @@ def shop_detail(request, pk):
         "appeals": shop.appeals.all()[:5],
         "corrections": shop.corrections.select_related("user")[:8],
         "register_closes": shop.register_closes.order_by("-date")[:10],
-        "writeoffs": shop.writeoffs.select_related("seller").order_by("-created_at")[:10],
+        "writeoffs": shop.writeoffs.select_related("seller", "product").order_by("-created_at")[:10],
         "stock_ins": shop.stock_ins.select_related("product").order_by("-created_at")[:10],
         "gate_rows": _gate_rows(shop),
     }

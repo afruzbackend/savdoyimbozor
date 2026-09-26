@@ -63,16 +63,17 @@
       <div style="margin-bottom:var(--sp-3)">
         <div class="row" style="justify-content:space-between;font-size:var(--t--1)">
           <span>O'rtacha chegirma</span>
-          <span class="num" style="font-weight:600{% if invest.shop_discount > invest.market_discount|add:5 %};color:var(--bad){% endif %}">{{ invest.shop_discount }}%</span>
+          <span class="num" style="font-weight:600{% if invest.discount_flag %};color:var(--bad){% endif %}">{{ invest.shop_discount }}%</span>
         </div>
-        <small class="faint">Bozor o'rtachasi: <span class="num">{{ invest.market_discount }}%</span></small>
+        <small class="faint">O'xshash do'konlar (shu tur): <span class="num">{{ invest.market_discount }}%</span></small>
       </div>
       <div>
         <div class="row" style="justify-content:space-between;font-size:var(--t--1)">
           <span>Tannarxga yaqin sotuvlar</span>
-          <span class="num" style="font-weight:600{% if invest.near_cost_pct >= 30 %};color:var(--bad){% endif %}">{{ invest.near_cost_pct }}%</span>
+          <span class="num" style="font-weight:600{% if invest.near_cost_flag %};color:var(--bad){% endif %}">{{ invest.near_cost_pct }}%</span>
         </div>
         <small class="faint">{{ invest.near_cost }} / {{ invest.near_cost_total }} qator (narx tannarxga yaqin)</small>
+        {% if invest.peer_near_cost_pct is not None %}<small class="faint" style="display:block">O'xshash do'konlar (shu tur): <span class="num">{{ invest.peer_near_cost_pct }}%</span></small>{% endif %}
       </div>
     </div>
   </div>
@@ -210,7 +211,7 @@
         {% for si in stock_ins %}
         <tr>
           <td class="num">{{ si.created_at|date:"d.m H:i" }}</td><td>{{ si.product.name }}</td>
-          <td class="num">{{ si.quantity|floatformat:'-3' }}{% if si.in_packs %} qop{% endif %}</td>
+          <td class="num">{{ si.quantity|floatformat:'-3' }} <span>{% if si.in_packs %}qadoq{% elif si.product %}{{ si.product.get_unit_display }}{% endif %}</span></td>
           <td class="num">{% widthratio si.quantity 1 si.unit_price as tot %}{{ tot|intcomma }}</td>
           <td>{{ si.supplier_name|default:"—" }}{% if si.supplier_stir %}<div class="muted num" data-noloc>{{ si.supplier_stir }}</div>{% endif %}</td>
           <td>{% if si.invoice_photo %}<a href="/media/{{ si.invoice_photo.name }}" target="_blank" rel="noopener">ko'rish</a>{% else %}<span class="muted">—</span>{% endif %}</td>
@@ -229,7 +230,7 @@
         <tbody>
         {% for w in writeoffs %}
         <tr><td class="num">{{ w.created_at|date:"d.m H:i" }}</td><td>{{ w.product_name }}</td>
-          <td class="num">{{ w.quantity|floatformat:"-3" }}</td><td>{{ w.reason|default:"—" }}</td>
+          <td class="num">{{ w.quantity|floatformat:"-3" }} <span>{{ w.product.get_unit_display|default:"" }}</span></td><td>{{ w.reason|default:"—" }}</td>
           <td>{% if w.photo %}<a href="{{ w.photo.url }}" target="_blank">ko'rish</a>{% else %}—{% endif %}</td></tr>
         {% endfor %}
         </tbody></table></div>

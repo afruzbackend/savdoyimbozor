@@ -31,6 +31,11 @@ solishtirib rostlik darajasi beradigan va yashiruvchini signal beradigan Django 
   bozor narxi asosi (`variants.price_basis`: qadoq 1 kg/litrga keltiriladi, AA/9V alohida; `MarketPrice.basis`),
   chiqarish me'yori `ProductCategory.waste_norm_percent` (kiyim 0,5%, meva 5%, gul 10%) →
   `sales/services/writeoffs.py` → signal `Alert.Kind.WRITEOFF` (chegara `writeoff_alert_min`).
+- Savdo turiga qarab baholash: kamera xaridor ulushi `ShopCategory.buyer_ratio` (bo'sh — umumiy;
+  panel "Savdo turlari"da yashil do'konlar ma'lumotidan tavsiya — `suggested_buyer_ratios`), anomaliya
+  bir xil hafta kuni bilan (`_anomaly_baseline`), nol-savdo: kamera/sanoq dalili — qizil, faqat qoldiq —
+  sariq; tannarxga yaqin sotuv va chegirma o'xshash do'konlar (bir bozor + bir tur) bilan; mahsulot
+  reytingi tur bo'yicha summa bilan (razmer/qadoq birga).
 - `cash` — CashRecord (deklaratsiya; source: excel/tax_api/kassa).
 - `cameras` — Camera, CameraEvent; `api.py` (kontrakt); `simulate_camera`.
 - `analytics` — MarketPrice, DailyScore (agregat), Alert, Inspection, Appeal;

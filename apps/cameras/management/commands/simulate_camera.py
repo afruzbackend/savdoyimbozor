@@ -34,7 +34,7 @@ class Command(BaseCommand):
         random.seed(7)
         cfg = SystemSettings.get_solo()
         ratio = float(cfg.buyer_ratio) or 0.35
-        shops = list(Shop.objects.filter(is_active=True).select_related("market"))
+        shops = list(Shop.objects.filter(is_active=True).select_related("market", "category"))
         if not shops:
             self.stdout.write("Do'kon yo'q. Avval seed_demo bajaring.")
             return
@@ -65,7 +65,9 @@ class Command(BaseCommand):
                 n = len(sales)
                 if not n:
                     continue
-                visits = max(1, round(n / ratio))
+                # Halol do'kon uchun kamera bahosi = yozilgan savdo: ulush savdo turiniki
+                shop_ratio = float(s.category.buyer_ratio) if s.category and s.category.buyer_ratio else ratio
+                visits = max(1, round(n / shop_ratio))
                 if s.id == app_under:
                     visits = int(visits * 1.8)  # kamera haqiqiy oqimni ko'radi
                 for _ in range(visits):
