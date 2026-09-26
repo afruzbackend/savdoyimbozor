@@ -16,6 +16,24 @@ ROLE_INTERFACE = {
 }
 
 
+class SecurityHeadersMiddleware(MiddlewareMixin):
+    """Content-Security-Policy va Permissions-Policy (Django 5.2 da o'rnatilgan CSP yo'q).
+
+    Barcha aktivlar lokal (CDN yo'q), shuning uchun manba — faqat o'z domeni: XSS topilgan taqdirda
+    ham begona skript yuklab bo'lmaydi va ma'lumot begona serverga yuborilmaydi (connect/img/form).
+    'unsafe-inline'/'unsafe-eval' — sahifa ichidagi skriptlar va Alpine.js ifodalari uchun.
+    """
+
+    def process_response(self, request, response):
+        policy = getattr(settings, "CONTENT_SECURITY_POLICY", "")
+        if policy and "Content-Security-Policy" not in response:
+            response["Content-Security-Policy"] = policy
+        perms = getattr(settings, "PERMISSIONS_POLICY", "")
+        if perms and "Permissions-Policy" not in response:
+            response["Permissions-Policy"] = perms
+        return response
+
+
 class IdleTimeoutMiddleware(MiddlewareMixin):
     """Xodim (admin/tekshiruvchi/prokuror) STAFF_IDLE_MINUTES faol bo'lmasa — tizimdan chiqariladi.
 

@@ -16,7 +16,7 @@ from .models import Role, User
 _ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 
 
-def generate_password(length: int = 8) -> str:
+def generate_password(length: int = 10) -> str:
     return "".join(secrets.choice(_ALPHABET) for _ in range(length))
 
 

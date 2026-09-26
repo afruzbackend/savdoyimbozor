@@ -104,26 +104,48 @@ def test_issued_login_unique_and_numeric_on_collision(shop, market):
 
 
 @pytest.mark.django_db
-def test_admin_sees_current_password(shop):
-    """Admin joriy parolni ko'radi: yaratishda, reset'da va self-almashtirishdan keyin."""
+def test_admin_sees_only_issued_temporary_password(shop):
+    """Admin faqat O'ZI BERGAN vaqtinchalik parolni ko'radi (login varaqasi yo'qolsa). Egasi o'zi
+    tanlagan parol ochiq saqlanmaydi — baza sizib chiqsa ham, admin ham ko'rmaydi."""
     from apps.accounts.services import create_seller, reset_password
 
     cred = create_seller(shop, full_name="Sardor")
     u = cred["user"]
-    # 1) Yaratilganda ochiq parol saqlanadi
-    assert u.visible_password == cred["password"]
-    # 2) Admin reset qilganda yangilanadi
+    assert u.visible_password == cred["password"] and len(cred["password"]) >= 10
     newpw = reset_password(u)
     u.refresh_from_db()
     assert u.visible_password == newpw
-    # 3) Sotuvchi o'zi almashtirsa ham admin joriy parolni ko'radi
     c = Client()
     c.force_login(u)
-    c.post(
-        reverse("password_change"),
-        {"password1": "YangiParol9", "password2": "YangiParol9"},
-        HTTP_HOST=SELLER_HOST,
-    )
+    c.post(reverse("password_change"), {"password1": "YangiParol9", "password2": "YangiParol9"},
+           HTTP_HOST=SELLER_HOST)
     u.refresh_from_db()
-    assert u.visible_password == "YangiParol9"
-    assert u.check_password("YangiParol9")  # haqiqiy parol ham o'zgargan
+    assert u.visible_password == ""  # o'zi tanlagani — faqat xesh
+    assert u.check_password("YangiParol9")
+
+
+@pytest.mark.django_db
+def test_password_policy_by_role(shop, inspector):
+    """Sotuvchi — kamida 8, xodim — kamida 12; faqat raqam va keng tarqalgan parollar rad."""
+    from apps.accounts.services import create_seller
+
+    seller = create_seller(shop, full_name="Ali")["user"]
+    c = Client()
+    c.force_login(seller)
+    for bad in ("Ab1234", "12345678901", "password1"):
+        c.post(reverse("password_change"), {"password1": bad, "password2": bad}, HTTP_HOST=SELLER_HOST)
+        seller.refresh_from_db()
+        assert not seller.check_password(bad), bad
+    c.post(reverse("password_change"), {"password1": "Bozor2026x", "password2": "Bozor2026x"},
+           HTTP_HOST=SELLER_HOST)
+    seller.refresh_from_db()
+    assert seller.check_password("Bozor2026x")
+    c.force_login(inspector)
+    c.post(reverse("password_change"), {"password1": "Nazorat2026", "password2": "Nazorat2026"},
+           HTTP_HOST="nazorat.localhost")  # 11 belgi — xodimga kam
+    inspector.refresh_from_db()
+    assert not inspector.check_password("Nazorat2026")
+    c.post(reverse("password_change"), {"password1": "Nazorat-2026x", "password2": "Nazorat-2026x"},
+           HTTP_HOST="nazorat.localhost")
+    inspector.refresh_from_db()
+    assert inspector.check_password("Nazorat-2026x") and inspector.visible_password == ""

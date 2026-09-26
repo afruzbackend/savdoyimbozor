@@ -58,6 +58,8 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # CSP + Permissions-Policy (manba faqat o'z domeni; kamera/mikrofon faqat o'zimizga)
+    "apps.core.middleware.SecurityHeadersMiddleware",
     # Statik fayllarni Django o'zi uzatadi (DEBUG=False bo'lsa ham) — WhiteNoise:
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -119,13 +121,38 @@ DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
 AUTH_USER_MODEL = "accounts.User"
 
+# Parol siyosati: kamida 8 (xodimlarga 12 — accounts.views.password_min_length), faqat raqam
+# emas, keng tarqalgan ("12345678", "qwerty") emas, login/ismga o'xshamas.
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 6},
+        "OPTIONS": {"min_length": 8},
     },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# --- Brauzer xavfsizlik siyosati (SecurityHeadersMiddleware) ---
+# Hamma aktiv lokal: tashqi skript/rasm/so'rov yo'q. Kamera — barkod skaneri, mikrofon — ovozli kirim.
+CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob:; "
+    "font-src 'self' data:; "
+    "connect-src 'self'; "
+    "media-src 'self' blob:; "
+    "worker-src 'self' blob:; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "frame-ancestors 'none'"
+)
+PERMISSIONS_POLICY = (
+    "camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), "
+    "magnetometer=(), gyroscope=(), accelerometer=()"
+)
 
 # --- Til va vaqt ---
 LANGUAGE_CODE = "uz"

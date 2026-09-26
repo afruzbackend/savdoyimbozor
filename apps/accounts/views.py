@@ -215,6 +215,11 @@ def logout_view(request):
     return redirect("login")
 
 
+def password_min_length(user) -> int:
+    """Xodim (admin/nazoratchi/prokuror) — 12, sotuvchi — 8 belgi."""
+    return 12 if getattr(user, "is_staff_role", False) else 8
+
+
 @login_required
 def password_change(request):
     """Birinchi kirishda majburiy, keyin ixtiyoriy."""
@@ -225,20 +230,22 @@ def password_change(request):
         p1 = request.POST.get("password1") or ""
         p2 = request.POST.get("password2") or ""
         weak = None
+        min_len = password_min_length(request.user)
         try:
-            validate_password(p1, request.user)  # min 6 + keng tarqalgan ("123456") parollar
+            validate_password(p1, request.user)  # keng tarqalgan, faqat raqam, loginga o'xshash — rad
         except ValidationError:
             weak = True
-        if len(p1) < 6:
-            messages.error(request, "Parol kamida 6 belgidan iborat bo'lsin.")
+        if len(p1) < min_len:
+            messages.error(request, f"Parol kamida {min_len} belgidan iborat bo'lsin.")
         elif p1 != p2:
             messages.error(request, "Parollar mos kelmadi.")
         elif weak:
-            messages.error(request, "Parol juda oddiy (masalan 123456) — murakkabroq tanlang.")
+            messages.error(request, "Parol juda oddiy (faqat raqam, keng tarqalgan yoki loginga o'xshash) — "
+                                    "harf va raqam aralash, murakkabroq tanlang.")
         elif request.user.check_password(p1):
             messages.error(request, "Yangi parol eskisi bilan bir xil bo'lmasin.")
         else:
-            request.user.set_password_visible(p1)
+            request.user.set_own_password(p1)  # faqat xesh — admin ham ko'rmaydi
             request.user.must_change_password = False
             request.user.save(
                 update_fields=["password", "visible_password", "must_change_password"]

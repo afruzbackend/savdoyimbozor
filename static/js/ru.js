@@ -1451,6 +1451,11 @@ window.RU_DICT = {
   "Parolni ko'rsatish": "Показать пароль",
   "Parol olinmadi": "Не удалось получить пароль",
   "Parol saqlanmagan — kerak bo'lsa tiklang.": "Пароль не сохранён — при необходимости сбросьте.",
+  "Vaqtinchalik parol": "Временный пароль",
+  "Admin bergan, egasi hali almashtirmagan parol. Egasi tanlagan parol hech kimga ko'rinmaydi.": "Пароль, выданный админом и ещё не изменённый владельцем. Пароль, выбранный владельцем, никому не виден.",
+  "Kamida 8 belgi, harf va raqam": "Не менее 8 символов, буквы и цифры",
+  "Kamida 12 belgi, harf va raqam": "Не менее 12 символов, буквы и цифры",
+  "Parol juda oddiy (faqat raqam, keng tarqalgan yoki loginga o'xshash) — harf va raqam aralash, murakkabroq tanlang.": "Пароль слишком простой (только цифры, распространённый или похож на логин) — выберите сложнее, с буквами и цифрами.",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
@@ -1460,6 +1465,8 @@ window.RU_FRAGMENTS = [
 
   // Razmerli tovar
   ["razmerini tanlang: ", "выберите размер: "],
+  ["Parol kamida ", "Пароль должен быть не короче "],
+  [" belgidan iborat bo'lsin.", " символов."],
   ["Qayta kiring — ", "Войдите снова — "],
   [" ta sotuv navbatda saqlanib turibdi", " продаж ждут в очереди"],
   [" ta navbatdagi sotuv qabul qilinmadi — ro'yxatni ko'ring", " продаж из очереди не принято — см. список"],

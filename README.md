@@ -51,7 +51,9 @@ So'ng: **http://localhost/** (nginx 80-portda).
 | `prokuror` | Prokuror (kuzatuvchi) — hamma narsani faqat ko'radi, har ko'rishi audit jurnalida |
 
 Hammasi **bir xil manzildan** kiradi. Admin foydalanuvchilar ro'yxatida
-har hisobning joriy **login va parolini** ko'ra oladi (davlat kredensial modeli).
+**loginni** va o'zi bergan **vaqtinchalik parolni** (egasi almashtirguncha) ko'ra oladi — ko'rish audit
+jurnaliga yoziladi. Egasi tanlagan parol ochiq saqlanmaydi (unutsa — "Parolni tiklash").
+Production o'rnatish (HTTPS, birinchi admin, zaxira): [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ## Demo ssenariysi
 1. **nazorat** bilan kiring → dashboard'da **yashirilgan savdo** va **potensial qo'shimcha soliq**
@@ -62,7 +64,7 @@ har hisobning joriy **login va parolini** ko'ra oladi (davlat kredensial modeli)
    hisobotда rostlik va "qanday oshiraman" maslahati. Internet uzilsa sotuv telefonda
    saqlanib, tiklanganda avtomatik yuboriladi (offline navbat).
 3. **admin** bilan kiring → hisob ochish → chop etiladigan login varaqasi; foydalanuvchilar
-   (login/parol ko'rinadi); tizim sozlamalari (rostlik chegaralari, soliq foizi); audit jurnali.
+   (login, vaqtinchalik parol); tizim sozlamalari (rostlik chegaralari, soliq foizi); audit jurnali.
 
 ## Kunlik hisob-kitob
 ```bash

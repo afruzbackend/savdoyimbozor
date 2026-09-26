@@ -127,9 +127,17 @@ class User(AbstractUser):
         return Shop.objects.none()
 
     def set_password_visible(self, raw_password):
-        """Parolni o'rnatadi va admin ko'rishi uchun ochiq matnini ham saqlaydi."""
+        """ADMIN BERGAN vaqtinchalik parol (hisob ochish / tiklash): egasi birinchi kirishda almashtirguncha
+        admin ko'ra oladi (login varaqasi yo'qolsa). Egasi o'zi tanlagan parol bu yerga TUSHMAYDI —
+        set_own_password."""
         self.set_password(raw_password)
         self.visible_password = raw_password or ""
+
+    def set_own_password(self, raw_password):
+        """Egasi o'zi tanlagan parol — faqat xesh. Ochiq nusxa o'chiriladi: baza sizib chiqsa ham,
+        admin ham uni ko'rmaydi (odamlar bir parolni boshqa joyda ham ishlatadi)."""
+        self.set_password(raw_password)
+        self.visible_password = ""
 
     def register_failed_login(self, max_attempts: int, lock_minutes: int):
         self.failed_attempts += 1

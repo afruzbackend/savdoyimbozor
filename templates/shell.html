@@ -161,7 +161,7 @@
         {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
         <div class="field" x-data="{show:false}"><label class="label">Yangi parol</label>
           <div class="pw-input">
-            <input class="input" :type="show?'text':'password'" name="password1" placeholder="Kamida 6 belgi" required minlength="6">
+            <input class="input" :type="show?'text':'password'" name="password1" placeholder="Kamida {% if request.user.is_staff_role %}12{% else %}8{% endif %} belgi, harf va raqam" required minlength="{% if request.user.is_staff_role %}12{% else %}8{% endif %}" autocomplete="new-password">
             <button type="button" class="pw-eye" tabindex="-1" @click="show=!show" :aria-label="show ? 'Yashirish' : 'Ko\'rsatish'">
               <svg class="icon-sm"><use :href="'{% static 'icons/sprite.svg' %}#'+(show?'i-eye-off':'i-eye')"></use></svg></button>
           </div></div>

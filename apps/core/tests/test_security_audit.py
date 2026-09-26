@@ -283,3 +283,13 @@ def test_prod_refuses_weak_secret_key():
     weak = run("change-me-in-production")
     assert weak.returncode != 0 and "SECRET_KEY" in weak.stderr
     assert run("k" * 50).returncode == 0
+
+
+@pytest.mark.django_db
+def test_security_headers_csp_and_permissions(client):
+    """CSP: manba faqat o'z domeni (XSS bo'lsa ham begona skript/so'rov yo'q); kamera/mikrofon faqat o'zimizga."""
+    r = client.get("/login/")
+    csp = r["Content-Security-Policy"]
+    assert "default-src 'self'" in csp and "object-src 'none'" in csp and "frame-ancestors 'none'" in csp
+    assert "connect-src 'self'" in csp and "http" not in csp  # tashqi manba ruxsat etilmagan
+    assert "camera=(self)" in r["Permissions-Policy"] and "geolocation=()" in r["Permissions-Policy"]
