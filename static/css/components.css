@@ -32,7 +32,9 @@
 }
 .card-flat{box-shadow:none}
 .card-header{display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:var(--sp-4)}
+  margin-bottom:var(--sp-4);flex-wrap:wrap;gap:var(--sp-2)}
+/* Sarlavha yonidagi tugmalar qatori tor ekranda o'raladi (ekrandan chiqmasin) */
+.card-header>.row{flex-wrap:wrap}
 .card-header h3,.card-header h4{margin:0}
 .card-title{font-family:var(--font-serif);font-size:var(--t-1);font-weight:600}
 
@@ -548,7 +550,9 @@ tr.row-muted td{color:var(--ink-faint)}
   .topbar{flex-wrap:wrap;row-gap:var(--sp-2)}
   .topbar h1{flex:1 1 6em;min-width:0;font-size:var(--t-1);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .topbar>.row{flex:0 1 auto;margin-left:auto}
+  /* Amal tugmalari qatorining o'zi ham o'raladi — ikki-uch tugma ekrandan chiqib ketmasin */
+  .topbar>.row{flex:0 1 auto;margin-left:auto;max-width:100%;flex-wrap:wrap;justify-content:flex-end;
+    gap:var(--sp-2)}
   /* Hamburger bosilganda chap menyu drawer bo'lib chiqadi */
   body.nav-open .sidebar{display:flex;position:fixed;top:0;bottom:0;left:0;
     width:min(84vw,300px);z-index:60;overflow-y:auto;box-shadow:var(--shadow-lg,0 10px 40px rgba(0,0,0,.35))}
@@ -820,3 +824,8 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 .health-detail{font-size:var(--t--2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @keyframes healthPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--bad) 60%,transparent)}100%{box-shadow:0 0 0 8px transparent}}
 @media (prefers-reduced-motion:reduce){.health-item.fail .dot{animation:none}}
+
+/* Qator bolalari tor ekranda keyingi qatorga o'raladi (filtr chiplari va h.k.) */
+.wrap-flex{flex-wrap:wrap}
+.filter-bar .input{flex:1 1 200px;max-width:260px}
+@media (max-width:640px){.filter-bar .input{max-width:none;flex-basis:100%}}

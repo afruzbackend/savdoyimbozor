@@ -4,12 +4,16 @@
 {% block heading %}Foydalanuvchilar{% endblock %}
 {% block topbar_actions %}<a class="btn" href="{% url 'panel:account_create' %}">+ Hisob ochish</a>{% endblock %}
 {% block content %}
-<form method="get" class="row gap-2" style="margin-bottom:var(--sp-4)">
-  <input class="input" name="q" value="{{ q }}" placeholder="Login, F.I.O. yoki do'kon №" style="max-width:240px">
-  <a class="chip" href="?" {% if not role %}aria-pressed="true"{% endif %}>Barchasi</a>
-  <a class="chip" href="?role=seller" {% if role == 'seller' %}aria-pressed="true"{% endif %}>Sotuvchi</a>
-  <a class="chip" href="?role=inspector" {% if role == 'inspector' %}aria-pressed="true"{% endif %}>Inspektor</a>
-  <a class="chip" href="?role=prosecutor" {% if role == 'prosecutor' %}aria-pressed="true"{% endif %}>Prokuror</a>
+{% comment %}Qidiruv va rol filtri bir-birini saqlaydi (chip bosilsa qidiruv matni, qidirilsa rol yo'qolmaydi){% endcomment %}
+<form method="get" class="row gap-2 wrap-flex filter-bar" style="margin-bottom:var(--sp-4)">
+  {% if role %}<input type="hidden" name="role" value="{{ role }}">{% endif %}
+  <input class="input" name="q" value="{{ q }}" placeholder="Login, F.I.O. yoki do'kon №">
+  {% with qs=q|urlencode %}
+  <a class="chip" href="?{% if q %}q={{ qs }}{% endif %}" {% if not role %}aria-pressed="true"{% endif %}>Barchasi</a>
+  <a class="chip" href="?role=seller{% if q %}&q={{ qs }}{% endif %}" {% if role == 'seller' %}aria-pressed="true"{% endif %}>Sotuvchi</a>
+  <a class="chip" href="?role=inspector{% if q %}&q={{ qs }}{% endif %}" {% if role == 'inspector' %}aria-pressed="true"{% endif %}>Inspektor</a>
+  <a class="chip" href="?role=prosecutor{% if q %}&q={{ qs }}{% endif %}" {% if role == 'prosecutor' %}aria-pressed="true"{% endif %}>Prokuror</a>
+  {% endwith %}
 </form>
 <div class="card">
   <div class="table-wrap">
