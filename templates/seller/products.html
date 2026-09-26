@@ -19,6 +19,26 @@
   {% for sz in shop_sizes %}<a class="chip" href="?size={{ sz|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}" {% if size|upper == sz|upper %}aria-pressed="true"{% endif %} data-noloc>{{ sz }}</a>{% endfor %}
   {% endif %}
 </form>
+{% if size_matrix %}
+<div class="card" style="margin-bottom:var(--sp-3)">
+  <div class="card-header"><span class="card-title">Razmerlar bo'yicha qoldiq</span>
+    <small class="faint">Razmerni bosing — faqat o'sha variant ko'rinadi</small></div>
+  <div class="stack gap-2">
+    {% for m in size_matrix %}
+    <div class="size-row">
+      <div class="size-row-name"><b>{{ m.base }}</b> <small class="muted num">jami {{ m.total|floatformat:'-3' }}</small></div>
+      <div class="row gap-1 wrap-flex">
+        {% for z in m.sizes %}
+        <a class="size-stock {{ z.state }}" href="?q={{ m.base|urlencode }}&size={{ z.size|urlencode }}"
+           title="{% if z.state == 'zero' %}Tugagan{% elif z.state == 'low' %}Kam qoldi{% endif %}">
+          <span data-noloc>{{ z.label }}</span><b class="num">{{ z.stock|floatformat:'-3' }}</b></a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 <div class="card">
   <div class="table-wrap"><table class="data">
     <thead><tr><th>Nomi</th><th>Barkod</th><th class="num">Tannarx</th><th class="num">Narx</th><th class="num">Qoldiq</th><th></th></tr></thead>

@@ -138,26 +138,26 @@ def product_lookup_api(request):
     shop = _seller_shop(request)
     if shop is None:
         return Response([], status=200)
+    from django.db.models import Q
+
     from apps.catalog.models import Product
+    from apps.catalog.sizes import sorted_products
+
+    def row(p):
+        return {"id": p.id, "name": p.name, "price": p.sell_price, "unit": p.unit,
+                "size": p.size, "stock": float(p.stock)}
 
     q = request.GET.get("q", "").strip()
     qs = Product.objects.filter(shop=shop, is_active=True)
     if q:
         exact = qs.filter(barcode=q).first()
         if exact:
-            return Response(
-                [
-                    {
-                        "id": exact.id,
-                        "name": exact.name,
-                        "price": exact.sell_price,
-                        "unit": exact.unit,
-                    }
-                ]
-            )
-        qs = qs.filter(name__icontains=q)
-    data = [{"id": p.id, "name": p.name, "price": p.sell_price, "unit": p.unit} for p in qs[:20]]
-    return Response(data)
+            return Response([row(exact)])
+        # "futbolka m" — har so'z nomda YOKI razmerga teng ("Futbolka — M" topiladi)
+        for word in q.split()[:5]:
+            qs = qs.filter(Q(name__icontains=word) | Q(size__iexact=word))
+    # Razmerlar mantiqiy tartibda (XS < S < M, 36 < 37), keyin 20 tasi
+    return Response([row(p) for p in sorted_products(qs[:80])[:20]])
 
 
 @api_view(["GET"])

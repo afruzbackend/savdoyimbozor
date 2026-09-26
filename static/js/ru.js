@@ -1318,11 +1318,31 @@ window.RU_DICT = {
   "Oldingi oy": "Предыдущий месяц",
   "Keyingi oy": "Следующий месяц",
   "Yashirish": "Скрыть",
+  // ---- Razmerli tovar (kirim jadvali, qoldiq matritsasi) ----
+  "Razmerlar bo'yicha qoldiq": "Остатки по размерам",
+  "Razmerni bosing — faqat o'sha variant ko'rinadi": "Нажмите на размер — будет показан только этот вариант",
+  "jami": "всего",
+  "Model": "Модель",
+  "Razmerlar": "Размеры",
+  "Yangi razmer (masalan 44 yoki XXL)": "Новый размер (например 44 или XXL)",
+  "Kelish narxi (1 dona uchun, so'm)": "Закупочная цена (за 1 шт., сум)",
+  "Tugagan": "Закончился",
+  "Kam qoldi": "Мало осталось",
+  "tugagan": "нет в наличии",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
    Tartib muhim — aniqroq/uzunroq bo'laklar oldin. Faqat RU rejimida qo'llanadi. */
 window.RU_FRAGMENTS = [
+  ["qoldiq ", "остаток "],
+
+  // Razmerli tovar
+  ["razmerini tanlang: ", "выберите размер: "],
+  ["bor: ", "есть: "],
+  ["Kirim: ", "Приход: "],
+  [" dona · ", " шт. · "],
+  ["Razmer ", "Размер "],
+
   // To'liq skan: sanalar, tizim holati, {{ qiymat }} yonidagi matnlar
   ["-yanvar ", " января "],
   ["-fevral ", " февраля "],

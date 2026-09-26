@@ -787,7 +787,9 @@ def shop_inventory(request, pk):
         ]
     for ln in lines:
         ln["value"] = int(max(ln["qty"], 0) * ln["price"])
-    lines.sort(key=lambda ln: -ln["value"])
+    from apps.catalog.sizes import product_order
+
+    lines.sort(key=lambda ln: product_order(ln["p"]))  # model → razmer (36, 37 ... yonma-yon)
     ok, bad_id, n_moves = verify_chain(shop)
     moment = at or timezone.now()
     last_move = (

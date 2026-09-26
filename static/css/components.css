@@ -795,7 +795,8 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 .mic-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .mic-btn.on{background:var(--bad);color:#fff;border-color:var(--bad);animation:micPulse 1.2s ease-out infinite}
 @keyframes micPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--bad) 55%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
-.quick-rows .qi-in{width:74px;padding:6px 8px;text-align:right}
+.quick-rows .qi-in{width:60px;padding:6px 8px;text-align:right}
+.quick-rows .qi-price{width:96px}
 .quick-rows td,.quick-rows th{padding-left:6px;padding-right:6px}
 .quick-rows td:nth-child(4){white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.mic-btn.on{animation:none}}
@@ -831,3 +832,27 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 .wrap-flex{flex-wrap:wrap}
 .filter-bar .input{flex:1 1 200px;max-width:260px}
 @media (max-width:640px){.filter-bar .input{max-width:none;flex-basis:100%}}
+
+
+/* Kirim: razmerlar jadvali (36: 10, 37: 50 ...) */
+.size-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.size-cell{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border:1px solid var(--border);
+  border-radius:var(--r-2);background:var(--surface-2);cursor:text}
+.size-cell.filled{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 8%,var(--surface))}
+.size-cell-name{font-weight:700;font-size:var(--t-1)}
+.size-cell .input{text-align:center;padding:6px;width:100%}
+
+/* Mahsulotlar: model bo'yicha razmerlar qoldig'i */
+.size-row{display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed var(--border)}
+.size-row:last-child{border-bottom:0}
+.size-row-name{min-width:160px;flex:0 1 220px}
+.size-stock{display:inline-flex;align-items:baseline;gap:6px;padding:4px 10px;border:1px solid var(--border);
+  border-radius:var(--r-full);background:var(--surface-2);color:var(--ink);font-size:var(--t--1);text-decoration:none}
+.size-stock b{font-weight:700}
+.size-stock:hover{border-color:var(--primary)}
+.size-stock.low{border-color:color-mix(in srgb,var(--warn) 60%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)}
+.size-stock.zero{border-color:color-mix(in srgb,var(--bad) 55%,transparent);background:color-mix(in srgb,var(--bad) 8%,transparent);color:var(--bad)}
+
+/* Skaner qidiruvi: har natijada qoldiq (tugagan razmer darrov ko'rinsin) */
+.scan-stock{margin-left:auto;margin-right:var(--sp-2);font-size:var(--t--2);color:var(--ink-muted)}
+.scan-stock.zero{color:var(--bad);font-weight:600}

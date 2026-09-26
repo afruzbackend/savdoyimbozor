@@ -12,9 +12,10 @@
       }}">
     <div class="segmented" style="margin-bottom:var(--sp-3)">
       <button type="button" :aria-selected="mode==='select'" @click="mode='select'">Ro'yxatdan</button>
-      <button type="button" :aria-selected="mode==='manual'" @click="mode='manual'">Qo'lda (yangi)</button>
+      <button type="button" :aria-selected="mode==='manual'" @click="mode='manual'" title="Qo'lda (yangi mahsulot)">Yangi</button>
+      {% if size_models %}<button type="button" :aria-selected="mode==='sizes'" @click="mode='sizes'">Razmerlar</button>{% endif %}
     </div>
-    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    <form method="post" enctype="multipart/form-data" x-show="mode!=='sizes'">{% csrf_token %}
       <div class="field"><label class="label">Barkod</label>
         <div class="row gap-2">
           <input class="input grow" x-ref="bc" name="barcode" placeholder="Barkodni skanerlang yoki yozing"
@@ -69,6 +70,60 @@
       </div>
       <button class="btn btn-block" type="submit">Kirim qo'shish</button>
     </form>
+
+    {% if size_models %}
+    {% comment %}Razmer bo'yicha kirim: bitta model — har razmerga o'z miqdori (36: 10, 37: 50 ...),
+    bitta nakladnoy bilan bir bosishda. Yangi razmer shu modelning varianti bo'lib yaratiladi.{% endcomment %}
+    <form method="post" action="{% url 'seller:stock_in_quick_save' %}" enctype="multipart/form-data"
+          x-show="mode==='sizes'" x-cloak x-data="sizeIn()">
+      {% csrf_token %}
+      <input type="hidden" name="rows" :value="JSON.stringify(payload)">
+      <div class="field"><label class="label">Model</label>
+        <div class="row gap-1 wrap-flex">
+          <template x-for="m in models" :key="m.base">
+            <button type="button" class="chip" :aria-pressed="base===m.base" @click="pick(m)" x-text="m.base"></button>
+          </template>
+        </div></div>
+      <template x-if="base">
+        <div>
+          <div class="size-grid">
+            <template x-for="(r, i) in rows" :key="r.label">
+              <label class="size-cell" :class="+r.qty > 0 && 'filled'">
+                <span class="size-cell-name" x-text="r.label"></span>
+                <input class="input num" x-model="r.qty" inputmode="decimal" placeholder="0" :aria-label="'Razmer ' + r.label">
+                <small class="faint num" x-text="r.product_id ? ('bor: ' + fmt(r.stock)) : 'yangi'"></small>
+              </label>
+            </template>
+          </div>
+          <div class="row gap-2" style="margin:var(--sp-2) 0 var(--sp-3)">
+            <input class="input" x-model="newSize" maxlength="20" placeholder="Yangi razmer (masalan 44 yoki XXL)"
+                   @keydown.enter.prevent="addSize()">
+            <button type="button" class="btn btn-ghost" @click="addSize()">Qo'shish</button>
+          </div>
+          <div class="field"><label class="label">Kelish narxi (1 dona uchun, so'm)</label>
+            <input class="input num" x-model.number="price" inputmode="numeric"></div>
+          <div class="evidence-box">
+            <div class="grid grid-2" style="gap:var(--sp-2)">
+              <div class="field" style="margin:0"><label class="label">Yetkazib beruvchi</label>
+                <input class="input" name="supplier_name" placeholder="Ism yoki firma"></div>
+              <div class="field" style="margin:0"><label class="label">Uning STIR'i</label>
+                <input class="input num" name="supplier_stir" inputmode="numeric" maxlength="15" placeholder="ixtiyoriy"></div>
+            </div>
+            <div class="field" style="margin:var(--sp-2) 0 0"><label class="label">Nakladnoy (yuk xati) fotosi</label>
+              <label class="file-drop">
+                <input type="file" name="invoice_photo" accept="image/*" capture="environment" hidden>
+                <span class="file-btn"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-camera"></use></svg> Suratga olish</span>
+                <span class="file-name muted" data-noloc>Tanlanmagan</span>
+              </label>
+              {% if photo_min %}<div class="hint">{{ photo_min|intcomma }} so'mdan katta kirimga majburiy.</div>{% endif %}
+            </div>
+          </div>
+          <button class="btn btn-block" type="submit" :disabled="!payload.length">
+            Kirim: <span class="num" x-text="count"></span> dona · <span class="num" x-text="fmt(count * (+price || 0))"></span> so'm</button>
+        </div>
+      </template>
+    </form>
+    {% endif %}
   </div>
   <div class="stack gap-4" style="min-width:0">
   {# Tez kirim: gapiring yoki yozing — server tahlil qiladi, sotuvchi tasdiqlaydi #}
@@ -98,10 +153,15 @@
               <tr :class="!(+r.qty > 0) && 'row-bad'">
                 <td><b x-text="r.product_name || '—'"></b>
                   <span class="badge badge-neutral" x-show="r.is_new">yangi</span>
-                  <div class="faint" style="font-size:var(--t--2)" x-text="r.error ? r.error : ('«' + r.raw + '»')"></div></td>
+                  <div class="faint" style="font-size:var(--t--2)" x-text="r.error ? r.error : ('«' + r.raw + '»')"></div>
+                  <div class="row gap-1 wrap-flex" x-show="r.choices && r.choices.length" style="margin-top:4px">
+                    <template x-for="c in (r.choices || [])" :key="c.product_id">
+                      <button type="button" class="chip" @click="Object.assign(r, {product_id: c.product_id, product_name: c.product_name, size: c.size, price: r.price || c.price || 0, error: '', choices: null})" x-text="c.size"></button>
+                    </template>
+                  </div></td>
                 <td class="num"><input class="input num qi-in" x-model="r.qty" inputmode="decimal" aria-label="Miqdor">
                   <small class="muted" x-text="r.in_packs ? 'qop/quti' : r.unit"></small></td>
-                <td class="num"><input class="input num qi-in" x-model.number="r.price" inputmode="numeric" aria-label="Narx"></td>
+                <td class="num"><input class="input num qi-in qi-price" x-model.number="r.price" inputmode="numeric" aria-label="Narx"></td>
                 <td class="num" x-text="fmt(line(r))"></td>
                 <td><button type="button" class="btn-quiet btn-icon" @click="rows.splice(i, 1)" aria-label="Olib tashlash">
                   <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg></button></td>
@@ -128,7 +188,7 @@
             {% if photo_min %}<div class="hint">{{ photo_min|intcomma }} so'mdan katta kirimga majburiy.</div>{% endif %}
           </div>
         </div>
-        <button class="btn btn-block" type="submit" :disabled="!rows.length || rows.some(r => !(+r.qty > 0))">
+        <button class="btn btn-block" type="submit" :disabled="!rows.length || rows.some(r => !(+r.qty > 0) || (r.choices && r.choices.length))">
           Kirimni saqlash (<span x-text="rows.length"></span> ta)</button>
       </form>
     </template>
@@ -151,6 +211,36 @@
 </div>
 {% endblock %}
 {% block extra_js %}<script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>
+{{ size_models|json_script:"size-models" }}
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('sizeIn', () => ({
+      models: JSON.parse(document.getElementById('size-models').textContent || '[]'),
+      base: '', unit: 'dona', rows: [], price: 0, newSize: '',
+      fmt(n) { return window.BN ? window.BN.fmt(Math.round(+n || 0)) : Math.round(+n || 0); },
+      pick(m) {
+        this.base = m.base; this.unit = m.unit; this.price = m.buy_price || 0;
+        this.rows = m.sizes.map(s => ({ ...s, qty: '' }));
+      },
+      addSize() {
+        const s = this.newSize.trim().replace(/\s+/g, ' ');
+        const norm = /^[a-z0-9]+$/i.test(s) && /[a-z]$/i.test(s) ? s.toUpperCase() : s;
+        if (!norm || this.rows.some(r => r.size.toUpperCase() === norm.toUpperCase() && !r.label.includes(','))) {
+          this.newSize = ''; return;
+        }
+        this.rows.push({ size: norm, label: norm, product_id: null, stock: 0, qty: '' });
+        this.newSize = '';
+      },
+      get count() { return this.rows.reduce((s, r) => s + (parseFloat(String(r.qty).replace(',', '.')) || 0), 0); },
+      get payload() {
+        return this.rows.filter(r => parseFloat(String(r.qty).replace(',', '.')) > 0).map(r => ({
+          product_id: r.product_id, product_name: this.base + ' — ' + r.size, base_name: this.base,
+          size: r.size, qty: String(r.qty).replace(',', '.'), price: +this.price || 0, unit: this.unit,
+        }));
+      },
+    }));
+  });
+</script>
 <script>
   document.addEventListener('alpine:init', () => {
     Alpine.data('quickIn', () => {

@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from apps.catalog.models import Product, ProductCategory, Unit
+from apps.catalog.sizes import product_order, size_key, sorted_products
 from apps.core.dates import days_between, on_day, since_day
 from apps.core.format import som, to_dec, to_int
 from apps.core.models import SystemSettings
@@ -247,7 +248,7 @@ def products(request):
         qs = qs.filter(name__icontains=q)
     if size:
         qs = qs.filter(size__iexact=size)
-    page = paginate(request, qs.order_by("-is_active", "base_name", "name"), per_page=50)
+    page = paginate(request, sorted(qs, key=lambda p: (not p.is_active, product_order(p))), per_page=50)
     shop_sizes = sorted(
         set(Product.objects.filter(shop=shop, is_active=True).exclude(size="")
             .values_list("size", flat=True)),
@@ -268,6 +269,8 @@ def products(request):
             "shop_sizes": shop_sizes,
             "querystring": f"q={q}&size={size}",
             "size_presets": SIZE_PRESETS,
+            # "Futbolka: M · 100, XL · 10" — model bo'yicha razmerlar qoldig'i (bir qarashda)
+            "size_matrix": [m for m in _size_models(shop) if not q or q.lower() in m["base"].lower()],
         },
     )
 
@@ -278,17 +281,8 @@ SIZE_PRESETS = {
     "Poyabzal": ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
     "Bolalar": ["92", "98", "104", "110", "116", "122", "128", "134", "140"],
 }
-_SIZE_ORDER = {s: i for i, s in enumerate(["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL"])}
-
-
-def _size_key(s):
-    """O'lchamlarni mantiqiy tartibda: XS < S < M ... ; raqamlar son bo'yicha."""
-    if s.upper() in _SIZE_ORDER:
-        return (0, _SIZE_ORDER[s.upper()], "")
-    try:
-        return (1, float(s.replace(",", ".")), "")
-    except ValueError:
-        return (2, 0, s)
+# Razmer tartibi yagona manbada (apps/catalog/sizes.py) — sotuvchi va inspektor bir xil ko'radi
+_size_key = size_key
 
 
 def _clean_list(values, maxlen, upper=False):
@@ -301,6 +295,35 @@ def _clean_list(values, maxlen, upper=False):
         if v and v.lower() not in {x.lower() for x in out}:
             out.append(v)
     return out[:30]
+
+
+def _norm_size(size: str) -> str:
+    """"xl" → "XL", " 36 " → "36" (harfli razmer katta harf bilan saqlanadi)."""
+    size = " ".join(str(size).split())[:20]
+    return size.upper() if size.isalpha() or size[:1].isdigit() and size[-2:].isalpha() else size
+
+
+def _variant_for(shop, base, size, unit=Unit.PIECE, price=0):
+    """Model + razmer → mavjud variant yoki shu modelning yangi varianti (toifa, birlik, sotish
+    narxi, kam-qoldiq chegarasi qardosh razmerdan). Tez kirim va razmer jadvali shu yerdan."""
+    from apps.catalog.barcodes import ensure_barcode
+
+    size = _norm_size(size)
+    p = Product.objects.filter(shop=shop, base_name__iexact=base, size__iexact=size,
+                               is_active=True).first()
+    if p is not None:
+        return p
+    sib = (Product.objects.filter(shop=shop, base_name__iexact=base).exclude(size="")
+           .order_by("-is_active", "pk").first())
+    p = Product.objects.create(
+        shop=shop, name=f"{sib.base_name if sib else base} — {size}"[:200],
+        base_name=(sib.base_name if sib else base)[:200], size=size,
+        category=sib.category if sib else None, unit=sib.unit if sib else unit,
+        buy_price=price or (sib.buy_price if sib else 0), sell_price=sib.sell_price if sib else 0,
+        low_stock_threshold=sib.low_stock_threshold if sib else 0,
+    )
+    ensure_barcode(p)
+    return p
 
 
 def _create_variants(request, shop, cat, base, unit, sizes, colors, buy, sell, low):
@@ -387,7 +410,7 @@ def product_labels(request):
     from apps.catalog.barcodes import ensure_barcodes_for_shop
 
     ensure_barcodes_for_shop(shop)
-    products = Product.objects.filter(shop=shop, is_active=True).exclude(barcode="").order_by("name")
+    products = sorted_products(Product.objects.filter(shop=shop, is_active=True).exclude(barcode=""))
     return render(request, "seller/labels.html", {"shop": shop, "products": products})
 
 
@@ -473,13 +496,33 @@ def stock_in(request):
         "seller/stock_in.html",
         {
             "shop": shop,
-            "products": Product.objects.filter(shop=shop, is_active=True),
+            "products": sorted_products(Product.objects.filter(shop=shop, is_active=True)),
             "units": Unit.choices,
             "recent": StockIn.objects.filter(shop=shop).select_related("product")
             .order_by("-created_at")[:10],
             "photo_min": SystemSettings.get_solo().stockin_photo_min,
+            "size_models": _size_models(shop),
         },
     )
+
+
+def _size_models(shop) -> list[dict]:
+    """Razmerli modellar (kirim jadvali uchun): [{base, unit, buy_price, sizes:[{label, product_id, stock}]}]."""
+    groups = {}
+    for p in Product.objects.filter(shop=shop, is_active=True).exclude(size="").order_by("pk"):
+        groups.setdefault(p.base_name or p.name.split(" — ")[0], []).append(p)
+    out = []
+    for base, ps in sorted(groups.items(), key=lambda x: x[0].lower()):
+        ps.sort(key=lambda p: (_size_key(p.size), p.color))
+        out.append({
+            "base": base, "unit": ps[0].unit, "buy_price": ps[0].buy_price,
+            "sizes": [{"size": p.size, "label": p.size + (f", {p.color.lower()}" if p.color else ""),
+                       "product_id": p.pk, "stock": float(p.stock),
+                       "state": "zero" if p.stock <= 0 else ("low" if p.is_low_stock else "")}
+                      for p in ps],
+            "total": float(sum(p.stock for p in ps)),
+        })
+    return out
 
 
 @login_required
@@ -534,7 +577,12 @@ def stock_in_quick_save(request):
             messages.error(request, f"{n}-qator: mahsulot nomi yo'q.")
             return redirect("seller:stock_in")
         unit = r.get("unit") if r.get("unit") in valid_units else Unit.PIECE
-        plan.append((product, name, unit, qty, price, bool(r.get("in_packs"))))
+        # Razmer (variant): model + razmer — yangi razmer shu modelning varianti bo'lib yaratiladi
+        variant = None
+        if product is None and str(r.get("size") or "").strip():
+            base = str(r.get("base_name") or name.split(" — ")[0]).strip()[:200]
+            variant = (base, str(r["size"]).strip()[:20])
+        plan.append((product, name, unit, qty, price, bool(r.get("in_packs")), variant))
 
     supplier = request.POST.get("supplier_name", "").strip()[:200]
     supplier_stir = "".join(c for c in request.POST.get("supplier_stir", "") if c.isdigit())[:15]
@@ -543,7 +591,7 @@ def stock_in_quick_save(request):
     def coeff(product, packs):
         return (product.pack_coeff if product and packs and (product.pack_coeff or 1) > 1 else 1)
 
-    total = sum(int(q * coeff(p, pk) * pr) for p, _n, _u, q, pr, pk in plan)
+    total = sum(int(q * coeff(p, pk) * pr) for p, _n, _u, q, pr, pk, _v in plan)
     min_photo = SystemSettings.get_solo().stockin_photo_min
     if photo is not None:
         err = _photo_error(photo)
@@ -560,7 +608,9 @@ def stock_in_quick_save(request):
 
     saved_photo = ""
     with transaction.atomic():
-        for product, name, unit, qty, price, packs in plan:
+        for product, name, unit, qty, price, packs, variant in plan:
+            if product is None and variant:
+                product = _variant_for(shop, variant[0], variant[1], unit, price)
             if product is None:
                 product = Product.objects.filter(shop=shop, name__iexact=name).first()
             if product is None:
@@ -622,7 +672,7 @@ def daily_close(request):
     if shop is None:
         return redirect("seller:home")
     today = timezone.localdate()
-    prods = list(Product.objects.filter(shop=shop, is_active=True).order_by("name"))
+    prods = sorted_products(Product.objects.filter(shop=shop, is_active=True))
     existing = DailyClose.objects.filter(shop=shop, date=today).first()
     mv = day_movements(shop, today)
     base = _morning_baselines(shop, today, prods, mv, existing)
@@ -786,7 +836,7 @@ def returns(request):
         "seller/returns.html",
         {
             "shop": shop,
-            "products": Product.objects.filter(shop=shop, is_active=True).order_by("name"),
+            "products": sorted_products(Product.objects.filter(shop=shop, is_active=True)),
             "recent": SaleReturn.objects.filter(shop=shop).select_related("product")[:10],
         },
     )
@@ -841,7 +891,7 @@ def writeoff(request):
         "seller/writeoff.html",
         {
             "shop": shop,
-            "products": Product.objects.filter(shop=shop, is_active=True).order_by("name"),
+            "products": sorted_products(Product.objects.filter(shop=shop, is_active=True)),
             "recent": WriteOff.objects.filter(shop=shop).select_related("product")[:10],
         },
     )

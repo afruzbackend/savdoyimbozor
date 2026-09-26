@@ -21,6 +21,7 @@ solishtirib rostlik darajasi beradigan va yashiruvchini signal beradigan Django 
 - `accounts` — User(Role: superadmin/inspector/seller/prosecutor — prokuror FAQAT ko'radi: `ReadOnlyRoleMiddleware`, har ko'rish auditda), blokli login (`throttle.py`: IP + hisob/IP juftligi — raqamli loginlarni bloklash DoS'idan himoya), 2FA (`totp.py`, xodimlarga majburiy qilish panelda), `visible_shops()` (ruxsat markazi), `services.py` (hisob ochish, login = FAQAT raqam: STIR+do'kon raqami; inspektor 70xxxx).
 - `geo` — Region → Market → Row. `catalog` — ShopCategory, ProductCategory (bozor narxi uchun), Product. `shops` — Shop.
 - `sales` — Sale/SaleItem, StockIn, SaleReturn, WriteOff, DailyClose, Debt; `services/pricing.py` (chegirma/yaxlitlash BITTA MANBA), `services/sales.py`; seller_views + api.
+- Razmer (variant): har razmer — alohida Product (`base_name` + `size`, nomi "Model — M", o'z qoldig'i/barkodi). Tartib yagona manbada `catalog/sizes.py` (XS<S<M, 36<37). Tez kirim (`services/quick_entry.py`) razmerni tushunadi ("36 razmerlik 10 ta 37 lik 50 ta", "XL 10, M 100"); kirim sahifasida razmerlar jadvali.
 - `cash` — CashRecord (deklaratsiya; source: excel/tax_api/kassa).
 - `cameras` — Camera, CameraEvent; `api.py` (kontrakt); `simulate_camera`.
 - `analytics` — MarketPrice, DailyScore (agregat), Alert, Inspection, Appeal;

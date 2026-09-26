@@ -17,6 +17,7 @@ def _hash(snapshot: dict) -> str:
 def build_snapshot(market, at) -> dict:
     """Bozordagi har do'konning `at` paytidagi ombori (o'zgarmas jurnaldan)."""
     from apps.catalog.models import Product
+    from apps.catalog.sizes import product_order
     from apps.sales.models import DailyClose, StockMove
     from apps.sales.services.stock import last_count_at, stock_at, verify_chain
 
@@ -37,11 +38,12 @@ def build_snapshot(market, at) -> dict:
             if p is None or p.shop_id != shop.pk or bal <= 0:
                 continue
             value = int(bal * price)
-            lines.append({
+            lines.append((product_order(p), {
                 "product": p.name, "size": p.size, "color": p.color, "unit": p.get_unit_display(),
                 "barcode": p.barcode, "qty": f"{bal:.3f}", "price": int(price), "value": value,
-            })
-        lines.sort(key=lambda ln: -ln["value"])
+            }))
+        # Model → razmer tartibida: "Krossovka — 36, 37, 38" yonma-yon (kompensatsiyada tushunarli)
+        lines = [ln for _k, ln in sorted(lines, key=lambda x: x[0])]
         value = sum(ln["value"] for ln in lines)
         ok, _bad, n = verify_chain(shop)
         last = (StockMove.objects.filter(shop=shop, created_at__lte=at)

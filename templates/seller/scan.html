@@ -16,6 +16,7 @@
     <div x-show="results.length" x-cloak style="margin-top:var(--sp-2);border:1px solid var(--border);border-radius:var(--r-sm)">
       <template x-for="r in results" :key="r.id">
         <div class="option" @click="add(r)"><span x-text="r.name"></span>
+          <span class="scan-stock num" :class="r.stock <= 0 && 'zero'" x-text="r.stock <= 0 ? 'tugagan' : ('qoldiq ' + fmt(r.stock))"></span>
           <span class="num muted" x-text="fmt(r.price)+' so\'m'"></span></div>
       </template>
     </div>
