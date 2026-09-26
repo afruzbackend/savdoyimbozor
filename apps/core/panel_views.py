@@ -745,15 +745,21 @@ def markets(request):
 def market_detail(request, pk):
     """Bozordagi do'konlar + har do'kon sotuvchisi login/paroli."""
     market = get_object_or_404(Market.objects.select_related("region"), pk=pk)
+    from django.db.models import Prefetch
+
     shops = list(
-        market.shops.select_related("category", "row").prefetch_related("staff")
+        market.shops.select_related("category", "row").prefetch_related(
+            Prefetch("staff", queryset=User.objects.order_by("pk"))
+        )
     )
     # Raqamli tartib: "2" "10" dan oldin (satr tartibi emas)
     shops.sort(key=lambda s: (0, int(s.number)) if s.number.isdigit() else (1, s.number))
     rows = []
     for s in shops:
-        seller = s.staff.first()  # do'kon sotuvchisi (odatda bitta)
-        rows.append({"shop": s, "seller": seller})
+        # .first() prefetch keshini chetlab har do'konga alohida so'rov yuborardi (N+1) —
+        # oldindan yuklangan ro'yxatdan olamiz
+        staff = s.staff.all()
+        rows.append({"shop": s, "seller": staff[0] if staff else None})
     return render(request, "panel/market_detail.html", {"market": market, "rows": rows})
 
 

@@ -14,6 +14,8 @@ from decimal import Decimal
 
 from django.db.models import Sum
 
+from apps.core.dates import on_day
+
 ZERO = Decimal("0")
 
 
@@ -29,7 +31,7 @@ def day_movements(shop, day, until=None) -> dict:
         return qs.filter(**{f"{field}__lte": until}) if until else qs
 
     ins = defaultdict(lambda: ZERO)
-    for s in upto(StockIn.objects.filter(shop=shop, created_at__date=day)).select_related(
+    for s in upto(StockIn.objects.filter(shop=shop, **on_day("created_at", day))).select_related(
         "product"
     ):
         coeff = (s.product.pack_coeff or 1) if s.in_packs else 1
@@ -38,7 +40,7 @@ def day_movements(shop, day, until=None) -> dict:
     out = defaultdict(lambda: ZERO)
     for model in (WriteOff, SaleReturn):
         for r in (
-            upto(model.objects.filter(shop=shop, created_at__date=day, product__isnull=False))
+            upto(model.objects.filter(shop=shop, **on_day("created_at", day), product__isnull=False))
             .values("product")
             .annotate(q=Sum("quantity"))
         ):
@@ -48,7 +50,7 @@ def day_movements(shop, day, until=None) -> dict:
     for r in (
         upto(
             SaleItem.objects.filter(
-                sale__shop=shop, sale__created_at__date=day, product__isnull=False
+                sale__shop=shop, **on_day("sale__created_at", day), product__isnull=False
             ),
             "sale__created_at",
         )

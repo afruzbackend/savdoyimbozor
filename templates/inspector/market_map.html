@@ -26,18 +26,22 @@
   <div class="card"><small class="muted">Xavf</small><div class="truth-big" style="font-size:var(--t-3);color:var(--bad)">{{ counts.red }}</div></div>
 </div>
 
-<div class="card" x-data="{zoom:1}">
+<div class="card" x-data="{zoom: (function(){ try { return +sessionStorage.getItem('bn-map-zoom') || 1 } catch(e) { return 1 } })(),
+     setZoom(z){ this.zoom = Math.round(Math.min(1.8, Math.max(0.6, z)) * 100) / 100;
+       try { sessionStorage.setItem('bn-map-zoom', this.zoom) } catch(e) {} }}">
   <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:var(--sp-3)">
     <div><span class="card-title">{{ market.name }}</span>
       <small class="muted" style="margin-left:8px">{{ market.region.name }}{% if score_date and score_date != today %} · <span class="num">{{ score_date|uzdate }}</span> bo'yicha{% endif %}</small></div>
     <div class="zoom-ctl" data-noloc>
-      <button type="button" @click="zoom=Math.max(0.6,zoom-0.15)">−</button>
-      <button type="button" @click="zoom=1">↺</button>
-      <button type="button" @click="zoom=Math.min(1.8,zoom+0.15)">+</button>
+      <button type="button" @click="setZoom(zoom-0.15)" :disabled="zoom<=0.6" aria-label="Kichraytirish">−</button>
+      <button type="button" @click="setZoom(1)" aria-label="Asl o'lcham" :title="Math.round(zoom*100)+'%'">↺</button>
+      <button type="button" @click="setZoom(zoom+0.15)" :disabled="zoom>=1.8" aria-label="Kattalashtirish">+</button>
     </div>
   </div>
-  <div class="bazaar-scroll">
-    <div class="bazaar" :style="`transform:scale(${zoom});transform-origin:top left`">
+  {% comment %}CSS zoom (transform emas): kattalashganda skroll maydoni ham o'sadi — chekka rastalar
+  kesilib qolmaydi; kichrayganda bo'sh joy qolmaydi. Zoom va skroll joyi 30 s avto-yangilanishda saqlanadi.{% endcomment %}
+  <div class="bazaar-scroll" data-keep-scroll="bazaar">
+    <div class="bazaar" :style="`zoom:${zoom}`">
       {% for row in rows_data %}
       <div class="bazaar-row">
         <div class="bazaar-row-label">{{ row.label }}</div>

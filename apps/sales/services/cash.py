@@ -11,6 +11,7 @@ from django.db import transaction
 from django.db.models import Count, F, Sum
 from django.utils import timezone
 
+from apps.core.dates import on_day
 from apps.core.format import som
 
 from ..models import CashOpen, Debt, DebtPayment, PaymentType, RegisterClose, Sale
@@ -23,7 +24,7 @@ class CashError(Exception):
 def register_totals(shop, day) -> dict:
     agg = {
         r["payment_type"]: r
-        for r in Sale.objects.filter(shop=shop, created_at__date=day)
+        for r in Sale.objects.filter(shop=shop, **on_day("created_at", day))
         .values("payment_type")
         .annotate(s=Sum("total"), n=Count("id"))
     }
@@ -39,7 +40,7 @@ def register_totals(shop, day) -> dict:
     )
     debt_in = (
         DebtPayment.objects.filter(
-            shop=shop, created_at__date=day, method=PaymentType.CASH
+            shop=shop, **on_day("created_at", day), method=PaymentType.CASH
         ).aggregate(s=Sum("amount"))["s"]
         or 0
     )
@@ -59,7 +60,7 @@ def register_totals(shop, day) -> dict:
 
 def can_set_opening(shop, day) -> bool:
     """Maydalik faqat kunning birinchi sotuvidan OLDIN kiritiladi."""
-    return not Sale.objects.filter(shop=shop, created_at__date=day).exists()
+    return not Sale.objects.filter(shop=shop, **on_day("created_at", day)).exists()
 
 
 def set_opening(shop, day, amount, seller) -> CashOpen:

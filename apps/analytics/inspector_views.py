@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.cameras.models import Camera
+from apps.core.dates import day_start, days_between
 from apps.geo.models import Market
 
 from .models import Alert, Appeal, DailyScore, Inspection
@@ -186,7 +187,7 @@ def _investigation(shop, peers, start, today):
     rng = (start, today)
 
     def discount_pct(shops):
-        agg = Sale.objects.filter(shop__in=shops, created_at__date__range=rng).aggregate(
+        agg = Sale.objects.filter(shop__in=shops, **days_between("created_at", *rng)).aggregate(
             d=Sum("discount"), s=Sum("subtotal")
         )
         sub = agg["s"] or 0
@@ -195,7 +196,7 @@ def _investigation(shop, peers, start, today):
     # Tannarxga yaqin sotuvlar (narx tannarxdan ≤10% yuqori) — dumping/yashirish belgisi
     items = SaleItem.objects.filter(
         sale__shop=shop,
-        sale__created_at__date__range=rng,
+        **days_between("sale__created_at", *rng),
         product__isnull=False,
         product__buy_price__gt=0,
     ).select_related("product")
@@ -798,7 +799,7 @@ def shop_inventory(request, pk):
     day_moves = []
     if at is not None:
         day_moves = list(
-            StockMove.objects.filter(shop=shop, created_at__date=timezone.localtime(at).date(),
+            StockMove.objects.filter(shop=shop, created_at__gte=day_start(timezone.localtime(at).date()),
                                      created_at__lte=at)
             .select_related("product").order_by("-created_at")[:50]
         )
@@ -869,7 +870,7 @@ def reports(request):
     shops = _visible_shops(request)
     start, end = _report_range(request)
     scores = DailyScore.objects.filter(shop__in=shops, date__range=(start, end))
-    insp = Inspection.objects.filter(shop__in=shops, created_at__date__range=(start, end))
+    insp = Inspection.objects.filter(shop__in=shops, **days_between("created_at", start, end))
     confirmed = insp.filter(result=Inspection.Result.CONFIRMED).count()
     false_sig = insp.filter(result=Inspection.Result.FALSE).count()
     ctx = {

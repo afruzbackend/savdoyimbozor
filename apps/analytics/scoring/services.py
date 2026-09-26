@@ -7,6 +7,7 @@ Funksiyalar sof (I/O yo'q) — test qilish oson va sudda tushuntirish mumkin.
 
 from __future__ import annotations
 
+from apps.core.dates import on_day
 from apps.core.format import som
 
 
@@ -135,7 +136,7 @@ def _shop_price_score(shop, medians):
 def _entered_sales(shop, day):
     from apps.sales.models import Sale
 
-    return sum(s.total for s in Sale.objects.filter(shop=shop, created_at__date=day))
+    return sum(s.total for s in Sale.objects.filter(shop=shop, **on_day("created_at", day)))
 
 
 def _has_stock(shop):
@@ -176,12 +177,12 @@ def _camera_estimate(shop, day, buyer_ratio, market_avg_check=0):
     """
     from apps.cameras.models import CameraEvent
 
-    visits = CameraEvent.objects.filter(shop=shop, type="visit", ts__date=day).count()
+    visits = CameraEvent.objects.filter(shop=shop, type="visit", **on_day("ts", day)).count()
     if not visits:
         return None
     from apps.sales.models import Sale
 
-    sales = list(Sale.objects.filter(shop=shop, created_at__date=day))
+    sales = list(Sale.objects.filter(shop=shop, **on_day("created_at", day)))
     own_avg = (sum(s.total for s in sales) / len(sales)) if sales else 0
     # Bozor o'rtachasi bilan o'z o'rtachasining KATTASI — pasaytirib aldashni to'sadi
     avg_check = max(own_avg, market_avg_check or 0)
@@ -282,7 +283,7 @@ def recompute_for_date(day, final: bool | None = None) -> int:
 
     # Kiritilgan savdo + chek soni (do'kon bo'yicha, 1 so'rov)
     entered_by, checks_by = {}, {}
-    for r in Sale.objects.filter(shop_id__in=ids, created_at__date=day).values("shop").annotate(
+    for r in Sale.objects.filter(shop_id__in=ids, **on_day("created_at", day)).values("shop").annotate(
         t=Sum("total"), n=Count("id")
     ):
         entered_by[r["shop"]] = int(r["t"] or 0)
@@ -294,7 +295,7 @@ def recompute_for_date(day, final: bool | None = None) -> int:
     # Kamera tashriflari — 1 so'rov
     visits_by = {
         r["shop"]: r["c"]
-        for r in CameraEvent.objects.filter(shop_id__in=ids, type="visit", ts__date=day)
+        for r in CameraEvent.objects.filter(shop_id__in=ids, type="visit", **on_day("ts", day))
         .values("shop")
         .annotate(c=Count("id"))
     }

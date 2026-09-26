@@ -116,9 +116,12 @@ def _media_tmp(settings, tmp_path):
 @pytest.fixture(autouse=True)
 def _settings_cache():
     """SystemSettings sinf darajasida keshlanadi (20 s) — testlar orasida eski qiymat qolmasin."""
+    from django.core.cache import cache
+
     from apps.core.models import SystemSettings
 
     SystemSettings._cache = None
+    cache.clear()  # reyting va boshqa keshlar testlar orasida qolmasin
     yield
     SystemSettings._cache = None
 

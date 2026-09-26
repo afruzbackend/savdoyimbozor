@@ -5,6 +5,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from apps.core.dates import on_day
+
 from .models import Sale
 from .services.sales import DebtorRequired, InsufficientStock, create_sale
 
@@ -165,7 +167,7 @@ def today_summary_api(request):
     if shop is None:
         return Response({"detail": "Do'kon yo'q."}, status=400)
     today = timezone.localdate()
-    qs = Sale.objects.filter(shop=shop, created_at__date=today)
+    qs = Sale.objects.filter(shop=shop, **on_day("created_at", today))
     total = sum(s.total for s in qs)
     return Response(
         {

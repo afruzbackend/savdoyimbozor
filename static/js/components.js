@@ -240,6 +240,145 @@
     }, ms || 30000);
   };
 
+  // ---- Skroll joyi xotirasi ----
+  // .main (va [data-keep-scroll] bloklar) o'zi alohida skroll bloki — brauzer "Orqaga"da uni
+  // TIKLAMAYDI: ro'yxatni pastga surib, do'konga kirib, qaytsangiz tepadan boshlanardi.
+  // Tiklanadi: Orqaga/Oldinga, F5, va forma yuborilib o'sha sahifaga qaytilganda (POST → redirect).
+  // Oddiy havola bilan yangi sahifa — tepadan (kutilgan xulq).
+  (function () {
+    var main = document.querySelector(".main");
+    var here = location.pathname + location.search;
+    var navType = "";
+    try { navType = (performance.getEntriesByType("navigation")[0] || {}).type || ""; } catch (e) {}
+    function sget(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+    function sset(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* yopiq */ } }
+    function sdel(k) { try { sessionStorage.removeItem(k); } catch (e) { /* yopiq */ } }
+    function boxes() {
+      var list = main ? [["main", main]] : [];
+      document.querySelectorAll("[data-keep-scroll]").forEach(function (el) {
+        list.push([el.getAttribute("data-keep-scroll"), el]);
+      });
+      return list;
+    }
+    function snapshot() {
+      var s = {};
+      boxes().forEach(function (b) { s[b[0]] = [b[1].scrollLeft, b[1].scrollTop]; });
+      return s;
+    }
+    var target = null, afterPost = false;
+    if (navType === "back_forward" || navType === "reload") {
+      try { target = JSON.parse(sget("bn-pos:" + here) || "null"); } catch (e) { target = null; }
+    }
+    var ret = sget("bn-post-return");
+    if (ret) {
+      sdel("bn-post-return");
+      try { ret = JSON.parse(ret); } catch (e) { ret = null; }
+      if (ret && ret.path === location.pathname && Date.now() - ret.t < 30000) {
+        target = ret.pos; afterPost = true;
+      }
+    }
+    var userMoved = false;
+    ["wheel", "touchmove", "keydown", "mousedown"].forEach(function (ev) {
+      window.addEventListener(ev, function () { userMoved = true; }, { passive: true, capture: true });
+    });
+    function apply() {
+      if (!target || userMoved) return;
+      boxes().forEach(function (b) {
+        var p = target[b[0]];
+        if (p) { b[1].scrollLeft = p[0]; b[1].scrollTop = p[1]; }
+      });
+    }
+    apply();
+    // Kontent keyin o'sib boradi (custom select, Alpine, grafik) — foydalanuvchi qimirlamaguncha qayta
+    document.addEventListener("DOMContentLoaded", apply);
+    window.addEventListener("load", apply);
+    document.addEventListener("alpine:initialized", apply);
+
+    // Forma natijasi xabari (.msg) tepada — skroll tiklangani uchun ko'rinmay qolsa, toast qilib ko'rsatamiz
+    if (afterPost && main && target && target.main && target.main[1] > 40) {
+      document.addEventListener("alpine:initialized", function () {
+        var kinds = { error: "bad", warning: "warn", success: "ok", info: "ok" };
+        main.querySelectorAll(".content > .msg").forEach(function (m) {
+          if (m.getBoundingClientRect().bottom > main.getBoundingClientRect().top + 8) return;
+          var kind = "ok";
+          Object.keys(kinds).forEach(function (k) { if (m.classList.contains(k)) kind = kinds[k]; });
+          if (window.toast) window.toast(m.textContent.trim(), kind);
+        });
+      });
+    }
+
+    // Server formani rad etsa (xato xabari bilan o'sha sahifaga qaytsa) — kiritilganlar qayta
+    // to'ldiriladi: sotuvchi ism/telefon/summani qaytadan yozmasin. Parol, fayl, yashirin — yo'q.
+    var SKIP = { password: 1, file: 1, hidden: 1, submit: 1, button: 1, reset: 1, image: 1 };
+    function formKey(f) {
+      var action = f.getAttribute("action") || "";
+      var same = [].filter.call(document.forms, function (x) { return (x.getAttribute("action") || "") === action; });
+      return action + "#" + same.indexOf(f);
+    }
+    // Alpine komponent holati bo'lgan yashirin maydon (sana tanlagich) — tiklanadi
+    function isStateHidden(el) {
+      return el.type === "hidden" && (el.hasAttribute(":value") || el.hasAttribute("x-bind:value"));
+    }
+    function skip(el) {
+      return !el.name || el.name === "csrfmiddlewaretoken" || (SKIP[el.type] && !isStateHidden(el));
+    }
+    function formValues(f) {
+      var out = {};
+      [].forEach.call(f.elements, function (el) {
+        if (skip(el) || el.disabled) return;
+        if (el.type === "checkbox" || el.type === "radio") {
+          out[el.name + "|" + el.value] = el.checked;
+        } else if (el.value !== "") {
+          out[el.name] = el.value;
+        }
+      });
+      return out;
+    }
+    function refill() {
+      var f = [].find.call(document.forms, function (x) { return formKey(x) === ret.form.key; });
+      if (!f) return;
+      var vals = ret.form.values;
+      [].forEach.call(f.elements, function (el) {
+        if (skip(el)) return;
+        if (el.type === "checkbox" || el.type === "radio") {
+          var k = el.name + "|" + el.value;
+          if (k in vals && el.checked !== !!vals[k]) {
+            el.checked = !!vals[k];
+            el.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        } else if (el.name in vals) {
+          if (isStateHidden(el)) {  // sana tanlagich: komponent holati orqali
+            var host = el.closest("[x-data]");
+            var data = host && window.Alpine && window.Alpine.$data(host);
+            if (data && typeof data.setIso === "function") data.setIso(vals[el.name]);
+            return;
+          }
+          el.value = vals[el.name];
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          el.dispatchEvent(new Event("change", { bubbles: true }));  // custom select yorlig'i
+        }
+      });
+    }
+    if (afterPost && ret && ret.form && document.querySelector(".content > .msg.error")) {
+      // Alpine'dan KEYIN: aks holda Alpine boshlang'ich (bo'sh) qiymat bilan ustidan yozadi
+      document.addEventListener("alpine:initialized", function () { setTimeout(refill, 0); });
+    }
+
+    window.addEventListener("pagehide", function () { sset("bn-pos:" + here, JSON.stringify(snapshot())); });
+    function rememberForPost(form) {
+      var data = { path: location.pathname, pos: snapshot(), t: Date.now() };
+      if (form && form.elements) data.form = { key: formKey(form), values: formValues(form) };
+      sset("bn-post-return", JSON.stringify(data));
+    }
+    window.__bnRememberScroll = rememberForPost;  // form.submit() (tasdiqlash oynasi) submit hodisasisiz
+    document.addEventListener("submit", function (e) {
+      var f = e.target;
+      if (e.defaultPrevented || !f || (f.getAttribute("method") || "").toLowerCase() !== "post") return;
+      if (f.hasAttribute("hx-post")) return;  // HTMX sahifani almashtirmaydi
+      rememberForPost(f);
+    });
+  })();
+
   // ---- Tasdiqlash oynasi: <form data-confirm="Matn" data-confirm-ok="Ha, o'chirish"> ----
   // Brauzerning standart confirm() oynasi o'rniga bizning dizayndagi modal.
   function confirmModal(text, okLabel, danger) {
@@ -323,6 +462,9 @@
           var h = document.createElement("input");
           h.type = "hidden"; h.name = submitter.name; h.value = submitter.value;
           form.appendChild(h);
+        }
+        if ((form.getAttribute("method") || "").toLowerCase() === "post" && window.__bnRememberScroll) {
+          window.__bnRememberScroll(form);  // form.submit() submit hodisasini chiqarmaydi
         }
         form.submit();
       });
@@ -498,6 +640,14 @@
       addDays(n) {
         const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n);
         this.value = d; this.view = new Date(d); this.open = false;
+        this._fire();
+      },
+      // Tashqaridan qiymat berish (server xatosidan keyin forma qayta to'ldirilganda)
+      setIso(s) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s || ""))) return;
+        const d = new Date(s + "T00:00:00");
+        if (isNaN(d)) return;
+        this.value = d; this.view = new Date(d);
         this._fire();
       },
       daysFromToday(n) {

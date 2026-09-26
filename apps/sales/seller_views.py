@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from apps.catalog.models import Product, ProductCategory, Unit
+from apps.core.dates import days_between, on_day, since_day
 from apps.core.format import som, to_dec, to_int
 from apps.core.models import SystemSettings
 
@@ -98,7 +99,7 @@ def home(request):
     if shop is not None and _pending_nosales(shop).exists():
         return redirect("seller:appeals")
     today = timezone.localdate()
-    sales = Sale.objects.filter(shop=shop, created_at__date=today) if shop else Sale.objects.none()
+    sales = Sale.objects.filter(shop=shop, **on_day("created_at", today)) if shop else Sale.objects.none()
     agg = sales.aggregate(total=Sum("total"), n=Count("id"))  # bitta so'rovda jami+soni
     low_stock = (
         list(
@@ -683,7 +684,7 @@ def daily_close(request):
                 record_move(p, StockMove.Kind.COUNT, set_to=evening, ref=f"DailyClose#{close.pk}",
                             user=request.user)
             entered = (
-                Sale.objects.filter(shop=shop, created_at__date=today).aggregate(s=Sum("total"))[
+                Sale.objects.filter(shop=shop, **on_day("created_at", today)).aggregate(s=Sum("total"))[
                     "s"
                 ]
                 or 0
@@ -967,7 +968,7 @@ def report(request):
 
     # Foyda (sotilgan mahsulot bo'yicha, taxminiy)
     items = SaleItem.objects.filter(
-        sale__shop=shop, sale__created_at__date__range=(start, today)
+        sale__shop=shop, **days_between("sale__created_at", start, today)
     ).select_related("product")
     revenue = sum(i.line_total for i in items)
     # Foyda FAQAT tannarxi ma'lum mahsulotlar bo'yicha. Tez sotuvda (mahsulotsiz)
@@ -986,9 +987,9 @@ def report(request):
         return qs.aggregate(s=Sum("total"))["s"] or 0
 
     metrics = {
-        "today": _sum(sales_all.filter(created_at__date=today)),
-        "week": _sum(sales_all.filter(created_at__date__gte=today - timedelta(days=6))),
-        "month": _sum(sales_all.filter(created_at__date__gte=today - timedelta(days=29))),
+        "today": _sum(sales_all.filter(**on_day("created_at", today))),
+        "week": _sum(sales_all.filter(**since_day("created_at", today - timedelta(days=6)))),
+        "month": _sum(sales_all.filter(**since_day("created_at", today - timedelta(days=29)))),
         "total": _sum(sales_all),
         "discount": sales_all.aggregate(s=Sum("discount"))["s"] or 0,
         "count": sales_all.count(),
@@ -1034,6 +1035,9 @@ def report(request):
     )
 
 
+RATING_CACHE_SECONDS = 600  # reyting 10 daqiqada bir yangilanadi
+
+
 @login_required
 def rating(request):
     """Sotuvchi o'z do'koni bozorda nechanchi o'rinda ekanini ko'radi (boshqalar maxfiy)."""
@@ -1047,25 +1051,34 @@ def rating(request):
     today = timezone.localdate()
     since = today - timedelta(days=29)
 
-    def rank_within(shop_qs):
-        rows = (
-            Sale.objects.filter(shop__in=shop_qs, created_at__date__gte=since)
-            .values("shop")
-            .annotate(t=Sum("total"))
-            .order_by("-t")
-        )
-        ordered = [r["shop"] for r in rows]
-        total = shop_qs.count()
-        pos = ordered.index(shop.id) + 1 if shop.id in ordered else total
-        return pos, total
+    # Bozor bo'yicha 30 kunlik savdo — BITTA so'rov, 10 daqiqa kesh (reyting soniyada o'zgarmaydi,
+    # bozordagi yuzlab sotuvchi sahifani ochganda har biri butun bozorni qayta yig'masin)
+    from django.core.cache import cache
 
-    market_shops = Shop.objects.filter(market=shop.market, is_active=True)
-    overall_pos, overall_total = rank_within(market_shops)
-    cat_shops = market_shops.filter(category=shop.category) if shop.category_id else market_shops
-    cat_pos, cat_total = rank_within(cat_shops)
+    key = f"rating:shops:{shop.market_id}:{since.isoformat()}"
+    market_rows = cache.get(key)
+    if market_rows is None:
+        totals = {
+            r["shop"]: r["t"]
+            for r in Sale.objects.filter(shop__market_id=shop.market_id,
+                                         **since_day("created_at", since))
+            .values("shop").annotate(t=Sum("total"))
+        }
+        market_rows = [(sid, cat, totals.get(sid, 0)) for sid, cat in Shop.objects.filter(
+            market_id=shop.market_id, is_active=True).values_list("id", "category_id")]
+        cache.set(key, market_rows, RATING_CACHE_SECONDS)
+
+    def rank_within(rows):
+        ordered = [sid for sid, _cat, _t in sorted(rows, key=lambda r: -r[2])]
+        pos = ordered.index(shop.id) + 1 if shop.id in ordered else len(ordered)
+        return pos, len(ordered)
+
+    overall_pos, overall_total = rank_within(market_rows)
+    cat_rows = [r for r in market_rows if r[1] == shop.category_id] if shop.category_id else market_rows
+    cat_pos, cat_total = rank_within(cat_rows)
 
     my_sales = (
-        Sale.objects.filter(shop=shop, created_at__date__gte=since).aggregate(s=Sum("total"))["s"]
+        Sale.objects.filter(shop=shop, **since_day("created_at", since)).aggregate(s=Sum("total"))["s"]
         or 0
     )
     # Foizli pog'ona (top %)
@@ -1096,30 +1109,39 @@ def _product_ranks(shop, since):
     """Har o'z mahsulotining bozordagi bir toifadagilar orasida sotilish o'rni."""
     from collections import defaultdict
 
+    from django.core.cache import cache
     from django.db.models import Sum
 
-    # Bozor bo'yicha mahsulotlar sotuvi (miqdor) — {product_id: qty}
-    sold = {
-        row["product"]: row["q"]
-        for row in SaleItem.objects.filter(
-            sale__shop__market=shop.market,
-            sale__created_at__date__gte=since,
-            product__isnull=False,
-        )
-        .values("product")
-        .annotate(q=Sum("quantity"))
-    }
-    # Bozordagi mahsulotlar toifa bo'yicha guruhlanadi
+    my_prods = list(Product.objects.filter(
+        shop=shop, is_active=True, category__isnull=False
+    ).select_related("category"))
+    cats = sorted({p.category_id for p in my_prods})
+    if not cats:
+        return []
+    # Faqat sotuvchi mahsulotlari toifalari bo'yicha (butun bozorning hamma mahsuloti emas) va
+    # (bozor, toifalar, kun) bo'yicha 10 daqiqa kesh — eng og'ir so'rov (SaleItem × Sale)
+    key = f"rating:prod:{shop.market_id}:{since.isoformat()}:{','.join(map(str, cats))}"
+    sold = cache.get(key)
+    if sold is None:
+        sold = {
+            row["product"]: row["q"]
+            for row in SaleItem.objects.filter(
+                sale__shop__market_id=shop.market_id,
+                **since_day("sale__created_at", since),
+                product__category_id__in=cats,
+            )
+            .values("product")
+            .annotate(q=Sum("quantity"))
+        }
+        cache.set(key, sold, RATING_CACHE_SECONDS)
+    # Bozordagi shu toifalardagi mahsulotlar toifa bo'yicha guruhlanadi
     cat_products = defaultdict(list)  # category_id -> [(product_id, qty)]
     for mp in Product.objects.filter(
-        shop__market=shop.market, category__isnull=False, is_active=True
+        shop__market_id=shop.market_id, category_id__in=cats, is_active=True
     ).values("id", "category_id"):
         cat_products[mp["category_id"]].append((mp["id"], sold.get(mp["id"], 0)))
 
     ranks = []
-    my_prods = Product.objects.filter(
-        shop=shop, is_active=True, category__isnull=False
-    ).select_related("category")
     for p in my_prods:
         qty = sold.get(p.id, 0)
         if not qty:
@@ -1189,7 +1211,7 @@ def register(request):
             "t": t,
             "today_close": RegisterClose.objects.filter(shop=shop, date=today).first(),
             "can_open": can_set_opening(shop, today),
-            "recent": Sale.objects.filter(shop=shop, created_at__date=today).order_by(
+            "recent": Sale.objects.filter(shop=shop, **on_day("created_at", today)).order_by(
                 "-created_at"
             )[:12],
         },
@@ -1211,8 +1233,7 @@ def corrections(request):
     if request.method == "POST":
         # Faqat BUGUNGI sotuv — eski (hisoblangan) kunlarni orqaga o'zgartirib bo'lmasin
         sale = get_object_or_404(
-            Sale, pk=_pk(request.POST.get("sale")), shop=shop, created_at__date=today
-        )
+            Sale, pk=_pk(request.POST.get("sale")), shop=shop, **on_day("created_at", today))
         new_total = to_int(request.POST.get("new_total"), 0) or 0
         reason = request.POST.get("reason", "").strip()[:200]
         if new_total <= 0 or not reason:
@@ -1245,7 +1266,7 @@ def corrections(request):
         "seller/corrections.html",
         {
             "shop": shop,
-            "sales": Sale.objects.filter(shop=shop, created_at__date=today).order_by("-created_at"),
+            "sales": Sale.objects.filter(shop=shop, **on_day("created_at", today)).order_by("-created_at"),
             "history": Correction.objects.filter(shop=shop).select_related("user")[:30],
         },
     )
