@@ -16,6 +16,19 @@ class Unit(models.TextChoices):
     PACK = "quti", _("quti")
 
 
+# Butun sanaladigan birliklar: 1,5 dona kurtka, 2,5 quti yoki bog'lam bo'lmaydi
+# (kg/litr/metr/qop — bo'linadi: "yarim qop kartoshka" bozorda odatiy)
+WHOLE_UNITS = frozenset({Unit.PIECE, Unit.PACK, Unit.BUNDLE})
+
+
+def whole_qty_error(unit, qty, name="") -> str:
+    """dona/quti/bog'lam miqdori butun son bo'lsin. Xato matni yoki "" (joyida)."""
+    if unit in WHOLE_UNITS and qty is not None and qty != qty.to_integral_value():
+        label = str(dict(Unit.choices).get(unit, unit))
+        return f"«{name}» {label} bilan sanaladi — miqdor butun son bo'lsin (kiritildi: {qty:g})."
+    return ""
+
+
 class ShopCategory(TimeStampedModel):
     """Do'kon yo'nalishi: meva-sabzavot, kiyim, oziq-ovqat..."""
 
@@ -87,11 +100,12 @@ class ProductCategory(TimeStampedModel):
         # Admin panelda aniq tanlagan bo'lsa (kind_explicit) — tegilmaydi.
         if (self._state.adding and not getattr(self, "kind_explicit", False)
                 and self.variant_kind == VariantKind.NONE and not self.variant_options):
-            from .variants import guess
+            from .variants import default_waste, guess
 
-            self.variant_kind, self.variant_options = guess(
-                self.name, self.shop_category.name if self.shop_category_id else ""
-            )
+            shop_cat = self.shop_category.name if self.shop_category_id else ""
+            self.variant_kind, self.variant_options = guess(self.name, shop_cat)
+            if self.waste_norm_percent == 5:  # standart qiymat — turga moslanadi
+                self.waste_norm_percent = default_waste(self.variant_kind, shop_cat)
         super().save(*args, **kwargs)
 
 
@@ -140,6 +154,11 @@ class Product(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    @property
+    def is_whole(self):
+        """Butun son bilan sanaladimi (dona/quti/bog'lam) — forma maydoni qadami shunga qarab."""
+        return self.unit in WHOLE_UNITS
 
     @property
     def is_low_stock(self):

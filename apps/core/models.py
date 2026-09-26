@@ -75,6 +75,11 @@ class SystemSettings(models.Model):
     stockin_photo_min = models.PositiveBigIntegerField(
         _("Nakladnoy majburiy summa (so'm)"), default=1_000_000
     )
+    # Hisobdan chiqarish signali: 30 kunda chiqarilgan ulush mahsulot turi me'yoridan oshsa VA
+    # qiymati shundan (so'm) kam bo'lmasa — mayda chiqimlarga signal yog'ilmasin
+    writeoff_alert_min = models.PositiveBigIntegerField(
+        _("Hisobdan chiqarish signali — kamida (so'm)"), default=200_000
+    )
 
     # Xavfsizlik
     login_max_attempts = models.PositiveSmallIntegerField(_("Maks kirish urinishi"), default=5)

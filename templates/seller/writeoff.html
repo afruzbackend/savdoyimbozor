@@ -7,13 +7,15 @@
   <div class="card">
     {% if products %}
     <p class="hint">Chirigan/buzilgan mahsulot. Foto va sabab majburiy — me'yordan oshsa tizim signal beradi.</p>
-    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    <form method="post" enctype="multipart/form-data" x-data="woForm()">{% csrf_token %}
       <div class="field"><label class="label">Mahsulot</label>
-        <select class="select-native" name="product" required>
+        <select class="select-native" name="product" required @change="pick($event.target)">
           <option value="" disabled selected>Mahsulotni tanlang</option>
-          {% for p in products %}<option value="{{ p.pk }}">{{ p.name }} ({{ p.stock|floatformat:'-3' }} {{ p.unit }})</option>{% endfor %}
-        </select></div>
-      <div class="field"><label class="label">Miqdor (dona)</label><input class="input num" type="number" step="1" min="1" name="quantity" required></div>
+          {% for p in products %}<option value="{{ p.pk }}" data-unit="{{ p.unit }}" data-kind="{{ p.category.variant_kind|default:'none' }}"
+            data-norm="{% if p.category %}{{ p.category.waste_norm_percent|floatformat:'-1' }}{% else %}2{% endif %}">{{ p.name }} ({{ p.stock|floatformat:'-3' }} {{ p.unit }})</option>{% endfor %}
+        </select>
+        <div class="hint" x-show="norm" x-cloak><span>Bu tur uchun me'yor (30 kunda kelganidan):</span> <b class="num" x-text="norm + '%'"></b></div></div>
+      <div class="field"><label class="label">Miqdor <small class="muted" data-qty-unit></small></label><input class="input num" type="number" step="0.001" min="0.001" name="quantity" required></div>
       <div class="field"><label class="label">Foto (majburiy)</label>
         <label class="file-drop">
           <input type="file" name="photo" accept="image/*" capture="environment" required hidden>
@@ -21,7 +23,11 @@
           <span class="file-name muted" data-noloc>Fayl tanlanmagan</span>
         </label>
       </div>
-      <div class="field"><label class="label">Sabab (majburiy)</label><input class="input" name="reason" placeholder="masalan: chirigan, singan" required></div>
+      <div class="field"><label class="label">Sabab (majburiy)</label><input class="input" name="reason" x-model="reason" placeholder="masalan: chirigan, singan" required>
+        {# Mahsulot turiga mos tayyor sabablar: meva — chirigan, kiyim — brak, texnika — nosoz #}
+        <div class="row gap-1 wrap-flex" style="margin-top:6px" x-show="reasons.length" x-cloak>
+          <template x-for="r in reasons" :key="r"><button type="button" class="chip chip-sm" :aria-pressed="reason===r" @click="reason=r" x-text="r"></button></template>
+        </div></div>
       <button class="btn btn-block" type="submit">Qayd etish</button>
     </form>
     {% else %}
@@ -45,4 +51,25 @@
       </tbody></table></div>
   </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  document.addEventListener('alpine:init', () => {
+    const REASONS = {
+      none: ["Chirigan", "Buzilgan", "Muddati o'tgan"],
+      color: ["So'lgan", "Singan"],
+      clothing: ["Brak (nuqson)", "Yirtilgan", "Dog' tushgan"],
+      pack: ["Muddati o'tgan", "Qadog'i yirtilgan", "Singan"],
+      type: ["Nosoz", "Singan"],
+    };
+    const GROUP = { shoes: 'clothing', kids: 'clothing', headwear: 'clothing', socks: 'clothing',
+                    pack_weight: 'pack', pack_volume: 'pack' };
+    Alpine.data('woForm', () => ({
+      norm: '', kind: '', reason: '',
+      get reasons() { return this.kind ? (REASONS[GROUP[this.kind] || this.kind] || REASONS.none) : []; },
+      pick(sel) { const o = sel.options[sel.selectedIndex]; if (!o) return;
+        this.norm = o.dataset.norm || ''; this.kind = o.dataset.kind || 'none'; },
+    }));
+  });
+</script>
 {% endblock %}

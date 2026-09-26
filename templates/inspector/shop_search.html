@@ -15,7 +15,7 @@
     <div class="card-title" style="margin-bottom:var(--sp-3)">Mahsulot — qaysi do'konda bor</div>
     <div class="row gap-2" style="flex-wrap:wrap">
       <input class="input" name="p" value="{{ pq }}" placeholder="Nomi yoki barkod (masalan: ko'ylak)" style="flex:1 1 180px">
-      <input class="input num" name="size" value="{{ psize }}" placeholder="O'lcham (M, 42)" style="flex:0 0 120px" maxlength="20">
+      <input class="input num" name="size" value="{{ psize }}" placeholder="Variant (M, 42, 250 g)" style="flex:0 0 120px" maxlength="20">
       <button class="btn" type="submit">Topish</button>
     </div>
     <div class="hint">Faqat hozir qoldiqda bor mahsulotlar ko'rsatiladi.</div>
@@ -38,9 +38,9 @@
 {% if pq or psize %}
 <div class="card">
   <div class="card-header"><span class="card-title">{{ items|length }} ta natija</span>
-    {% if items %}<small class="muted">Jami qoldiq: <b class="num">{{ total_qty|floatformat:'-3' }}</b></small>{% endif %}</div>
+    {% if items and total_qty is not None %}<small class="muted">Jami qoldiq: <b class="num">{{ total_qty|floatformat:'-3' }}</b> <span>{{ total_unit }}</span></small>{% endif %}</div>
   <div class="table-wrap"><table class="data">
-    <thead><tr><th>Do'kon</th><th>Mahsulot</th><th>O'lcham</th><th>Rang</th><th class="num">Qoldiq</th><th class="num">Narx</th></tr></thead>
+    <thead><tr><th>Do'kon</th><th>Mahsulot</th><th>Variant</th><th>Rang</th><th class="num">Qoldiq</th><th class="num">Narx</th></tr></thead>
     <tbody>
     {% for p in items %}
     <tr><td><a href="{% url 'inspector:shop_inventory' p.shop.pk %}">№{{ p.shop.number }}</a>

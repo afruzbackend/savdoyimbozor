@@ -19,6 +19,10 @@ class DebtorRequired(Exception):
     """Nasiyaga sotuvda xaridor ismi yo'q."""
 
 
+class InvalidQuantity(Exception):
+    """Dona/quti bilan sanaladigan mahsulotga kasr miqdor (1,5 kurtka)."""
+
+
 @transaction.atomic
 def create_sale(
     *,
@@ -87,6 +91,11 @@ def create_sale(
         (q, up, pid if pid in prods else None, n) for q, up, pid, n in raw_lines
     ]
     subtotal = sum(int((q * up).quantize(Decimal("1"))) for q, up, _pid, _n in lines)
+    from apps.catalog.models import whole_qty_error
+
+    for q, _up, pid, _n in lines:
+        if pid and (err := whole_qty_error(prods[pid].unit, q, prods[pid].name)):
+            raise InvalidQuantity(err)
 
     # Bir mahsulot bir chekda bir necha marta bo'lishi mumkin — jami miqdorni yig'amiz
     need = {}

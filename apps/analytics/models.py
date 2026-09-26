@@ -7,12 +7,17 @@ from apps.core.models import TimeStampedModel
 
 
 class MarketPrice(TimeStampedModel):
-    """Bozor narxi (kunlik): mahsulot toifasi bo'yicha median/p25/p75 (so'm)."""
+    """Bozor narxi (kunlik): mahsulot toifasi + solishtirish asosi bo'yicha median/p25/p75 (so'm).
+
+    basis — narx nimaga nisbatan: "kg" (qadoqlar 1 kg ga keltirilgan), "litr", "dona",
+    "dona:AA" (turi farq qiladigan mahsulot). Qoidasi: catalog.variants.price_basis.
+    """
 
     market = models.ForeignKey("geo.Market", on_delete=models.CASCADE, related_name="prices")
     product_category = models.ForeignKey(
         "catalog.ProductCategory", on_delete=models.CASCADE, related_name="market_prices"
     )
+    basis = models.CharField(_("Narx asosi"), max_length=40, default="dona")
     date = models.DateField(db_index=True)
     median = models.BigIntegerField(default=0)
     p25 = models.BigIntegerField(default=0)
@@ -21,7 +26,7 @@ class MarketPrice(TimeStampedModel):
     class Meta:
         verbose_name = _("Bozor narxi")
         verbose_name_plural = _("Bozor narxlari")
-        unique_together = ("market", "product_category", "date")
+        unique_together = ("market", "product_category", "basis", "date")
 
 
 class DailyScore(TimeStampedModel):
@@ -79,6 +84,7 @@ class Alert(TimeStampedModel):
         ANOMALY = "anomaly", _("Savdo keskin tushdi")
         BUYER_REPORT = "buyer_report", _("Xaridor xabari")
         GATE_UNRECORDED = "gate_unrecorded", _("Hujjatsiz kirim")
+        WRITEOFF = "writeoff_over", _("Hisobdan chiqarish me'yordan ko'p")
 
     shop = models.ForeignKey("shops.Shop", on_delete=models.CASCADE, related_name="alerts")
     date = models.DateField()

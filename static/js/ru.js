@@ -1404,6 +1404,29 @@ window.RU_DICT = {
   "Qadoq qiymatlari og'irlik yoki hajm bo'lsin: 250 g, 1 kg, 0,5 L.": "Упаковки — это вес или объём: 250 г, 1 кг, 0,5 л.",
   "Mahsulot turi topilmadi.": "Вид товара не найден.",
   "O'chirildi.": "Удалено.",
+  // ---- Butun miqdor, hisobdan chiqarish me'yori, birlik ----
+  "Hisobdan chiqarish me'yordan ko'p": "Списание сверх нормы",
+  "Hisobdan chiqarish signali — kamida (so'm)": "Сигнал о списании — минимум (сум)",
+  "30 kunda chiqarilgan ulush mahsulot turi me'yoridan (Mahsulot turlari sahifasi) oshsa va qiymati shundan kam bo'lmasa — signal.": "Сигнал, если доля списаний за 30 дней превышает норму вида товара (страница «Виды товаров») и сумма не меньше указанной.",
+  "Bu tur uchun me'yor (30 kunda kelganidan):": "Норма для этого вида (от поступившего за 30 дней):",
+  "Chirigan": "Сгнило",
+  "Muddati o'tgan": "Просрочено",
+  "So'lgan": "Завяло",
+  "Singan": "Сломано",
+  "Brak (nuqson)": "Брак (дефект)",
+  "Yirtilgan": "Порвано",
+  "Dog' tushgan": "Испачкано",
+  "Qadog'i yirtilgan": "Порвана упаковка",
+  "Nosoz": "Неисправно",
+  "Dona mahsulot miqdori butun son bo'lsin": "Количество штучного товара должно быть целым",
+  "1 qopda necha kg": "Сколько кг в 1 мешке",
+  "1 kanistrda necha litr": "Сколько литров в 1 канистре",
+  "1 rulonda necha metr": "Сколько метров в 1 рулоне",
+  "1 qutida nechta": "Сколько штук в 1 коробке",
+  "1 katta qadoqda nechta": "Сколько в 1 большой упаковке",
+  "Variant (M, 42, 250 g)": "Вариант (M, 42, 250 г)",
+  "Hisobdan chiqarish signali": "Сигнал о списании",
+  "Narx asosi": "База цены",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
@@ -1413,6 +1436,15 @@ window.RU_FRAGMENTS = [
 
   // Razmerli tovar
   ["razmerini tanlang: ", "выберите размер: "],
+  [" bilan sanaladi — miqdor butun son bo'lsin ", " считается поштучно — количество должно быть целым "],
+  ["(kiritildi: ", "(введено: "],
+  ["Hisobdan chiqarish me'yordan ko'p (30 kun): ", "Списание сверх нормы (30 дней): "],
+  [" hisobdan chiqarildi — ", " списано — "],
+  ["Nazoratchiga signal boradi.", "Инспектор получит сигнал."],
+  [": 30 kunda ", ": за 30 дней "],
+  [" bilan sotilmaydi — birlikni tanlang: ", " так не продаётся — выберите единицу: "],
+  ["(me'yor ", "(норма "],
+  ["me'yor ", "норма "],
   // Variantlar (qadoq/razmer/tur) va mahsulot turlari
   [" o'lcham/qadoq bilan sotilmaydi — variantlarni olib tashlang.", " не продаётся по размерам/упаковкам — уберите варианты."],
   [" uchun rang tanlanmaydi.", " — цвет не выбирается."],

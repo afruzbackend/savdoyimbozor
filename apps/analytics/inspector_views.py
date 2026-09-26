@@ -540,16 +540,26 @@ def shop_search(request):
         if pq:
             qs = qs.filter(Q(name__icontains=pq) | Q(base_name__icontains=pq) | Q(barcode=pq))
         if psize:
-            qs = qs.filter(size__iexact=psize)
+            from apps.catalog import variants
+
+            if variants.measure(psize):  # "250g" = "250 g" = "0,25 kg"
+                ids = [p.pk for p in qs.exclude(size="").only("pk", "size")
+                       if variants.same(p.size, psize)]
+                qs = qs.filter(pk__in=ids)
+            else:
+                qs = qs.filter(size__iexact=variants.normalize(psize))
         items = list(
             qs.select_related("shop", "shop__market").order_by("shop__market__name", "shop__number",
                                                               "name")[:300]
         )
+    # Jami — faqat bir xil birlikda (5 kg + 3 dona = "8" ma'nosiz)
+    units = {p.unit for p in items}
     return render(
         request,
         "inspector/shop_search.html",
         {"q": q, "results": results, "pq": pq, "psize": psize, "items": items,
-         "total_qty": sum(p.stock for p in items)},
+         "total_qty": sum(p.stock for p in items) if len(units) == 1 else None,
+         "total_unit": items[0].get_unit_display() if len(units) == 1 else ""},
     )
 
 

@@ -54,8 +54,8 @@ def test_no_oversell_under_concurrency(shop, seller, product):
 @pytest.mark.django_db
 def test_fractional_qty_exact_stock(shop, seller, product):
     """Kasr miqdor (kg) — qoldiq aniq hisoblanadi, xato bermaydi."""
-    product.stock = Decimal("1.000")
-    product.save(update_fields=["stock"])
+    product.stock, product.unit = Decimal("1.000"), "kg"  # pomidor tortib sotiladi (dona — butun son)
+    product.save(update_fields=["stock", "unit"])
     for _ in range(3):
         create_sale(
             shop=shop,
@@ -72,6 +72,9 @@ def test_fractional_qty_exact_stock(shop, seller, product):
 def test_fractional_qty_line_total_exact(shop, seller, product):
     """Kasr miqdor × narx — qator jami aniq (float yaxlitlash xatosi yo'q)."""
     from apps.sales.models import SaleItem
+
+    product.unit = "kg"  # 2,5 — faqat tortib sotiladigan tovarda (dona — butun son)
+    product.save(update_fields=["unit"])
 
     sale = create_sale(
         shop=shop,

@@ -29,8 +29,9 @@
       <div class="row" style="justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
         <div class="grow"><div x-text="it.name" style="font-weight:600"></div>
           <small class="muted"><span class="num" x-text="fmt(it.price)"></span> × </small>
-          <input class="input num" style="width:78px;display:inline-block;padding:4px 8px" type="number" step="any" min="0" inputmode="decimal"
-                 x-model.number="it.qty" :class="!(it.qty>0)&&'err'">
+          <input class="input num" style="width:78px;display:inline-block;padding:4px 8px" type="number" min="0"
+                 :step="it.whole ? 1 : 'any'" :inputmode="it.whole ? 'numeric' : 'decimal'"
+                 x-model.number="it.qty" :class="!(it.qty>0 && (!it.whole || Number.isInteger(it.qty)))&&'err'">
         </div>
         <div class="num" style="font-weight:700;align-self:center" x-text="fmt(it.price*(it.qty||0))"></div>
         <button class="btn-quiet btn-icon" title="Savatdan olib tashlash" @click="cart.splice(idx,1)"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-trash-2"></use></svg></button>
@@ -117,7 +118,9 @@
         const r = await fetch('/api/products/lookup/?q='+encodeURIComponent(this.q));
         this.results = r.ok ? await r.json() : []; },
       scanCamera(){ window.openBarcodeScanner(async (code)=>{ this.q=code; await this.quickAdd(); }); },
-      add(r){ const e=this.cart.find(c=>c.id===r.id); if(e) e.qty++; else this.cart.push({id:r.id,name:r.name,price:r.price,qty:1});
+      // dona/quti/bog'lam — butun son (1,5 kurtka sotilmaydi); kg/litr/metr — kasr bo'lishi mumkin
+      add(r){ const e=this.cart.find(c=>c.id===r.id); if(e) e.qty++; else this.cart.push({id:r.id,name:r.name,price:r.price,qty:1,
+        whole:['dona','quti',"bog'lam"].includes(r.unit)});
         this.q=''; this.results=[]; this.$refs.scan.focus(); },
       async quickAdd(){ await this.search(); if(this.results.length) this.add(this.results[0]); },
       addDiscount(b){ this.discount=(this.discount===b)?0:Math.min(b,this.cap); },
@@ -127,6 +130,7 @@
         this.$refs.scan.focus(); },
       async submit(){ if(this.total<=0||this.saving) return;
         if(this.cart.some(i=>!(i.qty>0))){ window.toast('Miqdor 0 dan katta bo\'lsin','bad'); return; }
+        if(this.cart.some(i=>i.whole && !Number.isInteger(i.qty))){ window.toast('Dona mahsulot miqdori butun son bo\'lsin','bad'); return; }
         if(this.pay==='debt' && !this.debtorName.trim()){ this.debtorErr=true; this.$refs.debtor&&this.$refs.debtor.focus();
           window.toast('Nasiya uchun xaridor ismini yozing','bad'); return; }
         if(this.pay==='debt' && !this.debtorDue){ this.dueErr=true;

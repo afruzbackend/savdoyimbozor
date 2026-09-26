@@ -249,6 +249,42 @@
     if (el && el.type === "number" && e.target === el) el.blur();
   }, { passive: true });
 
+  // ---- Miqdor maydoni mahsulot birligiga qarab ----
+  // dona/quti/bog'lam — butun son (qadam 1, raqam klaviaturasi); kg/litr/metr/qop — kasr (2,5 kg).
+  // Bitta qadam qotirilsa yo 2,5 kg chirigan pomidor kiritilmas, yo 1,5 kurtka o'tib ketardi.
+  // Birlik: select[name=product] tanlangan option[data-unit] (majburiy bo'lsa), aks holda
+  // select[name=unit]. "Qop/quti hisobida" belgilansa — kasr mumkin (1,5 quti = 18 dona).
+  // Server ham tekshiradi (catalog.models.whole_qty_error).
+  var WHOLE_UNITS = { "dona": 1, "quti": 1, "bog'lam": 1 };
+  function syncQty(form) {
+    var qty = form && form.querySelector('input[name="quantity"]');
+    if (!qty) return;
+    var prod = form.querySelector('select[name="product"]');
+    var opt = prod && prod.options[prod.selectedIndex];
+    var unitSel = form.querySelector('select[name="unit"]');
+    var unit = "";
+    if (prod && prod.required && opt && opt.dataset.unit) unit = opt.dataset.unit;
+    else if (unitSel && !(prod && prod.required)) unit = unitSel.value;
+    var packs = form.querySelector('input[name="in_packs"]');
+    var whole = !!WHOLE_UNITS[unit] && !(packs && packs.checked);
+    qty.step = whole ? "1" : "0.001";
+    qty.min = whole ? "1" : "0.001";
+    qty.inputMode = whole ? "numeric" : "decimal";
+    var lbl = form.querySelector("[data-qty-unit]");
+    if (lbl) lbl.textContent = unit;
+  }
+  window.syncQty = syncQty;
+  document.addEventListener("change", function (e) {
+    if (e.target.form && /^(product|unit|in_packs)$/.test(e.target.name)) syncQty(e.target.form);
+  });
+  // Rejim almashsa (ro'yxatdan / yangi) — yozishni boshlashdan oldin yana moslanadi
+  document.addEventListener("focusin", function (e) {
+    if (e.target.name === "quantity" && e.target.form) syncQty(e.target.form);
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('form input[name="quantity"]').forEach(function (q) { syncQty(q.form); });
+  });
+
   // ---- .field ichidagi yorliq ↔ maydon bog'lanishi (yorliq bosilsa fokus; ekran o'qigich) ----
   function linkLabels(root) {
     (root || document).querySelectorAll(".field").forEach(function (f, i) {

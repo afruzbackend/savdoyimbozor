@@ -48,7 +48,7 @@ def _can_report(sale) -> bool:
 
 def receipt(request, code):
     sale = _sale_or_404(code)
-    items = list(sale.items.all())
+    items = list(sale.items.select_related("product"))
     return render(request, "receipt/public.html", {
         "sale": sale,
         "items": items,
@@ -82,7 +82,7 @@ def receipt_report(request, code):
     key = f"receipt-report:{client_ip(request)}"
     if cache.get(key, 0) >= 10:
         return render(request, "receipt/public.html", {
-            "sale": sale, "items": list(sale.items.all()), "shop": sale.shop,
+            "sale": sale, "items": list(sale.items.select_related("product")), "shop": sale.shop,
             "can_report": False, "error": "Juda ko'p urinish — birozdan keyin qayta yuboring.",
         }, status=429)
     cache.set(key, cache.get(key, 0) + 1, 3600)
@@ -90,7 +90,7 @@ def receipt_report(request, code):
     paid = to_int(request.POST.get("paid_amount"))
     if paid is None or paid <= 0 or paid > max(sale.total * 20, 10_000_000):
         return render(request, "receipt/public.html", {
-            "sale": sale, "items": list(sale.items.all()), "shop": sale.shop,
+            "sale": sale, "items": list(sale.items.select_related("product")), "shop": sale.shop,
             "can_report": True, "error": "To'lagan summangizni to'g'ri yozing.",
             "report_days": settings.RECEIPT_REPORT_DAYS,
         }, status=400)

@@ -11,10 +11,10 @@
       <div class="field"><label class="label">Mahsulot</label>
         <select class="select-native" name="product" required>
           <option value="" disabled selected>Mahsulotni tanlang</option>
-          {% for p in products %}<option value="{{ p.pk }}">{{ p.name }} ({{ p.stock|floatformat:'-3' }} {{ p.unit }})</option>{% endfor %}
+          {% for p in products %}<option value="{{ p.pk }}" data-unit="{{ p.unit }}">{{ p.name }} ({{ p.stock|floatformat:'-3' }} {{ p.unit }})</option>{% endfor %}
         </select></div>
-      <div class="field"><label class="label">Miqdor</label>
-        <input class="input num" type="number" step="0.001" name="quantity" required></div>
+      <div class="field"><label class="label">Miqdor <small class="muted" data-qty-unit></small></label>
+        <input class="input num" type="number" step="0.001" min="0.001" name="quantity" required></div>
       <div class="field"><label class="label">Summa (so'm, ixtiyoriy)</label>
         <input class="input num" type="number" name="amount" placeholder="Bo'sh — narx × miqdor"></div>
       <div class="field"><label class="label">Sabab</label>

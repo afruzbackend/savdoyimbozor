@@ -26,6 +26,11 @@ solishtirib rostlik darajasi beradigan va yashiruvchini signal beradigan Django 
   kiyim XS–3XL, poyabzal 35–46, bolalar bo'y, paypoq 35-37, qadoq og'irligi/hajmi (choy 250 g, yog' 1 L — faqat dona),
   turi (batareyka AA), faqat rang (gul), variantsiz (guruch, meva, go'sht). Admin `/mahsulot-turlari/` da o'zgartiradi;
   yangi toifa nomidan taxmin qilinadi. Server mos kelmaganini rad etadi (choyga "3XL" yo'q).
+- Turga qarab qoidalar: birlik (`variants.units_for` — kurtka kg emas), butun son (`catalog.models.whole_qty_error`:
+  dona/quti/bog'lam butun, kg/litr/metr/qop kasr — sotuv, kirim, qaytarish, chiqarish, kun yakuni),
+  bozor narxi asosi (`variants.price_basis`: qadoq 1 kg/litrga keltiriladi, AA/9V alohida; `MarketPrice.basis`),
+  chiqarish me'yori `ProductCategory.waste_norm_percent` (kiyim 0,5%, meva 5%, gul 10%) →
+  `sales/services/writeoffs.py` → signal `Alert.Kind.WRITEOFF` (chegara `writeoff_alert_min`).
 - `cash` — CashRecord (deklaratsiya; source: excel/tax_api/kassa).
 - `cameras` — Camera, CameraEvent; `api.py` (kontrakt); `simulate_camera`.
 - `analytics` — MarketPrice, DailyScore (agregat), Alert, Inspection, Appeal;

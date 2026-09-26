@@ -88,19 +88,35 @@ def _median(values):
     return vals[mid] if n % 2 else (vals[mid - 1] + vals[mid]) // 2
 
 
+def _price_rows(qs):
+    """Mahsulotlar → [(shop_id, (toifa, asos), solishtiriladigan narx)] (variants.price_basis)."""
+    from apps.catalog.variants import price_basis
+
+    out = []
+    for r in qs.filter(category__isnull=False, sell_price__gt=0).values(
+        "shop_id", "category_id", "unit", "size", "sell_price", "category__variant_kind"
+    ):
+        basis, price = price_basis(r["unit"], r["size"], r["sell_price"], r["category__variant_kind"])
+        if price > 0:
+            out.append((r["shop_id"], (r["category_id"], basis), price))
+    return out
+
+
 def compute_market_prices(market, day):
-    """Bozor narxi: har mahsulot toifasi uchun median sotish narxi (so'm)."""
+    """Bozor narxi: har (toifa, narx asosi) uchun median sotish narxi (so'm).
+
+    Asos (kg/litr/dona/turi) — qadoqlar va turlar aralashib ketmasin: "Choy — 250 g" 1 kg ga
+    keltirilib solishtiriladi, AA batareyka faqat AA bilan. Qaytadi: {(toifa_id, asos): median}.
+    """
     from apps.analytics.models import MarketPrice
     from apps.catalog.models import Product
 
-    by_cat = {}
-    for p in Product.objects.filter(
-        shop__market=market, is_active=True, category__isnull=False, sell_price__gt=0
-    ):
-        by_cat.setdefault(p.category_id, []).append(p.sell_price)
+    by_key = {}
+    for _shop, key, price in _price_rows(Product.objects.filter(shop__market=market, is_active=True)):
+        by_key.setdefault(key, []).append(price)
 
     result = {}
-    for cat_id, prices in by_cat.items():
+    for (cat_id, basis), prices in by_key.items():
         prices.sort()
         med = _median(prices)
         n = len(prices)
@@ -109,23 +125,21 @@ def compute_market_prices(market, day):
         MarketPrice.objects.update_or_create(
             market=market,
             product_category_id=cat_id,
+            basis=basis,
             date=day,
             defaults={"median": med, "p25": p25, "p75": p75},
         )
-        result[cat_id] = med
+        result[(cat_id, basis)] = med
     return result
 
 
 def _shop_price_score(shop, medians):
-    """Do'kon narx balli: mahsulotlari narxini bozor medianasi bilan solishtiradi."""
+    """Do'kon narx balli: mahsulotlari narxini bozor medianasi bilan (bir xil asosda) solishtiradi."""
     from apps.catalog.models import Product
 
     scores = []
-    for p in Product.objects.filter(
-        shop=shop, is_active=True, category__isnull=False, sell_price__gt=0
-    ):
-        med = medians.get(p.category_id)
-        s = price_score(p.sell_price, med)
+    for _shop, key, price in _price_rows(Product.objects.filter(shop=shop, is_active=True)):
+        s = price_score(price, medians.get(key))
         if s is not None:
             scores.append(s)
     if not scores:
@@ -312,14 +326,12 @@ def recompute_for_date(day, final: bool | None = None) -> int:
     }
     # Narx balli uchun mahsulotlar — 1 so'rov, do'kon bo'yicha guruh
     prices_by = defaultdict(list)
-    stock_shop_ids = set()
-    for r in Product.objects.filter(shop_id__in=ids, is_active=True).values(
-        "shop", "category_id", "sell_price", "stock"
-    ):
-        if r["stock"] and r["stock"] > 0:
-            stock_shop_ids.add(r["shop"])
-        if r["category_id"] and r["sell_price"] > 0:
-            prices_by[r["shop"]].append((r["category_id"], r["sell_price"]))
+    stock_shop_ids = set(
+        Product.objects.filter(shop_id__in=ids, is_active=True, stock__gt=0)
+        .values_list("shop_id", flat=True).distinct()
+    )
+    for shop_id, key, price in _price_rows(Product.objects.filter(shop_id__in=ids, is_active=True)):
+        prices_by[shop_id].append((key, price))
     # Anomaliya uchun 30-kunlik tarix — 1 so'rov
     prior_by = defaultdict(list)
     prior_qs = DailyScore.objects.filter(
@@ -357,11 +369,8 @@ def recompute_for_date(day, final: bool | None = None) -> int:
     }
 
     def _price_score_from(rows, medians):
-        scores = [
-            price_score(sp, medians.get(cid))
-            for cid, sp in rows
-            if price_score(sp, medians.get(cid)) is not None
-        ]
+        # rows: [((toifa, asos), narx)] — bir xil asosdagi bozor medianasi bilan
+        scores = [s for key, sp in rows if (s := price_score(sp, medians.get(key))) is not None]
         return (sum(scores) / len(scores)) if scores else None
 
     count = 0
@@ -489,7 +498,35 @@ def recompute_for_date(day, final: bool | None = None) -> int:
     # Kassa nomuvofiqligi signali (Z-hisobot asosida, rostlik ballidan mustaqil)
     if final:
         _generate_cash_mismatch_alerts(day, cfg, existing_alerts, insp_by_market)
+        _generate_writeoff_alerts(day, cfg, shops, existing_alerts, insp_by_market)
     return count
+
+
+def _generate_writeoff_alerts(day, cfg, shops, existing_alerts, insp_by_market):
+    """Hisobdan chiqarish mahsulot turi me'yoridan oshsa — signal (savdoni "chirib ketdi" deb
+    yashirish). Me'yor turga qarab (pomidor 5%, kiyim 0,5%) — apps.sales.services.writeoffs."""
+    from apps.analytics.models import Alert
+    from apps.sales.models import WriteOff
+    from apps.sales.services.writeoffs import shop_excesses
+
+    by_id = {s.id: s for s in shops}
+    shop_ids = set(WriteOff.objects.filter(shop_id__in=by_id, **on_day("created_at", day))
+                   .values_list("shop_id", flat=True))
+    for sid in shop_ids:
+        if (sid, Alert.Kind.WRITEOFF) in existing_alerts:
+            continue
+        found = shop_excesses(by_id[sid], day, cfg.writeoff_alert_min)
+        if not found:
+            continue
+        existing_alerts.add((sid, Alert.Kind.WRITEOFF))
+        total = sum(e.value for e in found)
+        reason = ("Hisobdan chiqarish me'yordan ko'p (30 kun): "
+                  + "; ".join(e.text() for e in found[:3]) + f" ≈ {som(total)} so'm")
+        Alert.objects.create(
+            shop=by_id[sid], date=day, kind=Alert.Kind.WRITEOFF,
+            level="red" if any(e.level == "red" for e in found) else "yellow",
+            reason=reason[:300], assigned_to=insp_by_market.get(by_id[sid].market_id),
+        )
 
 
 def _anomaly_from(shop, day, entered, prior, cfg, inspector):

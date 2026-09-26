@@ -18,9 +18,9 @@
       <tr><td>{{ r.p.name }} <small class="muted">{{ r.p.get_unit_display }}</small></td>
         <td class="num muted">{{ r.p.sell_price|intcomma }}</td>
         <td class="num">{% if r.locked %}<span title="Kechagi sanoqdan — o'zgartirilmaydi">{{ r.morning|floatformat:'-3' }}</span>
-          {% else %}<input class="input num" style="width:90px" type="number" step="any" min="0" name="morning_{{ r.p.id }}" value="{{ r.morning|floatformat:'-3' }}" title="Birinchi sanoq — kerak bo'lsa tuzating">{% endif %}</td>
+          {% else %}<input class="input num" style="width:90px" type="number" {% if r.p.is_whole %}step="1" inputmode="numeric"{% else %}step="any" inputmode="decimal"{% endif %} min="0" name="morning_{{ r.p.id }}" value="{{ r.morning|floatformat:'-3' }}" title="Birinchi sanoq — kerak bo'lsa tuzating">{% endif %}</td>
         <td class="num {% if r.delta > 0 %}ok-text{% elif r.delta < 0 %}bad-text{% else %}muted{% endif %}">{% if r.delta > 0 %}+{% endif %}{{ r.delta|floatformat:'-3' }}</td>
-        <td><input class="input num" style="width:100px" type="number" step="any" min="0" name="evening_{{ r.p.id }}" placeholder="sanang"
+        <td><input class="input num" style="width:100px" type="number" {% if r.p.is_whole %}step="1" inputmode="numeric"{% else %}step="any" inputmode="decimal"{% endif %} min="0" name="evening_{{ r.p.id }}" placeholder="sanang"
                    value="{% if r.evening is not None %}{{ r.evening|floatformat:'-3' }}{% endif %}"></td></tr>
       {% empty %}<tr><td colspan="5" class="muted">Mahsulot yo'q.</td></tr>{% endfor %}
       </tbody></table></div>

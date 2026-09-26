@@ -58,7 +58,7 @@
     <table class="rc-items">
       {% for it in items %}
       <tr><td>{{ it.product_name|default:"Mahsulot" }}
-            <div class="sub num">{{ it.quantity|floatformat:"-3" }} × {{ it.unit_price|intcomma }}</div></td>
+            <div class="sub num">{{ it.quantity|floatformat:"-3" }}{% if it.product %} <span>{{ it.product.get_unit_display }}</span>{% endif %} × {{ it.unit_price|intcomma }}</div></td>
           <td class="n">{{ it.line_total|intcomma }}</td></tr>
       {% empty %}
       <tr><td>Savdo</td><td class="n">{{ sale.subtotal|intcomma }}</td></tr>

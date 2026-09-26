@@ -16,7 +16,8 @@
   {% for p in products %}
   <div class="label">
     <div class="label-name">{{ p.name }}</div>
-    <div class="label-price">{{ p.sell_price|intcomma }} so'm</div>
+    {# Tortib sotiladigan tovarda narx birlik uchun: "12 000 so'm / kg" (dona — shunchaki so'm) #}
+    <div class="label-price">{{ p.sell_price|intcomma }} so'm{% if not p.is_whole %} <span>/</span> <span>{{ p.get_unit_display }}</span>{% endif %}</div>
     <svg class="label-bc" data-code="{{ p.barcode }}"></svg>
   </div>
   {% endfor %}

@@ -48,6 +48,27 @@ KINDS: dict[str, dict] = {
 SIZED = {"clothing", "shoes", "kids", "headwear", "socks"}
 PACKS = {"pack_weight", "pack_volume"}
 
+# Turga mos birliklar (yo'q bo'lsa — hammasi): kurtka kg bilan, choy metr bilan sotilmaydi
+UNITS = {
+    **{k: ["dona", "quti"] for k in SIZED},
+    "pack_weight": ["dona", "quti", "kg"],  # kg — quyma (tortib) sotilsa
+    "pack_volume": ["dona", "quti", "litr"],
+    "type": ["dona", "quti", "metr"],  # kabel metrlab ham sotiladi
+    "color": ["dona", "bog'lam"],  # gul — dona/bog'lam (mato — pastda: metr)
+    # oziq-ovqat, meva, go'sht, non — metrlab sotilmaydi (toifa birligi metr bo'lsa — qo'shiladi)
+    "none": ["kg", "dona", "qop", "quti", "bog'lam", "litr"],
+}
+
+
+def units_for(kind: str, default_unit: str = "") -> list[str]:
+    """Shu turga ruxsat etilgan birliklar. Toifaning o'z birligi doim bor."""
+    allowed = UNITS.get(kind, [])
+    if kind == "color" and default_unit == "metr":  # mato, ip — metrlab
+        return ["metr", "dona"]
+    if allowed and default_unit and default_unit not in allowed:
+        allowed = [default_unit, *allowed]
+    return allowed
+
 # Toifa nomidan taxmin (yangi toifa va mavjudlari uchun migratsiyada; admin panelda o'zgartiradi)
 _GUESS = [
     ("kids", r"bolalar|chaqaloq"),
@@ -116,7 +137,7 @@ def spec(category) -> dict:
     presets = {"Tayyor": own} if own else k["presets"]
     return {"kind": kind, "noun": k["noun"] if (presets or kind == "type") else "",
             "colors": k["colors"], "presets": presets, "field": k["field"], "hint": k["hint"],
-            "pack": kind in PACKS}
+            "pack": kind in PACKS, "units": units_for(kind, getattr(category, "default_unit", ""))}
 
 
 _MEASURE = re.compile(r"^\s*(\d+(?:[.,]\d+)?)\s*(g|gr|gramm|kg|kilo|ml|l|litr|w)\s*$", re.I)
@@ -190,3 +211,39 @@ TITLE = {"size": "Razmerlar", "pack": "Qadoqlar", "type": "Turlar"}
 def section_title(classes) -> str:
     classes = set(classes)
     return TITLE[classes.pop()] if len(classes) == 1 else "Variantlar"
+
+
+def price_basis(unit, size, price, kind="") -> tuple[str, int]:
+    """Bozor narxini solishtirish asosi: (kalit, solishtiriladigan narx).
+
+    Bitta toifa ichida ham narx bir xil o'lchanmaydi: "Choy — 250 g" 25 000 va "Choy — 1 kg"
+    75 000 bir medianaga tushsa, 250 g sotuvchi "arzon sotyapti" deb jazolanardi. Shuning uchun:
+    - og'irlik/hajm qadog'i → 1 kg / 1 litr narxiga keltiriladi (kg bilan sotilgan choy bilan ham
+      bir qatorda solishtiriladi);
+    - turi farq qiladigan (batareyka AA va 9V, lampochka 9 W) → har turi alohida;
+    - qolgani → birlik bo'yicha (dona kurtka dona bilan, kg olma kg bilan).
+    """
+    m = measure(size)
+    if m and unit == "dona" and m[0] in ("g", "ml") and m[1] > 0:
+        return ("kg" if m[0] == "g" else "litr", int(Decimal(price) * 1000 / m[1]))
+    if unit in ("kg", "litr"):
+        return (unit, int(price))
+    if size and (kind == "type" or (m and m[0] == "W") or size_class([size]) == "type"):
+        return (f"{unit}:{normalize(size).upper()}"[:40], int(price))
+    return (unit, int(price))
+
+
+# Hisobdan chiqarish (chirish/buzilish) me'yori, % — mahsulot turiga qarab. Kiyim chirimaydi,
+# gul bir kunda so'ladi: bir xil 5% qo'yilsa biri yashirishga yo'l, biri soxta signal edi.
+_WASTE_BY_SHOP = [("gul", 10), ("meva", 5), ("sabzavot", 5), ("go'sht", 2), ("baliq", 2),
+                  ("non", 3), ("shirinlik", 3), ("sut", 3), ("oziq", 1)]
+_WASTE_BY_KIND = {"clothing": "0.5", "shoes": "0.5", "kids": "0.5", "headwear": "0.5",
+                  "socks": "0.5", "pack_weight": "0.5", "pack_volume": "0.5", "type": "1"}
+
+
+def default_waste(kind: str, shop_category: str = "") -> Decimal:
+    """Tur va savdo yo'nalishidan taxminiy chiqarish me'yori (admin panelda o'zgartiradi)."""
+    if kind in _WASTE_BY_KIND:
+        return Decimal(_WASTE_BY_KIND[kind])
+    sc = (shop_category or "").lower()
+    return Decimal(next((w for k, w in _WASTE_BY_SHOP if k in sc), 5))

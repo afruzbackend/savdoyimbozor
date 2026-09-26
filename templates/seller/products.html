@@ -55,7 +55,7 @@
         <button type="button" class="btn btn-ghost" style="padding:6px 10px"
                 data-id="{{ p.pk }}" data-name="{{ p.name }}" data-buy="{{ p.buy_price }}" data-sell="{{ p.sell_price }}"
                 data-low="{{ p.low_stock_threshold|floatformat:'-3' }}" data-coeff="{{ p.pack_coeff|floatformat:'-3' }}"
-                data-barcode="{{ p.barcode }}" data-unit="{{ p.get_unit_display }}" onclick="openProdEdit(this)">Tahrirlash</button>
+                data-barcode="{{ p.barcode }}" data-unit="{{ p.unit }}" onclick="openProdEdit(this)">Tahrirlash</button>
         {% else %}
         <form method="post" style="display:inline">{% csrf_token %}
           <input type="hidden" name="action" value="restore"><input type="hidden" name="id" value="{{ p.pk }}">
@@ -83,7 +83,7 @@
       </div>
       <div class="grid grid-2">
         <div class="field"><label class="label">Kam qoldiq chegarasi</label><input class="input num" type="number" name="low_stock_threshold" id="ep-low" min="0" step="any"></div>
-        <div class="field"><label class="label">1 qopda (<span id="ep-unit"></span>)</label><input class="input num" type="number" name="pack_coeff" id="ep-coeff" min="0.001" step="any"></div>
+        <div class="field"><label class="label" id="ep-pack-label">1 qopda nechta</label><input class="input num" type="number" name="pack_coeff" id="ep-coeff" min="0.001" step="any"></div>
       </div>
       <div class="field"><label class="label">Barkod</label>
         <div class="row gap-2">
@@ -136,8 +136,14 @@
          batareyka — AA/AAA, guruch — variantsiz. Qoidalar: apps/catalog/variants.py{% endcomment %}
       <div class="field"><label class="label" x-text="spec.field">Navi (ixtiyoriy)</label>
         <input class="input" name="variant" :placeholder="spec.hint"></div>
-      <div class="field"><label class="label">Birlik</label>
-        <select class="select-native" name="unit" x-ref="unit" @change="unit=$event.target.value">{% for v,l in units %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+      <div class="field"><span class="label">Birlik</span>
+        {# Faqat shu turga mos birliklar (kurtka — dona/quti; choy — dona/quti/kg; kabel — metr ham) #}
+        <div class="row gap-1 wrap-flex" role="radiogroup" aria-label="Birlik">
+          <template x-for="u in unitOptions" :key="u[0]">
+            <button type="button" class="chip" role="radio" :aria-checked="unit===u[0]" :aria-pressed="unit===u[0]" @click="unit=u[0]" x-text="u[1]"></button>
+          </template>
+        </div>
+        <input type="hidden" name="unit" :value="unit">
         <div class="hint" x-show="spec.pack && unit!=='dona'" x-cloak>Qadoqlab (pachka, butilka) sotsangiz — birlikni «dona» qiling, qadoqlar chiqadi.</div></div>
       <div class="variant-box" x-show="hasSizes || spec.colors" x-cloak>
         <template x-if="hasSizes"><div>
@@ -174,7 +180,7 @@
       </div>
       <div class="grid grid-2">
         <div class="field"><label class="label">Kam qoldiq chegarasi</label><input class="input num" type="number" name="low_stock_threshold" min="0" step="any" value="0"></div>
-        <div class="field"><label class="label">1 qopda nechta</label><input class="input num" type="number" name="pack_coeff" min="0.001" step="any" value="1"></div>
+        <div class="field"><label class="label" x-text="packLabel(unit)">1 qopda nechta</label><input class="input num" type="number" name="pack_coeff" min="0.001" step="any" value="1"></div>
       </div>
       <button class="btn btn-block" type="submit" :disabled="!picked">Qo'shish</button>
     </form>
@@ -184,14 +190,20 @@
 {% block extra_js %}
 <script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>
 {{ catalog_json|json_script:"catalog-data" }}
+{{ unit_choices|json_script:"unit-choices" }}
 <script>
+  // "Qop/quti hisobida" koeffitsienti birlikka qarab: kg — qop, litr — kanistr, metr — rulon
+  window.packLabel = function (u) {
+    return { kg: '1 qopda necha kg', litr: '1 kanistrda necha litr', metr: '1 rulonda necha metr',
+             dona: '1 qutida nechta' }[u] || '1 katta qadoqda nechta';
+  };
   window.openProdEdit = function (b) {
     var d = b.dataset, $ = function (id) { return document.getElementById(id); };
     $('ep-title').textContent = d.name;
     $('ep-id').value = d.id; $('ep-id2').value = d.id;
     $('ep-buy').value = d.buy; $('ep-sell').value = d.sell;
     $('ep-low').value = d.low; $('ep-coeff').value = d.coeff;
-    $('ep-barcode').value = d.barcode; $('ep-unit').textContent = d.unit;
+    $('ep-barcode').value = d.barcode; $('ep-pack-label').textContent = window.packLabel(d.unit);
     $('edit-prod').hidden = false;
     setTimeout(function () { $('ep-sell').focus(); $('ep-sell').select(); }, 50);
   };
@@ -202,6 +214,10 @@
       unit: 'dona', sizes: [], colors: '', customSize: '', group: '', sizeOptions: [],
       spec: { kind: 'none', noun: '', colors: false, presets: {}, field: 'Navi (ixtiyoriy)',
               hint: 'masalan: mahalliy, 1-nav, katta', pack: false },
+      allUnits: JSON.parse(document.getElementById('unit-choices').textContent),
+      packLabel(u){ return window.packLabel(u); },
+      get unitOptions(){ const ok = this.spec.units || [];
+        return ok.length ? this.allUnits.filter(u => ok.includes(u[0])) : this.allUnits; },
       get groups(){ return Object.keys(this.spec.presets || {}); },
       get hasSizes(){ return this.unit === 'dona' && !!this.spec.noun; },
       get addHint(){ return this.spec.kind === 'pack_weight' ? '+ 750 g' : this.spec.kind === 'pack_volume' ? '+ 2 L' : '+ boshqa'; },
@@ -238,9 +254,7 @@
         // Toifa almashsa — oldingi toifaning razmer/ranglari qolib ketmasin (choyga 3XL)
         this.spec = c; this.sizes = []; this.colors = ''; this.customSize = '';
         this.group = this.groups[0] || ''; this.sizeOptions = this.group ? [...this.spec.presets[this.group]] : [];
-        // change hodisasi — maxsus dropdown yorlig'i ham yangilansin (aks holda eski birlik ko'rinardi)
-        this.$nextTick(()=>{ const u=this.$refs.unit; if(u){ u.value=c.unit;
-          u.dispatchEvent(new Event('change', {bubbles:true})); } }); },
+      },
     }));
   });
 </script>

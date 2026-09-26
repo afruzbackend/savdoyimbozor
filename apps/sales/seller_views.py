@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from apps.catalog import variants
-from apps.catalog.models import Product, ProductCategory, Unit
+from apps.catalog.models import Product, ProductCategory, Unit, whole_qty_error
 from apps.catalog.sizes import product_order, size_key, sorted_products
 from apps.core.dates import days_between, on_day, since_day
 from apps.core.format import som, to_dec, to_int
@@ -272,7 +272,7 @@ def products(request):
             "page": page,
             "catalog": catalog,
             "catalog_json": catalog_json,  # json_script o'zi kodlaydi (ikki marta EMAS)
-            "units": Unit.choices,
+            "unit_choices": [[v, str(label)] for v, label in Unit.choices],
             "q": q,
             "size": size,
             "shop_sizes": shop_sizes,
@@ -303,6 +303,9 @@ def _clean_list(values, maxlen, upper=False):
 def _variant_error(cat, kind, unit, sizes, colors) -> str:
     """Toifa turiga mos kelmaydigan variant — xato matni ("" — hammasi joyida)."""
     name = cat.name if cat else "Bu mahsulot"
+    allowed = variants.units_for(kind, cat.default_unit) if cat else []  # toifasiz — cheklamaymiz
+    if allowed and unit not in allowed:
+        return f"«{name}» {unit} bilan sotilmaydi — birlikni tanlang: {', '.join(allowed)}."
     if sizes and kind in ("none", "color"):
         return f"«{name}» o'lcham/qadoq bilan sotilmaydi — variantlarni olib tashlang."
     if sizes and unit != Unit.PIECE:
@@ -462,10 +465,14 @@ def stock_in(request):
             # Nom bo'yicha bor bo'lsa — o'shani olamiz, aks holda yangi yaratamiz
             product = Product.objects.filter(shop=shop, name__iexact=name).first()
             if product is None:
+                unit = request.POST.get("unit") if request.POST.get("unit") in Unit.values else Unit.PIECE
+                if err := whole_qty_error(unit, qty, name):
+                    messages.error(request, err)
+                    return redirect("seller:stock_in")
                 product = Product.objects.create(
                     shop=shop,
                     name=name[:200],
-                    unit=request.POST.get("unit", Unit.PIECE),
+                    unit=unit,
                     barcode=request.POST.get("barcode", "").strip()[:64],
                     buy_price=price,
                     sell_price=max(0, to_int(request.POST.get("sell_price"), 0) or 0),
@@ -476,6 +483,9 @@ def stock_in(request):
                     ensure_barcode(product)
         in_packs = bool(request.POST.get("in_packs"))
         real_qty = qty * product.pack_coeff if in_packs else qty
+        if err := whole_qty_error(product.unit, real_qty, product.name):
+            messages.error(request, err)
+            return redirect("seller:stock_in")
         # Kirim DALILI: katta kirimga nakladnoy fotosi majburiy (kompensatsiya kutilganda
         # kirimni oshirib yozishning oldini oladi); yetkazib beruvchi yoziladi
         supplier = request.POST.get("supplier_name", "").strip()[:200]
@@ -610,7 +620,13 @@ def stock_in_quick_save(request):
         if product is None and str(r.get("size") or "").strip():
             base = str(r.get("base_name") or name.split(" — ")[0]).strip()[:200]
             variant = (base, str(r["size"]).strip()[:20])
-        plan.append((product, name, unit, qty, price, bool(r.get("in_packs")), variant))
+        packs = bool(r.get("in_packs"))
+        real = qty * product.pack_coeff if product and packs and (product.pack_coeff or 1) > 1 else qty
+        if err := whole_qty_error(product.unit if product else (Unit.PIECE if variant else unit), real,
+                                  product.name if product else name):
+            messages.error(request, f"{n}-qator: {err}")
+            return redirect("seller:stock_in")
+        plan.append((product, name, unit, qty, price, packs, variant))
 
     supplier = request.POST.get("supplier_name", "").strip()[:200]
     supplier_stir = "".join(c for c in request.POST.get("supplier_stir", "") if c.isdigit())[:15]
@@ -730,6 +746,13 @@ def daily_close(request):
         elif any_counted and not (existing and existing.photo):
             messages.error(request, "Rastani suratga oling — kun yakuni fotosi majburiy.")
             return redirect("seller:daily_close")
+        # Dona/quti sanog'i butun son (2,5 kurtka sanalmaydi) — yozishdan OLDIN, hammasi birdan
+        for p in prods:
+            for field in ("evening", "morning"):
+                val = to_dec(request.POST.get(f"{field}_{p.id}"))
+                if val is not None and (err := whole_qty_error(p.unit, val, p.name)):
+                    messages.error(request, err)
+                    return redirect("seller:daily_close")
         from .services.cash import close_register
 
         with transaction.atomic():
@@ -834,6 +857,8 @@ def returns(request):
             messages.error(request, "Mahsulotni tanlang.")
         elif qty is None or qty <= 0:
             messages.error(request, "Miqdor 0 dan katta bo'lsin.")
+        elif err := whole_qty_error(product.unit, qty, product.name):
+            messages.error(request, err)
         elif qty > product.stock:
             messages.error(
                 request,
@@ -894,6 +919,8 @@ def writeoff(request):
             messages.error(request, photo_err)
         elif qty <= 0:
             messages.error(request, "Miqdorni to'g'ri kiriting.")
+        elif err := whole_qty_error(product.unit, qty, product.name):
+            messages.error(request, err)
         elif qty > product.stock:
             messages.error(
                 request,
@@ -918,13 +945,21 @@ def writeoff(request):
                 messages.error(request, "Qoldiq o'zgardi — qayta urinib ko'ring.")
                 return redirect("seller:writeoff")
             messages.success(request, "Hisobdan chiqarish qayd etildi.")
+            # Sotuvchi darrov bilsin: shu turning me'yoridan oshdi — nazoratchiga signal boradi
+            from .services.writeoffs import excess
+
+            over = excess(product, timezone.localdate(), SystemSettings.get_solo().writeoff_alert_min)
+            if over is not None:
+                messages.warning(request, f"«{product.name}»: 30 kunda {over.pct:.0f}% hisobdan chiqarildi — "
+                                          f"me'yor {over.norm:g}%. Nazoratchiga signal boradi.")
         return redirect("seller:writeoff")
     return render(
         request,
         "seller/writeoff.html",
         {
             "shop": shop,
-            "products": sorted_products(Product.objects.filter(shop=shop, is_active=True)),
+            "products": sorted_products(Product.objects.filter(shop=shop, is_active=True)
+                                        .select_related("category")),
             "recent": WriteOff.objects.filter(shop=shop).select_related("product")[:10],
         },
     )

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from apps.core.dates import on_day
 
 from .models import Sale
-from .services.sales import DebtorRequired, InsufficientStock, create_sale
+from .services.sales import DebtorRequired, InsufficientStock, InvalidQuantity, create_sale
 
 
 def _seller_shop(request):
@@ -112,7 +112,7 @@ def create_sale_api(request):
             )
             if sale.total <= 0:
                 raise _ZeroTotal  # nol summali chek bazada qolmasin (rollback)
-    except (InsufficientStock, DebtorRequired) as e:
+    except (InsufficientStock, DebtorRequired, InvalidQuantity) as e:
         return Response({"detail": str(e)}, status=400)
     except _ZeroTotal:
         return Response({"detail": "Chek summasi 0 — sotuv qabul qilinmadi."}, status=400)
