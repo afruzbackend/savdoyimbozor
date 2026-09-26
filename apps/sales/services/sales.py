@@ -38,12 +38,17 @@ def create_sale(
     note="",
     client_uid="",
     debtor=None,
+    sold_at=None,
+    allow_oversell=False,
 ):
     """Sotuv yaratadi.
 
     items: [{"product_id"?, "name", "qty", "unit_price"}] — quick rejimda bitta qator ham bo'ladi.
     Vaqt serverdan olinadi; client_ts kelsa va farq katta bo'lsa is_late belgilanadi.
     debtor: {"name", "phone"} — payment_type="debt" bo'lsa MAJBURIY (nasiya daftariga yoziladi).
+    sold_at: oflayn navbatdan kelgan sotuvning HAQIQIY vaqti (kunga shu bo'yicha tushadi).
+    allow_oversell: oflayn sotuv — tovar qo'ldan ketib bo'lgan, qoldiq hisobda yetmasa ham yoziladi
+    (aks holda real sotuv yo'qolib, yashirilgan savdoga aylanardi; qoldiq kun yakuni sanog'ida tuzaladi).
     """
     from decimal import Decimal
 
@@ -104,7 +109,7 @@ def create_sale(
             need[pid] = need.get(pid, Decimal("0")) + q
     for pid, qty in need.items():
         p = prods.get(pid)
-        if p and qty > p.stock:
+        if p and qty > p.stock and not allow_oversell:
             raise InsufficientStock(
                 f"«{p.name}» qoldig'i yetarli emas: bor {p.stock:g} {p.get_unit_display()}, "
                 f"so'ralgan {qty:g}."
@@ -163,6 +168,9 @@ def create_sale(
 
             record_move(prods[pid], StockMove.Kind.SALE, delta=-q, ref=f"Sale#{sale.pk}",
                         user=seller)
+    if sold_at is not None:  # auto_now_add ni haqiqiy sotuv vaqti bilan almashtiramiz
+        Sale.objects.filter(pk=sale.pk).update(created_at=sold_at)
+        sale.created_at = sold_at
     if payment_type == "debt" and sale.total > 0:
         from ..models import Debt
 
@@ -176,3 +184,13 @@ def create_sale(
             note=f"Chek #{sale.pk}",
         )
     return sale
+
+
+def apply_late_sale(shop, day):
+    """O'tgan kunga (oflayn) sotuv qo'shilgach: o'sha kun kassa yopilishi va rostligi yangilanadi."""
+    from apps.analytics.scoring.services import mark_day_stale
+
+    from .cash import refresh_register_close
+
+    refresh_register_close(shop, day)
+    mark_day_stale(day)

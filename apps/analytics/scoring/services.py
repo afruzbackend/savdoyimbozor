@@ -257,6 +257,36 @@ def _camera_estimate(shop, day, buyer_ratio, market_avg_check=0):
     return int(visits * float(buyer_ratio) * avg_check)
 
 
+_STALE_KEY = "bn:stale_days"
+
+
+def mark_day_stale(day) -> None:
+    """O'tgan kun ma'lumoti o'zgardi (kechikkan oflayn sotuv) — keyingi imkonda qayta hisoblanadi."""
+    from django.core.cache import cache
+
+    days = set(cache.get(_STALE_KEY) or [])
+    days.add(day.isoformat())
+    cache.set(_STALE_KEY, sorted(days), 60 * 60 * 24 * 3)
+    cache.delete(f"bn:finalized:{day.isoformat()}")
+
+
+def _recompute_stale_days() -> None:
+    """Eskirgan o'tgan kunlarni qayta hisoblaydi. Har kun 10 soniyada ko'pi bilan bir marta:
+    navbatdan 20 ta sotuv ketma-ket kelsa, har biriga butun kun qayta hisoblanmasin — qolgani
+    keyingi chaqiruvda (ro'yxatda turadi)."""
+    from datetime import date
+
+    from django.core.cache import cache
+
+    left = []
+    for iso in cache.get(_STALE_KEY) or []:
+        if cache.add(f"bn:recomp_lock:{iso}", 1, 10):
+            recompute_for_date(date.fromisoformat(iso), final=True)
+        else:
+            left.append(iso)
+    cache.set(_STALE_KEY, left, 60 * 60 * 24 * 3)
+
+
 def refresh_today_if_stale(seconds: int = 12) -> bool:
     """Bugungi rostlik ballari eskirgan bo'lsa qayta hisoblaydi (throttled).
 
@@ -271,6 +301,10 @@ def refresh_today_if_stale(seconds: int = 12) -> bool:
     from apps.analytics.models import DailyScore
 
     today = timezone.localdate()
+    try:
+        _recompute_stale_days()  # kechikkan oflayn sotuvlar tushgan o'tgan kunlar
+    except Exception:  # noqa: BLE001 — sotuv baribir yozilsin
+        pass
     newest = (
         DailyScore.objects.filter(date=today)
         .order_by("-updated_at")

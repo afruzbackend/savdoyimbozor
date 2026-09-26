@@ -109,6 +109,39 @@ def close_register(shop, day, counted, seller, note="") -> tuple[RegisterClose, 
 
 
 @transaction.atomic
+def refresh_register_close(shop, day):
+    """Kechikib kelgan (oflayn) sotuvdan keyin YOPILGAN kassaning kutilgan summalarini yangilaydi.
+
+    Sanalgan naqd o'zgarmaydi (u — jismoniy sanoq). Kutilgan endi sanalganga yaqinlashib, farq
+    chegaradan kichik bo'lsa — hali ko'rilmagan kassa signali izohi bilan bekor qilinadi: sotuvchi
+    internet uzilgani uchun "yozilmagan naqd" deb ayblanib qolmasin.
+    """
+    from apps.analytics.models import Alert
+    from apps.core.models import SystemSettings
+
+    rc = RegisterClose.objects.filter(shop=shop, date=day).first()
+    if rc is None:
+        return None
+    t = register_totals(shop, day)
+    if (rc.expected_cash, rc.checks_count) == (t["expected_cash"], t["count"]):
+        return rc
+    rc.expected_cash, rc.opening_cash, rc.debt_cash_in = t["expected_cash"], t["opening"], t["debt_in_cash"]
+    rc.card_total, rc.transfer_total, rc.checks_count = t["card"], t["transfer"], t["count"]
+    if "oflayn" not in rc.note:
+        rc.note = (rc.note + " · kechikkan oflayn sotuvlar qo'shildi").strip(" ·")[:200]
+    rc.save(update_fields=["expected_cash", "opening_cash", "debt_cash_in", "card_total",
+                           "transfer_total", "checks_count", "note", "updated_at"])
+    alert = Alert.objects.filter(shop=shop, date=day, kind=Alert.Kind.CASH_MISMATCH,
+                                 status=Alert.Status.NEW).first()
+    if alert is not None and rc.expected_cash > 0:
+        pct = round(abs(rc.counted_cash - rc.expected_cash) / rc.expected_cash * 100)
+        if pct < (SystemSettings.get_solo().cash_shortage_pct or 15):
+            alert.status = Alert.Status.DISMISSED
+            alert.reason = (alert.reason[:230] + " — kechikkan oflayn sotuvlar bilan bartaraf bo'ldi")[:300]
+            alert.save(update_fields=["status", "reason", "updated_at"])
+    return rc
+
+
 def pay_debt(debt: Debt, amount, method, seller) -> DebtPayment:
     """Nasiya to'lovi (qisman ham). Qoldiqdan ko'p to'lab bo'lmaydi."""
     debt = Debt.objects.select_for_update().get(pk=debt.pk)

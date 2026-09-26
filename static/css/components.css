@@ -870,3 +870,12 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 /* Skaner qidiruvi: har natijada qoldiq (tugagan razmer darrov ko'rinsin) */
 .scan-stock{margin-left:auto;margin-right:var(--sp-2);font-size:var(--t--2);color:var(--ink-muted)}
 .scan-stock.zero{color:var(--bad);font-weight:600}
+
+/* Qabul qilinmagan oflayn sotuvlar — sotuvchi qayta kiritguncha ko'rinib turadi */
+.sq-rejected{position:fixed;right:16px;bottom:16px;z-index:60;max-width:360px;width:calc(100% - 32px);
+  border-color:var(--bad);box-shadow:0 8px 28px rgba(0,0,0,.18)}
+.sq-rejected .card-title{color:var(--bad);margin-bottom:4px}
+.sq-rejected p{margin:0 0 var(--sp-2);font-size:var(--t--1)}
+.sq-rejected ul{margin:0 0 var(--sp-3);padding-left:18px;font-size:var(--t--1);max-height:160px;overflow:auto}
+.sq-rejected li{margin-bottom:4px}
+@media (max-width:768px){.sq-rejected{bottom:76px}}

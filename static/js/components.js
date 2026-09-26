@@ -531,14 +531,25 @@
   // ---- Offline sotuv navbati (umumiy: tez sotuv + skaner) ----
   // Internet uzilsa sotuv localStorage'ga tushadi; har sahifa ochilganda va tarmoq
   // qaytganda yuboriladi. client_uid tufayli qayta yuborish dublikat yaratmaydi.
+  // Sotuv HECH QACHON jimgina o'chirilmaydi — u real bo'lgan (yo'qolsa yashirilgan savdoga
+  // aylanadi): sessiya tugasa (401/403) yoki boshqa do'konniki bo'lsa (409) navbatda qoladi,
+  // boshqa rad javoblari "qabul qilinmadi" ro'yxatiga o'tib, qo'lda kiritish uchun ekranda turadi.
   window.saleQueue = {
     KEY: "saleQueue",
-    list: function () {
-      try { return JSON.parse(localStorage.getItem(this.KEY) || "[]"); } catch (e) { return []; }
+    REJ: "saleQueueRejected",
+    _get: function (k) {
+      try { return JSON.parse(localStorage.getItem(k) || "[]"); } catch (e) { return []; }
     },
+    _set: function (k, v) {
+      try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* to'la */ }
+    },
+    list: function () { return this._get(this.KEY); },
+    rejected: function () { return this._get(this.REJ); },
     add: function (body) {
+      body.offline = true;  // server haqiqiy vaqtiga (client_ts) yozadi
+      body.shop_hint = window.BN_SHOP || null;
       var q = this.list(); q.push(body);
-      try { localStorage.setItem(this.KEY, JSON.stringify(q)); } catch (e) { /* to'la */ }
+      this._set(this.KEY, q);
       return q.length;
     },
     uid: function () {
@@ -556,27 +567,116 @@
     },
     _send: async function () {
       var q = this.list();
-      if (!q.length || !navigator.onLine) return q.length;
-      var rest = [], dropped = 0, csrf = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || "";
+      // Faqat sotuvchi sahifasida (kirish sahifasida yoki boshqa rolda yubormaymiz)
+      if (!q.length || !navigator.onLine || !window.BN_SHOP) { this.renderRejected(); return q.length; }
+      var rest = [], rej = this.rejected(), newRej = 0, auth = false, foreign = 0;
+      var csrf = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || "";
       for (var i = 0; i < q.length; i++) {
+        var item = q[i];
+        if (item.shop_hint && item.shop_hint !== window.BN_SHOP) { foreign++; rest.push(item); continue; }
         try {
           var r = await fetch("/api/sales/", { method: "POST",
             headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
-            body: JSON.stringify(q[i]) });
+            body: JSON.stringify(item) });
           if (r.ok) continue;
-          if (r.status >= 400 && r.status < 500) { dropped++; continue; } // doimiy rad
-          rest.push(q[i]);
-        } catch (e) { rest.push(q[i]); }
+          if (r.status === 401 || r.status === 403) { auth = true; rest.push(item); continue; }
+          if (r.status === 409) { foreign++; rest.push(item); continue; }
+          if (r.status >= 400 && r.status < 500) {
+            var detail = "";
+            try { detail = (await r.json()).detail || ""; } catch (e) { /* matn emas */ }
+            rej.push({ body: item, detail: String(detail).slice(0, 200), at: new Date().toISOString() });
+            newRej++;
+            continue;
+          }
+          rest.push(item);  // 5xx — keyinroq qayta
+        } catch (e) { rest.push(item); }
       }
-      try { localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) { /* ok */ }
-      if (dropped) window.toast && window.toast(dropped + " ta navbatdagi sotuv rad etildi", "bad");
-      else if (!rest.length) window.toast && window.toast("Navbatdagi sotuvlar yuborildi", "ok");
+      this._set(this.KEY, rest);
+      this._set(this.REJ, rej);
+      var t = window.toast || function () {};
+      if (auth) t("Qayta kiring — " + rest.length + " ta sotuv navbatda saqlanib turibdi", "warn");
+      else if (newRej) t(newRej + " ta navbatdagi sotuv qabul qilinmadi — ro'yxatni ko'ring", "bad");
+      else if (foreign && rest.length === foreign) t("Bu qurilmada boshqa sotuvchining " + foreign + " ta yuborilmagan sotuvi bor", "warn");
+      else if (!rest.length) t("Navbatdagi sotuvlar yuborildi", "ok");
+      this.renderRejected();
       return rest.length;
     },
+    // Qabul qilinmagan oflayn sotuvlar — sotuvchi qo'lda qayta kiritguncha ekranda turadi
+    renderRejected: function () {
+      var old = document.getElementById("sq-rejected");
+      var mine = function (x) { return !x.body.shop_hint || x.body.shop_hint === window.BN_SHOP; };
+      var rej = this.rejected().filter(mine);
+      if (!rej.length || !window.BN_SHOP) { if (old) old.remove(); return; }
+      var box = old || document.createElement("div");
+      box.id = "sq-rejected";
+      box.className = "sq-rejected card";
+      box.setAttribute("role", "alert");
+      var fmt = function (n) { return window.BN ? window.BN.fmt(Math.round(n)) : Math.round(n); };
+      var two = function (n) { return ("0" + n).slice(-2); };
+      box.innerHTML = "";
+      var title = document.createElement("div");
+      title.className = "card-title";
+      title.textContent = "Oflayn sotuvlar qabul qilinmadi";
+      var hint = document.createElement("p");
+      hint.className = "muted";
+      hint.textContent = "Bu sotuvlarni qo'lda qayta kiriting (sabab yonida).";
+      var ul = document.createElement("ul");
+      rej.forEach(function (x) {
+        var b = x.body;
+        var sum = (b.items || []).reduce(function (s, i) { return s + (+i.qty || 0) * (+i.unit_price || 0); }, 0)
+          - (+b.discount || 0) - (+b.rounding || 0);
+        var when = b.client_ts ? new Date(b.client_ts) : null;
+        var li = document.createElement("li");
+        var amt = document.createElement("b");
+        amt.className = "num";
+        amt.textContent = fmt(sum) + " so'm";
+        li.appendChild(amt);
+        if (when) {
+          var ws = document.createElement("span");
+          ws.className = "muted num";
+          ws.textContent = " " + two(when.getDate()) + "." + two(when.getMonth() + 1) + " "
+            + two(when.getHours()) + ":" + two(when.getMinutes());
+          li.appendChild(ws);
+        }
+        if (x.detail) {  // server matni — textContent (XSS bo'lmasin)
+          var why = document.createElement("span");
+          why.textContent = " — " + x.detail;
+          li.appendChild(why);
+        }
+        ul.appendChild(li);
+      });
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-ghost";
+      btn.textContent = "Qayta kiritdim — ro'yxatni tozalash";
+      var self = this;
+      btn.onclick = function () {
+        self._set(self.REJ, self.rejected().filter(function (x) { return !mine(x); }));
+        box.remove();
+      };
+      box.append(title, hint, ul, btn);
+      if (!old) document.body.appendChild(box);
+    },
   };
+  // Kassa / kun yakunini yopishdan oldin: yuborilmagan oflayn sotuv bo'lsa to'xtatamiz —
+  // aks holda kutilgan naqd ulardan kam chiqib, sotuvchiga soxta "kassa ortiqchasi" signali ketardi
+  document.addEventListener("submit", function (e) {
+    var f = e.target;
+    if (!f.hasAttribute || !f.hasAttribute("data-queue-guard")) return;
+    var own = window.saleQueue.list().filter(function (x) {
+      return !x.shop_hint || x.shop_hint === window.BN_SHOP;
+    }).length;
+    if (!own) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    window.toast && window.toast(own + " ta sotuv hali yuborilmagan — internet ulanishini kuting, keyin yoping", "warn");
+    window.saleQueue.sync();
+  }, true);
+
   // Navbatda sotuv qolgan bo'lsa — istalgan sahifa ochilganda / tarmoq qaytganda yuboriladi
   document.addEventListener("DOMContentLoaded", function () {
     if (window.saleQueue.list().length) window.saleQueue.sync();
+    else window.saleQueue.renderRejected();
   });
   window.addEventListener("online", function () { window.saleQueue.sync(); });
 

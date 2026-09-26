@@ -49,6 +49,11 @@ def create_sale_api(request):
             "qty": qty,
             "unit_price": price,
         })
+    # Oflayn navbat bir qurilmada boshqa sotuvchi kirganda — sotuv o'z do'koniga yozilsin
+    hint = to_int(data.get("shop_hint"), 0)
+    if hint and hint != shop.pk:
+        return Response({"detail": "Bu sotuv boshqa do'konniki — o'sha sotuvchi kirganda yuboriladi."},
+                        status=409)
     discount = to_int(data.get("discount"), 0)
     rounding = to_int(data.get("rounding"), 0)
     if discount is None or rounding is None or discount < 0 or rounding < 0:
@@ -68,6 +73,25 @@ def create_sale_api(request):
             client_ts = parse_datetime(str(data["client_ts"]))
         except (ValueError, TypeError):
             client_ts = None
+
+    # Oflayn navbatdan kelgan sotuv: HAQIQIY vaqtiga yoziladi (yuborilgan kunga emas) va qoldiq
+    # hisobda yetmasa ham qabul qilinadi — tovar qo'ldan ketib bo'lgan. Aks holda 23:50 dagi sotuv
+    # ertangi kunga tushib, kechagi kun "kam savdo / kassa ortiqchasi" bo'lib chiqardi.
+    from datetime import timedelta
+
+    offline = bool(data.get("offline"))
+    sold_at = None
+    note = str(data.get("note") or "")
+    if offline:
+        now = timezone.now()
+        if client_ts is not None and timezone.is_naive(client_ts):
+            client_ts = timezone.make_aware(client_ts)
+        mark = f"Oflayn sotuv — serverga {timezone.localtime(now):%d.%m %H:%M} da keldi"
+        if client_ts is not None and now - timedelta(hours=48) <= client_ts <= now + timedelta(minutes=5):
+            sold_at = min(client_ts, now)
+        elif client_ts is not None:  # juda eski yoki kelajak — qabul vaqtiga, lekin iz qoladi
+            mark += f"; qurilma vaqti {timezone.localtime(client_ts):%d.%m %H:%M}"
+        note = (mark + (f" · {note}" if note else ""))[:200]
 
     from django.db import IntegrityError, transaction
 
@@ -105,13 +129,21 @@ def create_sale_api(request):
                 is_wholesale=bool(data.get("is_wholesale", False)),
                 mode=mode,
                 client_ts=client_ts,
-                note=str(data.get("note") or ""),
+                note=note,
                 client_uid=client_uid,
+                sold_at=sold_at,
+                allow_oversell=offline,
                 debtor={"name": data.get("debtor_name"), "phone": data.get("debtor_phone"),
                         "due": data.get("debtor_due")},
             )
             if sale.total <= 0:
                 raise _ZeroTotal  # nol summali chek bazada qolmasin (rollback)
+            if sold_at is not None and timezone.localdate(sold_at) < timezone.localdate():
+                # O'tgan kunga tushdi: yopilgan kassa va o'sha kun rostligi yangilansin
+                from .services.sales import apply_late_sale
+
+                day = timezone.localdate(sold_at)
+                transaction.on_commit(lambda: apply_late_sale(shop, day))
     except (InsufficientStock, DebtorRequired, InvalidQuantity) as e:
         return Response({"detail": str(e)}, status=400)
     except _ZeroTotal:

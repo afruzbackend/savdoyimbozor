@@ -1440,6 +1440,11 @@ window.RU_DICT = {
   "Mahsulot turlaringiz reytingi": "Рейтинг ваших видов товаров",
   "Har mahsulot turingiz bo'yicha — bozorda shu turni sotadigan do'konlar orasida, savdo summasi bo'yicha (30 kun). Razmer va qadoqlar birga hisoblanadi.": "По каждому вашему виду товара — среди магазинов рынка, торгующих им, по сумме продаж (30 дней). Размеры и упаковки считаются вместе.",
   "qadoq": "упак.",
+  // ---- Oflayn navbat: hech qachon jimgina o'chmaydi ----
+  "Oflayn sotuvlar qabul qilinmadi": "Офлайн-продажи не приняты",
+  "Bu sotuvlarni qo'lda qayta kiriting (sabab yonida).": "Внесите эти продажи вручную ещё раз (причина рядом).",
+  "Qayta kiritdim — ro'yxatni tozalash": "Внёс заново — очистить список",
+  "Bu sotuv boshqa do'konniki — o'sha sotuvchi kirganda yuboriladi.": "Эта продажа другого магазина — отправится, когда войдёт тот продавец.",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
@@ -1449,6 +1454,15 @@ window.RU_FRAGMENTS = [
 
   // Razmerli tovar
   ["razmerini tanlang: ", "выберите размер: "],
+  ["Qayta kiring — ", "Войдите снова — "],
+  [" ta sotuv navbatda saqlanib turibdi", " продаж ждут в очереди"],
+  [" ta navbatdagi sotuv qabul qilinmadi — ro'yxatni ko'ring", " продаж из очереди не принято — см. список"],
+  ["Bu qurilmada boshqa sotuvchining ", "На этом устройстве неотправленные продажи другого продавца: "],
+  [" ta yuborilmagan sotuvi bor", " шт."],
+  [" ta sotuv hali yuborilmagan — internet ulanishini kuting, keyin yoping", " продаж ещё не отправлено — дождитесь интернета, затем закройте"],
+  ["Oflayn sotuv — serverga ", "Офлайн-продажа — поступила на сервер "],
+  [" — kechikkan oflayn sotuvlar bilan bartaraf bo'ldi", " — устранено поздно поступившими офлайн-продажами"],
+  ["kechikkan oflayn sotuvlar qo'shildi", "добавлены поздние офлайн-продажи"],
   [": xaridor ulushi saqlandi. Rostlik keyingi hisoblashda yangilanadi.", ": доля покупателей сохранена. Правдивость обновится при следующем расчёте."],
   [" so'm, odatda dushanba kunlari ~", " сум, обычно по понедельникам ~"],
   [" so'm, odatda seshanba kunlari ~", " сум, обычно по вторникам ~"],

@@ -33,6 +33,8 @@
   </div>
 
   {% if idle_ms %}<script>window.BN_IDLE_MS = {{ idle_ms }};</script>{% endif %}
+  {# Oflayn navbat faqat shu do'kon sotuvlarini yuboradi (qurilmada sotuvchi almashsa aralashmasin) #}
+  {% if request.user.is_authenticated and request.user.shop_id %}<script>window.BN_SHOP = {{ request.user.shop_id }};</script>{% endif %}
   <script src="{% static 'js/components.js' %}?v={{ asset_v }}"></script>
   <script src="{% static 'js/ru.js' %}?v={{ asset_v }}"></script>
   <script src="{% static 'js/i18n.js' %}?v={{ asset_v }}"></script>

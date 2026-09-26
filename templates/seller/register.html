@@ -57,7 +57,7 @@
     {% if t.opening or t.debt_in_cash %}
     <small class="faint num" style="display:block;margin:-4px 0 var(--sp-3)">= naqd savdo {{ t.cash|intcomma }}{% if t.opening %} + maydalik {{ t.opening|intcomma }}{% endif %}{% if t.debt_in_cash %} + qaytgan nasiya {{ t.debt_in_cash|intcomma }}{% endif %}</small>
     {% endif %}
-    <form method="post" class="stack gap-3">{% csrf_token %}
+    <form method="post" class="stack gap-3" data-queue-guard>{% csrf_token %}
       <div class="field"><label class="label">Sanalgan naqd (so'm)</label>
         {# Kutilgan summa bilan OLDINDAN TO'LDIRILMAYDI — aks holda sanamasdan "mos keldi" bo'lardi #}
         <input class="input num" type="number" name="counted_cash" min="0" inputmode="numeric"
