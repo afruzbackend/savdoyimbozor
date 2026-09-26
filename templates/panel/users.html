@@ -24,15 +24,7 @@
       <tr>
         <td class="num">{{ u.username }}</td>
         <td data-noloc>
-          {% if u.visible_password %}
-          <span class="pw-cell" x-data="{show:false}">
-            <b class="num" x-show="show" x-cloak>{{ u.visible_password }}</b>
-            <span class="num muted" x-show="!show">••••••••</span>
-            <button type="button" class="btn-icon" title="Ko'rsatish/yashirish" @click="show=!show">
-              <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-eye"></use></svg></button>
-            <button type="button" class="btn-ghost" style="padding:2px 8px;font-size:var(--t--1)" title="Nusxa olish"
-                    @click="navigator.clipboard.writeText('{{ u.visible_password }}');window.toast&&window.toast('Parol nusxalandi','ok')">Nusxa</button>
-          </span>
+          {% if u.visible_password %}{% include 'panel/_password_cell.html' with uid=u.pk %}
           {% else %}<span class="muted">—</span>{% endif %}
         </td>
         <td><a href="{% url 'panel:user_edit' u.pk %}">{{ u.get_full_name|default:"—" }}</a></td>

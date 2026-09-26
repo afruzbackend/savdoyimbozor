@@ -18,15 +18,7 @@
         <td>{{ r.shop.category.name|default:"—" }}</td>
         <td class="num" data-noloc>{% if r.seller %}{{ r.seller.username }}{% else %}<span class="muted">— sotuvchi yo'q —</span>{% endif %}</td>
         <td data-noloc>
-          {% if r.seller and r.seller.visible_password %}
-          <span class="pw-cell" x-data="{show:false}">
-            <b class="num" x-show="show" x-cloak>{{ r.seller.visible_password }}</b>
-            <span class="num muted" x-show="!show">••••••••</span>
-            <button type="button" class="btn-icon" title="Ko'rsatish" @click="show=!show">
-              <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-eye"></use></svg></button>
-            <button type="button" class="btn-ghost" style="padding:2px 8px;font-size:var(--t--1)"
-              @click="navigator.clipboard.writeText('{{ r.seller.visible_password }}');window.toast&&window.toast('Parol nusxalandi','ok')">Nusxa</button>
-          </span>
+          {% if r.seller and r.seller.visible_password %}{% include 'panel/_password_cell.html' with uid=r.seller.pk %}
           {% else %}<span class="muted">—</span>{% endif %}
         </td>
         <td><a class="btn btn-ghost" style="padding:6px 10px" href="{% url 'panel:shop_edit' r.shop.pk %}">Tahrirlash</a></td>

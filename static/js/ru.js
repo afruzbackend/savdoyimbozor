@@ -1448,6 +1448,9 @@ window.RU_DICT = {
   "Qaytarilgan yoki yaroqsiz mahsulotni tanlang — miqdor qoldiqdan chiqariladi. Hisobdan chiqarish bilan birga mahsulot turi me'yoriga kiradi — oshsa tizim signal beradi.": "Выберите возвращённый или негодный товар — количество спишется с остатка. Вместе со списаниями входит в норму вида товара — при превышении система подаст сигнал.",
   "Bu tur uchun me'yor (30 kunda kelganidan, qaytarish bilan birga):": "Норма для этого вида (от поступившего за 30 дней, вместе с возвратами):",
   "Sana: 2026-09-24, 24.09.2026 yoki Excel sana katakchasi. Summa: 1 250 000, 1,250,000.00, 1.250.000 — hammasi tushuniladi. Bitta STIR bir nechta do'konga ega bo'lsa — 4-ustunga do'kon raqamini yozing.": "Дата: 2026-09-24, 24.09.2026 или ячейка даты Excel. Сумма: 1 250 000, 1,250,000.00, 1.250.000 — всё распознаётся. Если у одного ИНН несколько магазинов — укажите номер магазина в 4-м столбце.",
+  "Parolni ko'rsatish": "Показать пароль",
+  "Parol olinmadi": "Не удалось получить пароль",
+  "Parol saqlanmagan — kerak bo'lsa tiklang.": "Пароль не сохранён — при необходимости сбросьте.",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.

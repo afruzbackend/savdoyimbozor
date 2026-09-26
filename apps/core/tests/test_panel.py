@@ -296,3 +296,25 @@ def test_inspector_without_market_not_created(aclient):
 def test_user_search_by_name_and_shop(aclient, seller, shop):
     r = aclient.get(f"/foydalanuvchilar/?q={shop.number}", HTTP_HOST=PANEL_HOST)
     assert seller.username in r.content.decode()
+
+
+@pytest.mark.django_db
+def test_password_not_in_page_source_and_reveal_is_audited(aclient, shop):
+    """Parol sahifa manbasida yo'q (oldin "yashirin" bo'lsa ham HTML'da edi) va inline JS'ga
+    qo'yilmaydi (sotuvchi ') li parol qo'yib admin brauzerida kod ishlata olardi)."""
+    from apps.accounts.services import create_seller
+    from apps.core.models import AuditLog
+
+    cred = create_seller(shop, full_name="Ali")
+    u = cred["user"]
+    evil = "x');alert(1)//"
+    u.set_password_visible(evil)
+    u.save()
+    for url in ("/foydalanuvchilar/", f"/bozorlar/{shop.market_id}/"):
+        html = aclient.get(url, HTTP_HOST="panel.localhost").content.decode()
+        assert "alert(1)" not in html and cred["login"] in html
+        assert f"/foydalanuvchilar/{u.pk}/parol/korish/" in html
+    assert aclient.get(f"/foydalanuvchilar/{u.pk}/parol/korish/", HTTP_HOST="panel.localhost").status_code == 405
+    r = aclient.post(f"/foydalanuvchilar/{u.pk}/parol/korish/", HTTP_HOST="panel.localhost")
+    assert r.status_code == 200 and r.json() == {"password": evil}
+    assert AuditLog.objects.filter(detail__contains=f"Parol ko'rildi: {u.username}").exists()

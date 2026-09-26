@@ -249,6 +249,30 @@
     if (el && el.type === "number" && e.target === el) el.blur();
   }, { passive: true });
 
+  // ---- Panel: parol katakchasi — qiymat faqat bosilganda serverdan (audit bilan) ----
+  document.addEventListener("alpine:init", function () {
+    window.Alpine.data("pwCell", function (url) {
+      return {
+        pw: "", url: url,
+        async fetchPw() {
+          var csrf = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || "";
+          var r = await fetch(this.url, { method: "POST", headers: { "X-CSRFToken": csrf } });
+          var d = {};
+          try { d = await r.json(); } catch (e) { /* bo'sh */ }
+          if (!r.ok) { window.toast && window.toast(d.detail || "Parol olinmadi", "bad"); return ""; }
+          return d.password || "";
+        },
+        async toggle() { this.pw = this.pw ? "" : await this.fetchPw(); },
+        async copy() {
+          var v = this.pw || await this.fetchPw();
+          if (!v) return;
+          try { await navigator.clipboard.writeText(v); window.toast && window.toast("Parol nusxalandi", "ok"); }
+          catch (e) { this.pw = v; }  // nusxa ruxsati yo'q — ko'rsatib qo'yamiz
+        },
+      };
+    });
+  });
+
   // ---- Miqdor maydoni mahsulot birligiga qarab ----
   // dona/quti/bog'lam — butun son (qadam 1, raqam klaviaturasi); kg/litr/metr/qop — kasr (2,5 kg).
   // Bitta qadam qotirilsa yo 2,5 kg chirigan pomidor kiritilmas, yo 1,5 kurtka o'tib ketardi.

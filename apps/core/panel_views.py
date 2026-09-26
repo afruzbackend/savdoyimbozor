@@ -180,6 +180,25 @@ def user_reset(request, pk):
 
 @superadmin_required
 @require_POST
+def user_password_reveal(request, pk):
+    """Parolni ko'rsatish — faqat tugma bosilganda va AUDIT bilan.
+
+    Oldin parollar har sahifa yuklanishida HTML'ga yozilardi ("ko'rsatish" faqat yashirardi —
+    sahifa manbasida hammasi ochiq) va nusxa tugmasi inline JS satriga qo'yilardi: sotuvchi
+    o'ziga ') bilan boshlanadigan parol qo'ysa, admin brauzerida uning kodi ishlardi (saqlangan XSS).
+    Endi qiymat JSON bilan keladi va matn sifatida chiqadi; kim kimning parolini ko'rgani jurnalda.
+    """
+    from django.http import JsonResponse
+
+    user = get_object_or_404(User, pk=pk)
+    if not user.visible_password:
+        return JsonResponse({"detail": "Parol saqlanmagan — kerak bo'lsa tiklang."}, status=404)
+    request.audit_detail = f"Parol ko'rildi: {user.username}"
+    return JsonResponse({"password": user.visible_password})
+
+
+@superadmin_required
+@require_POST
 def user_2fa_reset(request, pk):
     """Telefon yo'qolgan xodim: 2FA bekor qilinadi, keyingi kirishda qayta ulaydi."""
     user = get_object_or_404(User, pk=pk)
