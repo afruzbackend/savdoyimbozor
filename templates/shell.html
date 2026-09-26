@@ -43,6 +43,36 @@
       </div>
     </div>
   </aside>
+  {% comment %}Menyu skroll joyi sahifalar orasida saqlanadi: pastdagi bandni bossangiz, yangi sahifada
+  menyu tepaga sakramaydi. Yon panel TO'LIQ chizilgach (pastki blok bilan — menyu o'lchami yakuniy),
+  lekin birinchi chizilishdan OLDIN sinxron tiklanadi — sakrash ko'rinmaydi.{% endcomment %}
+  <script>
+    (function () {
+      var nav = document.querySelector(".sidebar nav");
+      if (!nav) return;
+      var KEY = "bn-nav-scroll";
+      function reveal() {  // tanlangan band ko'rinmasa — menyu markaziga suriladi
+        var a = nav.querySelector(".navlink.active");
+        if (!a || !nav.clientHeight) return;
+        var top = a.getBoundingClientRect().top - nav.getBoundingClientRect().top + nav.scrollTop;
+        var h = a.offsetHeight;
+        if (top < nav.scrollTop || top + h > nav.scrollTop + nav.clientHeight)
+          nav.scrollTop = Math.max(0, top - (nav.clientHeight - h) / 2);
+      }
+      try { var y = sessionStorage.getItem(KEY); if (y !== null) nav.scrollTop = +y || 0; } catch (e) {}
+      reveal();
+      // Shriftlar yuklangach balandlik biroz o'zgarishi mumkin — faqat band ko'rinmay qolsa tuzatiladi
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(reveal);
+      function save() { try { sessionStorage.setItem(KEY, String(nav.scrollTop)); } catch (e) {} }
+      nav.addEventListener("click", function (e) { if (e.target.closest("a")) save(); });
+      window.addEventListener("pagehide", save);
+      // Mobil: menyu yopiqligida yashirin (skroll qo'llanmaydi) — ochilganda tanlangan band ko'rinsin
+      window.__bnNavOpen = function () {
+        var a = nav.querySelector(".navlink.active");
+        if (a && a.scrollIntoView) a.scrollIntoView({ block: "center" });
+      };
+    })();
+  </script>
 
   {# Mobil menyu foni (drawer ochilganda) #}
   <div class="menu-backdrop" onclick="document.body.classList.remove('nav-open')" data-noloc></div>
@@ -50,7 +80,7 @@
   <div class="main">
     <header class="topbar">
       <button class="menu-btn" type="button" aria-label="Menyu"
-              onclick="document.body.classList.toggle('nav-open')" data-noloc>
+              onclick="if(document.body.classList.toggle('nav-open')&&window.__bnNavOpen)requestAnimationFrame(window.__bnNavOpen)" data-noloc>
         <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-menu"></use></svg>
         {% if nav_attention %}<span class="menu-dot" aria-label="Yangi xabar bor"></span>{% endif %}
       </button>
