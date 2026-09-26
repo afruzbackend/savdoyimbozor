@@ -602,12 +602,14 @@ def _generate_writeoff_alerts(day, cfg, shops, existing_alerts, insp_by_market):
     """Hisobdan chiqarish mahsulot turi me'yoridan oshsa — signal (savdoni "chirib ketdi" deb
     yashirish). Me'yor turga qarab (pomidor 5%, kiyim 0,5%) — apps.sales.services.writeoffs."""
     from apps.analytics.models import Alert
-    from apps.sales.models import WriteOff
+    from apps.sales.models import SaleReturn, WriteOff
     from apps.sales.services.writeoffs import shop_excesses
 
     by_id = {s.id: s for s in shops}
     shop_ids = set(WriteOff.objects.filter(shop_id__in=by_id, **on_day("created_at", day))
                    .values_list("shop_id", flat=True))
+    shop_ids |= set(SaleReturn.objects.filter(shop_id__in=by_id, **on_day("created_at", day))
+                    .values_list("shop_id", flat=True))
     for sid in shop_ids:
         if (sid, Alert.Kind.WRITEOFF) in existing_alerts:
             continue
@@ -616,7 +618,7 @@ def _generate_writeoff_alerts(day, cfg, shops, existing_alerts, insp_by_market):
             continue
         existing_alerts.add((sid, Alert.Kind.WRITEOFF))
         total = sum(e.value for e in found)
-        reason = ("Hisobdan chiqarish me'yordan ko'p (30 kun): "
+        reason = ("Hisobdan chiqarish/qaytarish me'yordan ko'p (30 kun): "
                   + "; ".join(e.text() for e in found[:3]) + f" ≈ {som(total)} so'm")
         Alert.objects.create(
             shop=by_id[sid], date=day, kind=Alert.Kind.WRITEOFF,

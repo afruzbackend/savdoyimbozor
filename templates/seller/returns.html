@@ -6,7 +6,8 @@
 <div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
   <div class="card">
     {% if products %}
-    <p class="hint">Qaytarilgan yoki yaroqsiz mahsulotni tanlang — miqdor qoldiqdan chiqariladi.</p>
+    <p class="hint">Qaytarilgan yoki yaroqsiz mahsulotni tanlang — miqdor qoldiqdan chiqariladi.
+      Hisobdan chiqarish bilan birga mahsulot turi me'yoriga kiradi — oshsa tizim signal beradi.</p>
     <form method="post">{% csrf_token %}
       <div class="field"><label class="label">Mahsulot</label>
         <select class="select-native" name="product" required>

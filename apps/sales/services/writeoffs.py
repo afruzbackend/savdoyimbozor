@@ -4,7 +4,9 @@ Me'yor mahsulot TURIGA bog'liq (ProductCategory.waste_norm_percent): pomidor 5%,
 gul 10%, kiyim 0,5%. Bir xil me'yor qo'yilsa yo kiyim do'koni istagancha "chiqarib" yuborardi,
 yo meva sotuvchi har kuni signal olardi.
 
-Ulush = 30 kunda hisobdan chiqarilgan / shu davrda qo'lda bo'lgan (davr boshidagi qoldiq + kirim).
+Ulush = 30 kunda SOTUVSIZ chiqim (hisobdan chiqarish + qaytarish) / shu davrda qo'lda bo'lgan
+(davr boshidagi qoldiq + kirim). Qaytarish ham qo'shiladi: aks holda "chirib ketdi" o'rniga
+"qaytarildi" deb yozib (foto ham so'ralmaydi) me'yor nazoratidan chetlab o'tish mumkin edi.
 Manba — o'zgarmas tovar jurnali (StockMove): tez sotuv mahsulotga bog'lanmasa ham hisob to'g'ri.
 """
 
@@ -19,6 +21,7 @@ from django.db.models import Sum
 from apps.core.dates import day_start, days_between
 
 WINDOW_DAYS = 30
+OUT_KINDS = ("writeoff", "return")  # sotuvsiz chiqim: hisobdan chiqarish + qaytarish
 DEFAULT_NORM = Decimal("2")  # toifasiz mahsulot (tez kirimda yangi nom bilan yaratilgan)
 
 
@@ -55,7 +58,7 @@ def share(product, day, days=WINDOW_DAYS):
     window = moves.filter(**days_between("created_at", start, day))
     received = window.filter(kind__in=[StockMove.Kind.IN, StockMove.Kind.OPENING], qty__gt=0) \
         .aggregate(s=Sum("qty"))["s"] or Decimal("0")
-    written = -(window.filter(kind=StockMove.Kind.WRITEOFF).aggregate(s=Sum("qty"))["s"] or 0)
+    written = -(window.filter(kind__in=OUT_KINDS).aggregate(s=Sum("qty"))["s"] or 0)
     return Decimal(written), max(Decimal(opening), Decimal("0")) + Decimal(received)
 
 
@@ -73,7 +76,7 @@ def excess(product, day, min_value=0, days=WINDOW_DAYS) -> Excess | None:
 
 
 def shop_excesses(shop, day, min_value=0) -> list[Excess]:
-    """Shu KUNI hisobdan chiqarilgan mahsulotlar ichida me'yordan oshganlari.
+    """Shu KUNI hisobdan chiqarilgan / qaytarilgan mahsulotlar ichida me'yordan oshganlari.
 
     Faqat shu kungi chiqarishlar tekshiriladi — bitta katta chiqarish 30 kun davomida har kuni
     qayta signal bermasin.
@@ -82,7 +85,7 @@ def shop_excesses(shop, day, min_value=0) -> list[Excess]:
     from apps.sales.models import StockMove
 
     pids = set(StockMove.objects.filter(
-        shop=shop, kind=StockMove.Kind.WRITEOFF, created_at__gte=day_start(day),
+        shop=shop, kind__in=OUT_KINDS, created_at__gte=day_start(day),
         created_at__lt=day_start(day + timedelta(days=1)),
     ).values_list("product_id", flat=True))
     out = []

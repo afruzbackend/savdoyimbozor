@@ -888,6 +888,14 @@ def returns(request):
                 messages.error(request, "Qoldiq o'zgardi — qayta urinib ko'ring.")
                 return redirect("seller:returns")
             messages.success(request, "Qaytarish qayd etildi. Qoldiq yangilandi.")
+            # Qaytarish ham sotuvsiz chiqim — hisobdan chiqarish bilan birga turning me'yoriga kiradi
+            from .services.writeoffs import excess
+
+            over = excess(product, timezone.localdate(), SystemSettings.get_solo().writeoff_alert_min)
+            if over is not None:
+                messages.warning(request, f"«{product.name}»: 30 kunda {over.pct:.0f}% sotuvsiz chiqim "
+                                          f"(hisobdan chiqarish + qaytarish) — me'yor {over.norm:g}%. "
+                                          "Nazoratchiga signal boradi.")
         return redirect("seller:returns")
     return render(
         request,
@@ -950,8 +958,9 @@ def writeoff(request):
 
             over = excess(product, timezone.localdate(), SystemSettings.get_solo().writeoff_alert_min)
             if over is not None:
-                messages.warning(request, f"«{product.name}»: 30 kunda {over.pct:.0f}% hisobdan chiqarildi — "
-                                          f"me'yor {over.norm:g}%. Nazoratchiga signal boradi.")
+                messages.warning(request, f"«{product.name}»: 30 kunda {over.pct:.0f}% sotuvsiz chiqim "
+                                          f"(hisobdan chiqarish + qaytarish) — me'yor {over.norm:g}%. "
+                                          "Nazoratchiga signal boradi.")
         return redirect("seller:writeoff")
     return render(
         request,

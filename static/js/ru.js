@@ -1445,6 +1445,8 @@ window.RU_DICT = {
   "Bu sotuvlarni qo'lda qayta kiriting (sabab yonida).": "Внесите эти продажи вручную ещё раз (причина рядом).",
   "Qayta kiritdim — ro'yxatni tozalash": "Внёс заново — очистить список",
   "Bu sotuv boshqa do'konniki — o'sha sotuvchi kirganda yuboriladi.": "Эта продажа другого магазина — отправится, когда войдёт тот продавец.",
+  "Qaytarilgan yoki yaroqsiz mahsulotni tanlang — miqdor qoldiqdan chiqariladi. Hisobdan chiqarish bilan birga mahsulot turi me'yoriga kiradi — oshsa tizim signal beradi.": "Выберите возвращённый или негодный товар — количество спишется с остатка. Вместе со списаниями входит в норму вида товара — при превышении система подаст сигнал.",
+  "Bu tur uchun me'yor (30 kunda kelganidan, qaytarish bilan birga):": "Норма для этого вида (от поступившего за 30 дней, вместе с возвратами):",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
@@ -1473,8 +1475,8 @@ window.RU_FRAGMENTS = [
   [" so'm, odatda yakshanba kunlari ~", " сум, обычно по воскресеньям ~"],
   [" bilan sanaladi — miqdor butun son bo'lsin ", " считается поштучно — количество должно быть целым "],
   ["(kiritildi: ", "(введено: "],
-  ["Hisobdan chiqarish me'yordan ko'p (30 kun): ", "Списание сверх нормы (30 дней): "],
-  [" hisobdan chiqarildi — ", " списано — "],
+  ["Hisobdan chiqarish/qaytarish me'yordan ko'p (30 kun): ", "Списание/возврат сверх нормы (30 дней): "],
+  [" sotuvsiz chiqim (hisobdan chiqarish + qaytarish) — ", " выбыло без продажи (списание + возврат) — "],
   ["Nazoratchiga signal boradi.", "Инспектор получит сигнал."],
   [": 30 kunda ", ": за 30 дней "],
   [" bilan sotilmaydi — birlikni tanlang: ", " так не продаётся — выберите единицу: "],

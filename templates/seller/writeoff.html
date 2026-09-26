@@ -14,7 +14,7 @@
           {% for p in products %}<option value="{{ p.pk }}" data-unit="{{ p.unit }}" data-kind="{{ p.category.variant_kind|default:'none' }}"
             data-norm="{% if p.category %}{{ p.category.waste_norm_percent|floatformat:'-1' }}{% else %}2{% endif %}">{{ p.name }} ({{ p.stock|floatformat:'-3' }} {{ p.unit }})</option>{% endfor %}
         </select>
-        <div class="hint" x-show="norm" x-cloak><span>Bu tur uchun me'yor (30 kunda kelganidan):</span> <b class="num" x-text="norm + '%'"></b></div></div>
+        <div class="hint" x-show="norm" x-cloak><span>Bu tur uchun me'yor (30 kunda kelganidan, qaytarish bilan birga):</span> <b class="num" x-text="norm + '%'"></b></div></div>
       <div class="field"><label class="label">Miqdor <small class="muted" data-qty-unit></small></label><input class="input num" type="number" step="0.001" min="0.001" name="quantity" required></div>
       <div class="field"><label class="label">Foto (majburiy)</label>
         <label class="file-drop">

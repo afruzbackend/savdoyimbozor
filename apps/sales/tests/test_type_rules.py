@@ -234,3 +234,17 @@ def test_inspector_search_normalizes_pack_size(iclient, shop):
     assert [p.size for p in r.context["items"]] == ["250 g"]
     r = iclient.get("/qidiruv/?p=o", HTTP_HOST=INSPECTOR_HOST)  # choy (dona) + olma (kg)
     assert r.context["total_qty"] is None  # har xil birlik — "jami" qo'shilmaydi
+
+
+@pytest.mark.django_db
+def test_returns_count_toward_norm_no_loophole(sclient, shop, jacket):
+    """"Chirib ketdi" o'rniga "qaytarildi" deb yozish me'yor nazoratidan qochish yo'li emas."""
+    from conftest import set_settings
+
+    set_settings(writeoff_alert_min=0)
+    r = sclient.post("/qaytarish/", {"product": jacket.pk, "quantity": "2", "reason": "qaytdi"},
+                     HTTP_HOST=SELLER_HOST, follow=True)
+    assert "Nazoratchiga signal boradi" in r.content.decode()  # 20% > kiyim me'yori 0,5%
+    recompute_for_date(timezone.localdate(), final=True)
+    a = Alert.objects.get(shop=shop, kind=Alert.Kind.WRITEOFF)
+    assert "qaytarish" in a.reason and "Kurtka" in a.reason
