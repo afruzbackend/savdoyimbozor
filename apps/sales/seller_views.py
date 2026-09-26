@@ -481,6 +481,110 @@ def stock_in(request):
     )
 
 
+@login_required
+def stock_in_quick_parse(request):
+    """Tez kirim: matn (ovozdan yoki yozilgan) → taklif qatorlar (JSON). Bazaga yozmaydi."""
+    from django.http import JsonResponse
+
+    from .services.quick_entry import parse
+
+    shop = _shop(request)
+    if shop is None or request.method != "POST":
+        return JsonResponse({"rows": []}, status=400)
+    try:
+        text = json.loads(request.body or "{}").get("text", "")
+    except (ValueError, AttributeError):
+        text = ""
+    text = str(text)[:2000]
+    return JsonResponse({"rows": parse(text, Product.objects.filter(shop=shop, is_active=True))})
+
+
+@login_required
+def stock_in_quick_save(request):
+    """Tasdiqlangan tez kirim qatorlari — bitta tranzaksiyada, bitta nakladnoy bilan."""
+    shop = _shop(request)
+    if shop is None or request.method != "POST":
+        return redirect("seller:stock_in")
+    try:
+        rows = json.loads(request.POST.get("rows") or "[]")
+    except ValueError:
+        rows = []
+    if not isinstance(rows, list) or not rows or len(rows) > 50:
+        messages.error(request, "Kirim qatorlari yo'q.")
+        return redirect("seller:stock_in")
+    valid_units = set(Unit.values)
+    plan = []
+    for n, r in enumerate(rows, start=1):
+        if not isinstance(r, dict):
+            continue
+        qty = to_dec(r.get("qty"))
+        price = to_int(r.get("price"), 0)
+        if qty is None or qty <= 0 or price is None or price < 0:
+            messages.error(request, f"{n}-qator: miqdor/narx noto'g'ri.")
+            return redirect("seller:stock_in")
+        product = None
+        if r.get("product_id"):
+            product = Product.objects.filter(pk=_pk(r["product_id"]), shop=shop).first()
+            if product is None:
+                messages.error(request, f"{n}-qator: mahsulot topilmadi.")
+                return redirect("seller:stock_in")
+        name = str(r.get("product_name") or "").strip()[:200]
+        if product is None and not name:
+            messages.error(request, f"{n}-qator: mahsulot nomi yo'q.")
+            return redirect("seller:stock_in")
+        unit = r.get("unit") if r.get("unit") in valid_units else Unit.PIECE
+        plan.append((product, name, unit, qty, price, bool(r.get("in_packs"))))
+
+    supplier = request.POST.get("supplier_name", "").strip()[:200]
+    supplier_stir = "".join(c for c in request.POST.get("supplier_stir", "") if c.isdigit())[:15]
+    photo = request.FILES.get("invoice_photo")
+
+    def coeff(product, packs):
+        return (product.pack_coeff if product and packs and (product.pack_coeff or 1) > 1 else 1)
+
+    total = sum(int(q * coeff(p, pk) * pr) for p, _n, _u, q, pr, pk in plan)
+    min_photo = SystemSettings.get_solo().stockin_photo_min
+    if photo is not None:
+        err = _photo_error(photo)
+        if err:
+            messages.error(request, err)
+            return redirect("seller:stock_in")
+    elif min_photo and total >= min_photo:
+        messages.error(request, f"Kirim jami {som(total)} so'm — {som(min_photo)} so'mdan katta "
+                                "kirimga nakladnoy (yuk xati) fotosi majburiy.")
+        return redirect("seller:stock_in")
+
+    from .models import StockMove
+    from .services.stock import record_move
+
+    saved_photo = ""
+    with transaction.atomic():
+        for product, name, unit, qty, price, packs in plan:
+            if product is None:
+                product = Product.objects.filter(shop=shop, name__iexact=name).first()
+            if product is None:
+                product = Product.objects.create(shop=shop, name=name, unit=unit, buy_price=price)
+                from apps.catalog.barcodes import ensure_barcode
+
+                ensure_barcode(product)
+            in_packs = packs and (product.pack_coeff or 1) > 1
+            real_qty = qty * product.pack_coeff if in_packs else qty
+            si = StockIn(shop=shop, product=product, seller=request.user, quantity=qty,
+                         in_packs=in_packs, unit_price=price, supplier_name=supplier,
+                         supplier_stir=supplier_stir, source="quick")
+            if photo is not None and not saved_photo:
+                si.invoice_photo = photo  # bitta nakladnoy — birinchi qatorga yuklanadi
+            elif saved_photo:
+                si.invoice_photo.name = saved_photo  # qolganlari o'sha faylga ishora qiladi
+            si.save()
+            saved_photo = saved_photo or (si.invoice_photo.name or "")
+            record_move(product, StockMove.Kind.IN, delta=real_qty, ref=f"StockIn#{si.pk}",
+                        user=request.user)
+    request.audit_detail = f"Tez kirim: {len(plan)} qator, {som(total)} so'm"
+    messages.success(request, f"Kirim qo'shildi: {len(plan)} ta mahsulot, jami {som(total)} so'm.")
+    return redirect("seller:stock_in")
+
+
 def _morning_baselines(shop, today, prods, mv, existing):
     """Har mahsulot uchun kun boshi qoldig'i: {pid: (miqdor, qulflanganmi)}.
 

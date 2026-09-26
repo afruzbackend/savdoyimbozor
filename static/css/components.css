@@ -780,3 +780,15 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 .sms-toggle.on .icon-sm{animation:bellRing 1.6s ease-in-out 1;transform-origin:50% 12%}
 @keyframes bellRing{0%,100%{rotate:0deg}10%{rotate:14deg}20%{rotate:-12deg}30%{rotate:8deg}40%{rotate:-5deg}50%{rotate:0deg}}
 @media (prefers-reduced-motion:reduce){.sms-toggle.on .icon-sm{animation:none}}
+
+
+/* Tez kirim (ovoz / matn) */
+.quick-in-box{position:relative}
+.quick-in-box textarea{padding-right:56px;resize:vertical;min-height:84px}
+.mic-btn{position:absolute;right:8px;top:8px;width:40px;height:40px;border-radius:50%;border:1px solid var(--border);
+  background:var(--surface-2);color:var(--primary);display:grid;place-items:center;cursor:pointer}
+.mic-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.mic-btn.on{background:var(--bad);color:#fff;border-color:var(--bad);animation:micPulse 1.2s ease-out infinite}
+@keyframes micPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--bad) 55%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
+.quick-rows .qi-in{width:90px;padding:6px 8px;text-align:right}
+@media (prefers-reduced-motion:reduce){.mic-btn.on{animation:none}}

@@ -70,6 +70,70 @@
       <button class="btn btn-block" type="submit">Kirim qo'shish</button>
     </form>
   </div>
+  <div class="stack gap-4" style="min-width:0">
+  {# Tez kirim: gapiring yoki yozing — server tahlil qiladi, sotuvchi tasdiqlaydi #}
+  <div class="card quick-in" x-data="quickIn()">
+    <div class="card-header"><span class="card-title">Tez kirim — gapiring yoki yozing</span></div>
+    <p class="hint" style="margin:0 0 var(--sp-2)">Masalan: <i>«pomidor o'n besh kilo sakkiz mingdan, kartoshka 2 qop»</i>. Har mahsulotni vergul bilan ajrating.</p>
+    <div class="quick-in-box">
+      <textarea class="input" x-model="text" rows="3" maxlength="2000" placeholder="Nima keldi? Nomi, miqdori, narxi..."
+                @keydown.ctrl.enter.prevent="analyze()"></textarea>
+      <button type="button" class="mic-btn" :class="listening && 'on'" x-show="micOk" x-cloak @click="toggleMic()"
+              :aria-pressed="listening" title="Gapirish" aria-label="Gapirish">
+        <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-mic"></use></svg></button>
+    </div>
+    <div class="hint" x-show="!micOk" x-cloak>Telefon klaviaturasidagi mikrofon tugmasi bilan gapirib yozishingiz ham mumkin.</div>
+    <div class="hint" x-show="listening" x-cloak style="color:var(--bad)">● Tinglanmoqda — gapiring...</div>
+    <button type="button" class="btn btn-ghost" style="margin-top:var(--sp-2)" @click="analyze()" :disabled="!text.trim() || busy">
+      <span x-text="busy ? 'Tekshirilmoqda...' : 'Tekshirish'"></span></button>
+
+    <template x-if="rows.length">
+      <form method="post" action="{% url 'seller:stock_in_quick_save' %}" enctype="multipart/form-data" style="margin-top:var(--sp-3)">
+        {% csrf_token %}
+        <input type="hidden" name="rows" :value="JSON.stringify(rows)">
+        <div class="table-wrap"><table class="data quick-rows">
+          <thead><tr><th>Mahsulot</th><th class="num">Miqdor</th><th class="num">Narx</th><th class="num">Jami</th><th></th></tr></thead>
+          <tbody>
+            <template x-for="(r, i) in rows" :key="i">
+              <tr :class="!(+r.qty > 0) && 'row-bad'">
+                <td><b x-text="r.product_name || '—'"></b>
+                  <span class="badge badge-neutral" x-show="r.is_new">yangi</span>
+                  <div class="faint" style="font-size:var(--t--2)" x-text="r.error ? r.error : ('«' + r.raw + '»')"></div></td>
+                <td class="num"><input class="input num qi-in" x-model="r.qty" inputmode="decimal" aria-label="Miqdor">
+                  <small class="muted" x-text="r.in_packs ? 'qop/quti' : r.unit"></small></td>
+                <td class="num"><input class="input num qi-in" x-model.number="r.price" inputmode="numeric" aria-label="Narx"></td>
+                <td class="num" x-text="fmt(line(r))"></td>
+                <td><button type="button" class="btn-quiet btn-icon" @click="rows.splice(i, 1)" aria-label="Olib tashlash">
+                  <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg></button></td>
+              </tr>
+            </template>
+          </tbody></table></div>
+        <div class="row gap-2" style="justify-content:space-between;align-items:baseline;margin:var(--sp-2) 0">
+          <small class="muted" x-show="rows.some(r => r.in_packs)">Qop/quti — mahsulot koeffitsientiga ko'paytiriladi</small>
+          <b class="num" style="margin-left:auto">Jami: <span x-text="fmt(rows.reduce((s, r) => s + line(r), 0))"></span> so'm</b>
+        </div>
+        <div class="evidence-box">
+          <div class="grid grid-2" style="gap:var(--sp-2)">
+            <div class="field" style="margin:0"><label class="label">Yetkazib beruvchi</label>
+              <input class="input" name="supplier_name" placeholder="Ism yoki firma"></div>
+            <div class="field" style="margin:0"><label class="label">Uning STIR'i</label>
+              <input class="input num" name="supplier_stir" inputmode="numeric" maxlength="15" placeholder="ixtiyoriy"></div>
+          </div>
+          <div class="field" style="margin:var(--sp-2) 0 0"><label class="label">Nakladnoy (yuk xati) fotosi</label>
+            <label class="file-drop">
+              <input type="file" name="invoice_photo" accept="image/*" capture="environment" hidden>
+              <span class="file-btn"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-camera"></use></svg> Suratga olish</span>
+              <span class="file-name muted" data-noloc>Tanlanmagan</span>
+            </label>
+            {% if photo_min %}<div class="hint">{{ photo_min|intcomma }} so'mdan katta kirimga majburiy.</div>{% endif %}
+          </div>
+        </div>
+        <button class="btn btn-block" type="submit" :disabled="!rows.length || rows.some(r => !(+r.qty > 0))">
+          Kirimni saqlash (<span x-text="rows.length"></span> ta)</button>
+      </form>
+    </template>
+  </div>
+
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">So'nggi kirimlar</div>
     <div class="table-wrap"><table class="data">
@@ -83,6 +147,56 @@
       {% empty %}<tr><td colspan="5" class="muted">Kirim yo'q.</td></tr>{% endfor %}
       </tbody></table></div>
   </div>
+  </div>
 </div>
 {% endblock %}
-{% block extra_js %}<script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>{% endblock %}
+{% block extra_js %}<script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('quickIn', () => {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      return {
+        text: '', rows: [], busy: false, micOk: !!SR, listening: false, rec: null,
+        fmt(n) { return window.BN ? window.BN.fmt(Math.round(n || 0)) : Math.round(n || 0); },
+        line(r) { return (parseFloat(String(r.qty).replace(',', '.')) || 0) * (+r.price || 0); },
+        async analyze() {
+          if (!this.text.trim() || this.busy) return;
+          if (this.listening && this.rec) this.rec.stop();
+          this.busy = true;
+          try {
+            const res = await fetch('{% url "seller:stock_in_quick_parse" %}', { method: 'POST',
+              headers: { 'Content-Type': 'application/json',
+                'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '' },
+              body: JSON.stringify({ text: this.text }) });
+            const d = await res.json();
+            this.rows = (d.rows || []).map(r => ({ ...r, price: r.price || 0 }));
+            if (!this.rows.length) window.toast("Mahsulot va miqdor topilmadi — aniqroq yozing", 'warn');
+          } catch (e) { window.toast("Internet yo'q — qayta urinib ko'ring", 'bad'); }
+          this.busy = false;
+        },
+        toggleMic() {
+          if (this.listening) { this.rec && this.rec.stop(); return; }
+          const r = new SR();
+          r.lang = 'uz-UZ'; r.interimResults = true; r.continuous = true;
+          const base = this.text.trim() ? this.text.trim() + ', ' : '';
+          let finals = '';
+          r.onresult = (e) => {
+            let interim = '';
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+              const t = e.results[i][0].transcript;
+              if (e.results[i].isFinal) finals += t + ' '; else interim += t;
+            }
+            this.text = (base + finals + interim).trim();
+          };
+          r.onerror = (e) => {
+            if (e.error !== 'no-speech' && e.error !== 'aborted')
+              window.toast(e.error === 'not-allowed' ? "Mikrofonga ruxsat berilmagan" : "Ovozni tanib bo'lmadi", 'bad');
+          };
+          r.onend = () => { this.listening = false; };
+          try { r.start(); this.rec = r; this.listening = true; }
+          catch (e) { this.listening = false; }
+        },
+      };
+    });
+  });
+</script>{% endblock %}
