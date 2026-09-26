@@ -2,6 +2,7 @@
 
 from functools import wraps
 
+from django.conf import settings as django_settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
@@ -167,6 +168,19 @@ def user_reset(request, pk):
         request, f"{user.username} uchun yangi parol: {pw} (birinchi kirishda almashtiriladi)"
     )
     return redirect("panel:users")
+
+
+@superadmin_required
+@require_POST
+def user_2fa_reset(request, pk):
+    """Telefon yo'qolgan xodim: 2FA bekor qilinadi, keyingi kirishda qayta ulaydi."""
+    user = get_object_or_404(User, pk=pk)
+    user.totp_secret, user.totp_enabled, user.totp_last_step, user.backup_codes = "", False, 0, []
+    user.save(update_fields=["totp_secret", "totp_enabled", "totp_last_step", "backup_codes"])
+    request.audit_detail = f"2FA bekor qilindi: {user.username}"
+    messages.success(request, f"{user.get_full_name() or user.username}: ikki bosqichli himoya "
+                              "bekor qilindi — keyingi kirishda qayta ulaydi.")
+    return redirect("panel:user_edit", pk=user.pk)
 
 
 @superadmin_required
@@ -593,6 +607,8 @@ def settings_edit(request):
             for e in errors:
                 messages.error(request, e)
             return redirect("panel:settings")
+        if request.POST.get("require_2fa_staff_present"):
+            new["require_2fa_staff"] = request.POST.get("require_2fa_staff") == "on"
         changed = [f"{f}: {getattr(s, f)}→{v}" for f, v in new.items() if getattr(s, f) != v]
         for f, v in new.items():
             setattr(s, f, v)
@@ -613,7 +629,9 @@ def settings_edit(request):
     return render(
         request,
         "panel/settings.html",
-        {"s": s, "discount_percents": ", ".join(str(x) for x in (s.discount_percents or []))},
+        {"s": s, "discount_percents": ", ".join(str(x) for x in (s.discount_percents or [])),
+         "ip_max": django_settings.LOGIN_IP_MAX_FAILS,
+         "ip_block": django_settings.LOGIN_IP_BLOCK_MINUTES},
     )
 
 

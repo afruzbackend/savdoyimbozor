@@ -10,13 +10,24 @@ from conftest import PW, SELLER_HOST
 
 @pytest.mark.django_db
 def test_wrong_password_locks_after_max_attempts(seller):
+    """Maks xatodan keyin SHU qurilmadan kirish yopiladi (to'g'ri parol ham o'tmaydi),
+    lekin hujumchi haqiqiy egani o'z telefonidan bloklab qo'ya olmaydi (DoS himoyasi)."""
+    from django.core.cache import cache
+
+    cache.clear()
     cfg = SystemSettings.get_solo()
-    c = Client()
+    c = Client(REMOTE_ADDR="10.0.0.66")
     url = reverse("login")
     for _ in range(cfg.login_max_attempts):
         c.post(url, {"username": seller.username, "password": "notright"}, HTTP_HOST=SELLER_HOST)
+    r = c.post(url, {"username": seller.username, "password": PW}, HTTP_HOST=SELLER_HOST)
+    assert r.wsgi_request.user.is_anonymous
+    assert "vaqtincha bloklangan" in r.content.decode()
     seller.refresh_from_db()
-    assert seller.is_locked  # maks urinishdan keyin bloklanadi
+    assert not seller.is_locked  # hisob bazada bloklanmagan
+    owner = Client(REMOTE_ADDR="10.0.0.7")
+    r = owner.post(url, {"username": seller.username, "password": PW}, HTTP_HOST=SELLER_HOST)
+    assert r.wsgi_request.user.is_authenticated
 
 
 @pytest.mark.django_db

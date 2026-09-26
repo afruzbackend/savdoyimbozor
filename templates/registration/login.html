@@ -47,6 +47,7 @@
 
   <div class="login-form">
     <div class="login-card">
+      {% block login_card %}
       <div class="lc-emblem">{% include 'components/_emblem.html' %}
         <b style="font-family:var(--font-serif)">Bozor Nazorat</b></div>
       <h1 style="margin-bottom:4px">Tizimga kirish</h1>
@@ -75,6 +76,7 @@
           Kirish
         </button>
       </form>
+      {% endblock %}
     </div>
   </div>
 </div>

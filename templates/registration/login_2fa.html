@@ -1,0 +1,22 @@
+{% extends 'registration/login.html' %}
+{% load static %}
+{% block title %}Tasdiqlash kodi — Bozor Nazorat{% endblock %}
+{% block login_card %}
+<div class="lc-emblem">{% include 'components/_emblem.html' %}
+  <b style="font-family:var(--font-serif)">Bozor Nazorat</b></div>
+<h1 style="margin-bottom:4px">Tasdiqlash kodi</h1>
+<p class="muted" style="margin-bottom:var(--sp-5)">Autentifikator ilovasidagi 6 xonali kodni kiriting
+  (hisob: <b class="num" data-noloc>{{ account }}</b>). Telefon yo'q bo'lsa — zaxira kod.</p>
+{% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+<form method="post" action="{% url 'login_2fa' %}" autocomplete="off">
+  {% csrf_token %}
+  <div class="field">
+    <label class="label" for="id_code">Kod</label>
+    <input class="input num otp-input" id="id_code" name="code" inputmode="numeric" autocomplete="one-time-code"
+           placeholder="123 456" maxlength="12" autofocus required>
+  </div>
+  <button class="btn btn-lg btn-block" type="submit">
+    <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg> Tasdiqlash</button>
+</form>
+<p style="margin-top:var(--sp-4);text-align:center"><a href="{% url 'login' %}" class="muted">Boshqa hisob bilan kirish</a></p>
+{% endblock %}

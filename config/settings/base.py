@@ -72,6 +72,8 @@ MIDDLEWARE = [
     "apps.core.middleware.HostRoutingMiddleware",
     # Birinchi kirishda / tiklangan parolni almashtirish majburiy:
     "apps.core.middleware.ForcePasswordChangeMiddleware",
+    # Admin/tekshiruvchi/prokuror — ikki bosqichli himoya majburiy bo'lsa, avval yoqsin:
+    "apps.core.middleware.ForceTwoFactorMiddleware",
     # Prokuror (kuzatuvchi) — faqat ko'rish, har qanday o'zgartirish bloklanadi:
     "apps.core.middleware.ReadOnlyRoleMiddleware",
     # Muhim amallarni audit jurnaliga yozadi:
@@ -185,6 +187,10 @@ CELERY_TIMEZONE = TIME_ZONE
 # --- Xavfsizlik chegaralari (SystemSettings'da ham bor, bu default) ---
 LOGIN_MAX_ATTEMPTS = 5
 LOGIN_LOCK_MINUTES = 15
+
+# IP bo'yicha login cheklovi (apps.accounts.throttle): 15 daqiqada shuncha xato → IP bloklanadi
+LOGIN_IP_MAX_FAILS = env.int("LOGIN_IP_MAX_FAILS", default=20)
+LOGIN_IP_BLOCK_MINUTES = env.int("LOGIN_IP_BLOCK_MINUTES", default=30)
 
 # --- Kamera / AI worker parametrlari ---
 # Peshtaxta oldida shu soniyadan ko'p to'xtagan odam "xaridor" deb sanaladi.

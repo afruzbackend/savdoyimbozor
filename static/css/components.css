@@ -792,3 +792,18 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 @keyframes micPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--bad) 55%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
 .quick-rows .qi-in{width:90px;padding:6px 8px;text-align:right}
 @media (prefers-reduced-motion:reduce){.mic-btn.on{animation:none}}
+
+
+/* Ikki bosqichli himoya */
+.otp-input{font-size:var(--t-2);letter-spacing:.3em;text-align:center}
+.twofa-steps{margin:0 0 var(--sp-4);padding-left:1.2em;color:var(--ink-muted)}
+.twofa-steps li{margin:4px 0}
+.twofa-qr-row{display:flex;gap:var(--sp-4);align-items:flex-start;flex-wrap:wrap}
+.twofa-qr{background:#fff;padding:8px;border-radius:var(--r-2);border:1px solid var(--border);flex:none}
+.twofa-qr svg{display:block;width:200px;height:200px}
+.twofa-secret{display:block;margin-top:4px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--r-2);font-size:var(--t--1);word-break:break-all;user-select:all}
+.backup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.backup-grid span{padding:8px 10px;border:1px dashed var(--border-strong);border-radius:var(--r-2);text-align:center;
+  font-weight:600;letter-spacing:.08em}
+@media print{.twofa-backup .btn{display:none}}

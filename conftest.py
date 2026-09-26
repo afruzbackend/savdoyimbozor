@@ -111,3 +111,24 @@ def photo_file(name="rasta.jpg"):
 def _media_tmp(settings, tmp_path):
     """Testlarda yuklangan fotolar haqiqiy media/ papkasini ifloslamasin."""
     settings.MEDIA_ROOT = str(tmp_path / "media")
+
+
+@pytest.fixture(autouse=True)
+def _settings_cache():
+    """SystemSettings sinf darajasida keshlanadi (20 s) — testlar orasida eski qiymat qolmasin."""
+    from apps.core.models import SystemSettings
+
+    SystemSettings._cache = None
+    yield
+    SystemSettings._cache = None
+
+
+def set_settings(**fields):
+    """Test uchun tizim sozlamasini o'zgartirish (bazaga + keshga)."""
+    from apps.core.models import SystemSettings
+
+    s = SystemSettings.get_solo()
+    for k, v in fields.items():
+        setattr(s, k, v)
+    s.save()
+    return s

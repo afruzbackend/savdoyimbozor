@@ -30,6 +30,14 @@
     {% endif %}
     <button class="btn btn-lg" type="submit" style="margin-top:var(--sp-3)">Saqlash</button>
   </form>
+  <div class="row gap-2" style="margin-top:var(--sp-4);align-items:center;flex-wrap:wrap">
+    <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg>
+    <span>Ikki bosqichli himoya:</span>
+    {% if u.totp_enabled %}<span class="badge badge-ok">yoqilgan</span>
+      <form method="post" action="{% url 'panel:user_2fa_reset' u.pk %}" data-confirm="2FA bekor qilinsinmi? Xodim keyingi kirishda telefonini qayta ulaydi." data-confirm-ok="Ha, bekor qilish" data-danger>{% csrf_token %}
+        <button class="btn btn-ghost" style="padding:6px 12px" type="submit">Bekor qilish (telefon yo'qolgan)</button></form>
+    {% else %}<span class="badge badge-neutral">yoqilmagan</span>{% endif %}
+  </div>
   {% if u.is_locked %}
   <p class="hint" style="margin-top:var(--sp-3)">Blokni ochish uchun foydalanuvchilar ro'yxatida «Parol tiklash» ni bosing — yangi parol beriladi va blok olinadi.</p>
   {% endif %}

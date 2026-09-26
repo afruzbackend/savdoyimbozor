@@ -1,4 +1,6 @@
-"""Auth oqimi: blokli login, birinchi kirishda parol almashtirish, profil."""
+"""Auth oqimi: blokli login (IP + hisob), ikki bosqichli himoya, parol almashtirish, profil."""
+
+import time
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -47,12 +49,23 @@ def login_view(request):
         return redirect(_home_url_for(request))
 
     if request.method == "POST":
+        from apps.core.net import client_ip
+
+        from . import throttle
+
         username = (request.POST.get("username") or "").strip()
         password = request.POST.get("password") or ""
         settings_obj = SystemSettings.get_solo()
+        ip = client_ip(request)
 
         user = User.objects.filter(username__iexact=username).first()
-        if user and user.is_locked:
+        if throttle.ip_blocked(ip):
+            # Parol umuman tekshirilmaydi — terib topish hujumi to'xtaydi
+            _audit_login(request, user, f"Rad: IP bloklangan (login: {username[:40]})")
+            messages.error(request, "Bu qurilmadan juda ko'p xato urinish bo'ldi. "
+                                    "Birozdan so'ng urinib ko'ring.")
+            return render(request, "registration/login.html", {"username": username})
+        if user and (user.is_locked or throttle.pair_blocked(user, ip)):
             _audit_login(request, user, "Rad: vaqtincha bloklangan hisobga urinish")
             messages.error(request, "Hisob vaqtincha bloklangan. Birozdan so'ng urinib ko'ring.")
             return render(request, "registration/login.html", {"username": username})
@@ -64,16 +77,19 @@ def login_view(request):
             messages.error(request, "Hisobingiz bloklangan. Administrator bilan bog'laning.")
             return render(request, "registration/login.html", {"username": username})
         if auth_user is None:
-            if user:
-                user.register_failed_login(
-                    settings_obj.login_max_attempts, settings_obj.login_lock_minutes
-                )
+            throttle.register_failure(ip, user, settings_obj)
             # Muvaffaqiyatsiz urinish ham yoziladi (parol terish hujumini ko'rish uchun)
             _audit_login(request, user, f"Xato parol (login: {username[:40]})")
             messages.error(request, "Login yoki parol noto'g'ri.")
             return render(request, "registration/login.html", {"username": username})
 
-        auth_user.reset_lockout()
+        throttle.register_success(ip, auth_user)
+        if auth_user.totp_enabled:
+            # Parol to'g'ri — endi ilovadagi 6 xonali kod (sessiya hali ochilmaydi)
+            request.session["2fa_uid"] = auth_user.pk
+            request.session["2fa_at"] = int(time.time())
+            request.session["2fa_tries"] = 0
+            return redirect("login_2fa")
         login(request, auth_user)
         _audit_login(request, auth_user, "Muvaffaqiyatli kirish")
         if auth_user.must_change_password:
@@ -81,6 +97,114 @@ def login_view(request):
         return redirect(_home_url_for(request))
 
     return render(request, "registration/login.html")
+
+
+TWOFA_TTL = 5 * 60  # parol kiritilgandan keyin kod uchun vaqt
+TWOFA_TRIES = 5
+
+
+def login_2fa(request):
+    """Ikkinchi bosqich: ilova kodi yoki zaxira kod."""
+    from apps.core.net import client_ip
+
+    from . import throttle, totp
+
+    uid = request.session.get("2fa_uid")
+    started = request.session.get("2fa_at", 0)
+    user = User.objects.filter(pk=uid, is_active=True).first() if uid else None
+    if user is None or time.time() - started > TWOFA_TTL:
+        for k in ("2fa_uid", "2fa_at", "2fa_tries"):
+            request.session.pop(k, None)
+        if uid:
+            messages.error(request, "Kod kiritish vaqti tugadi — qaytadan kiring.")
+        return redirect("login")
+    if request.method == "POST":
+        code = request.POST.get("code", "")
+        step = totp.verify(user.totp_secret, code, last_step=user.totp_last_step)
+        used_backup = step is None and totp.use_backup_code(user, code)
+        if step is not None or used_backup:
+            if step is not None:
+                user.totp_last_step = step
+                user.save(update_fields=["totp_last_step"])
+            for k in ("2fa_uid", "2fa_at", "2fa_tries"):
+                request.session.pop(k, None)
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            _audit_login(request, user, "Muvaffaqiyatli kirish (2FA"
+                         + (", zaxira kod)" if used_backup else ")"))
+            if used_backup:
+                left = len(user.backup_codes or [])
+                messages.warning(request, f"Zaxira kod ishlatildi — {left} ta qoldi. "
+                                          "Telefon topilmasa, yangi zaxira kodlar oling.")
+            if user.must_change_password:
+                return redirect("password_change")
+            return redirect(_home_url_for(request))
+        tries = request.session.get("2fa_tries", 0) + 1
+        request.session["2fa_tries"] = tries
+        throttle.register_failure(client_ip(request), None, SystemSettings.get_solo())
+        _audit_login(request, user, "Xato 2FA kodi")
+        if tries >= TWOFA_TRIES:
+            for k in ("2fa_uid", "2fa_at", "2fa_tries"):
+                request.session.pop(k, None)
+            messages.error(request, "Kod ko'p marta noto'g'ri kiritildi — qaytadan kiring.")
+            return redirect("login")
+        messages.error(request, "Kod noto'g'ri. Ilovadagi yangi kodni kiriting.")
+    return render(request, "registration/login_2fa.html", {"account": user.username})
+
+
+@login_required
+def twofa_setup(request):
+    """Ikki bosqichli himoyani yoqish / o'chirish / zaxira kodlarni yangilash."""
+    from . import totp
+
+    user = request.user
+    required = user.is_staff_role and SystemSettings.get_solo().require_2fa_staff
+    ctx = {"base_template": _iface_base(request), "required": required}
+    if request.method == "POST":
+        action = request.POST.get("action")
+        code = request.POST.get("code", "")
+        if action == "enable" and not user.totp_enabled:
+            secret = request.session.get("2fa_pending_secret", "")
+            step = totp.verify(secret, code)
+            if step is None:
+                messages.error(request, "Kod noto'g'ri — ilovadagi hozirgi 6 xonali kodni kiriting.")
+                return redirect("twofa_setup")
+            codes, hashes = totp.new_backup_codes()
+            user.totp_secret, user.totp_enabled, user.totp_last_step = secret, True, step
+            user.backup_codes = hashes
+            user.save(update_fields=["totp_secret", "totp_enabled", "totp_last_step",
+                                     "backup_codes"])
+            request.session.pop("2fa_pending_secret", None)
+            request.audit_detail = "2FA yoqildi"
+            messages.success(request, "Ikki bosqichli himoya yoqildi.")
+            return render(request, "registration/twofa.html", {**ctx, "backup": codes})
+        if action in ("disable", "backup") and user.totp_enabled:
+            step = totp.verify(user.totp_secret, code, last_step=user.totp_last_step)
+            if step is None:
+                messages.error(request, "Kod noto'g'ri.")
+                return redirect("twofa_setup")
+            user.totp_last_step = step
+            if action == "backup":
+                codes, user.backup_codes = totp.new_backup_codes()
+                user.save(update_fields=["totp_last_step", "backup_codes"])
+                request.audit_detail = "2FA zaxira kodlari yangilandi"
+                return render(request, "registration/twofa.html", {**ctx, "backup": codes})
+            if required:
+                messages.error(request, "Sizning rolingiz uchun ikki bosqichli himoya majburiy.")
+                return redirect("twofa_setup")
+            user.totp_secret, user.totp_enabled, user.backup_codes = "", False, []
+            user.save(update_fields=["totp_secret", "totp_enabled", "totp_last_step",
+                                     "backup_codes"])
+            request.audit_detail = "2FA o'chirildi"
+            messages.success(request, "Ikki bosqichli himoya o'chirildi.")
+        return redirect("twofa_setup")
+    if not user.totp_enabled:
+        secret = request.session.get("2fa_pending_secret") or totp.new_secret()
+        request.session["2fa_pending_secret"] = secret
+        ctx.update(secret=" ".join(secret[i:i + 4] for i in range(0, len(secret), 4)),
+                   qr=totp.qr_svg(totp.provisioning_uri(secret, user.username)))
+    else:
+        ctx["backup_left"] = len(user.backup_codes or [])
+    return render(request, "registration/twofa.html", ctx)
 
 
 def logout_view(request):

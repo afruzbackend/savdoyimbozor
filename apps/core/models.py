@@ -79,6 +79,8 @@ class SystemSettings(models.Model):
     # Xavfsizlik
     login_max_attempts = models.PositiveSmallIntegerField(_("Maks kirish urinishi"), default=5)
     login_lock_minutes = models.PositiveSmallIntegerField(_("Blok davomiyligi (daq)"), default=15)
+    # Admin / tekshiruvchi / prokuror uchun ikki bosqichli himoya majburiy
+    require_2fa_staff = models.BooleanField(_("Xodimlarga 2FA majburiy"), default=False)
 
     updated_at = models.DateTimeField(auto_now=True)
 

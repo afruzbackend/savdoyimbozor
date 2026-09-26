@@ -8,7 +8,7 @@ import pytest
 from apps.catalog.models import Product
 from apps.sales.models import StockIn, StockMove
 from apps.sales.services.quick_entry import parse, parse_segment
-from conftest import SELLER_HOST, photo_file
+from conftest import SELLER_HOST, photo_file, set_settings
 
 
 @pytest.mark.parametrize("text,qty,unit,price,name", [
@@ -56,12 +56,7 @@ def test_parse_endpoint(sclient, product):
 
 @pytest.mark.django_db
 def test_save_creates_stockins_moves_and_new_product(sclient, shop, product):
-    from django.core.cache import cache
-
-    from apps.core.models import SystemSettings
-
-    SystemSettings.objects.update(stockin_photo_min=0)
-    cache.clear()  # SystemSettings keshi
+    set_settings(stockin_photo_min=0)
     stock0 = product.stock
     rows = [
         {"product_id": product.pk, "product_name": "Pomidor", "qty": "10", "unit": "kg", "price": 8000},
@@ -82,12 +77,7 @@ def test_save_creates_stockins_moves_and_new_product(sclient, shop, product):
 
 @pytest.mark.django_db
 def test_save_requires_photo_for_big_batch_and_shares_one_file(sclient, shop, product):
-    from django.core.cache import cache
-
-    from apps.core.models import SystemSettings
-
-    SystemSettings.objects.update(stockin_photo_min=1_000_000)
-    cache.clear()
+    set_settings(stockin_photo_min=1_000_000)
     rows = [{"product_id": product.pk, "qty": "100", "price": 8000},
             {"product_id": product.pk, "qty": "50", "price": 8000}]  # 1.2 mln
     sclient.post("/kirim/tez/saqlash/", {"rows": json.dumps(rows)}, HTTP_HOST=SELLER_HOST)

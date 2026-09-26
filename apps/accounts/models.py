@@ -65,6 +65,16 @@ class User(AbstractUser):
     # o'zgargan bo'lsa ham admin ko'rib turishi kerak (davlat kredensial modeli).
     # ESLATMA: bu odatdagi xavfsizlik amaliyoti emas; faqat admin panelida ko'rinadi.
     visible_password = models.CharField(_("Joriy parol"), max_length=128, blank=True, default="")
+    # Ikki bosqichli himoya (TOTP) — apps/accounts/totp.py
+    totp_secret = models.CharField(max_length=64, blank=True, default="")
+    totp_enabled = models.BooleanField(_("Ikki bosqichli himoya"), default=False)
+    totp_last_step = models.BigIntegerField(default=0)  # bir kod ikki marta ishlatilmasin
+    backup_codes = models.JSONField(default=list, blank=True)  # bir martalik, xeshlangan
+
+    @property
+    def is_staff_role(self):
+        """Ikki bosqichli himoya majburiy bo'lishi mumkin bo'lgan rollar (sotuvchidan tashqari)."""
+        return self.role in (Role.SUPERADMIN, Role.INSPECTOR, Role.PROSECUTOR) or self.is_superuser
 
     class Meta:
         verbose_name = _("Foydalanuvchi")

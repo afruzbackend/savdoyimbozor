@@ -42,6 +42,9 @@ def test_inventory_no_n_plus_1(iclient, market, django_assert_max_num_queries):
     for i in range(20):
         s = Shop.objects.create(market=market, row=row, number=f"inv{i}", stir=f"{i}")
         Product.objects.create(shop=s, name="Mahsulot", sell_price=1000, stock=5)
+    from apps.core.models import SystemSettings
+
+    SystemSettings.get_solo()  # sozlamalar keshda (prod'da doim shunday) — faqat N+1 o'lchanadi
     # 20 do'kon bo'lsa ham so'rov soni past va barqaror bo'lishi kerak
     with django_assert_max_num_queries(12):
         r = iclient.get("/ombor/", HTTP_HOST=INSPECTOR_HOST)

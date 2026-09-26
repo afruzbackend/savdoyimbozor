@@ -1,0 +1,59 @@
+{% extends base_template|default:'inspector/base.html' %}
+{% load static %}
+{% block title %}Ikki bosqichli himoya{% endblock %}
+{% block heading %}Ikki bosqichli himoya{% endblock %}
+{% block content %}
+<div class="stack gap-4" style="max-width:620px">
+  {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+
+  {% if backup %}
+  <div class="card twofa-backup">
+    <div class="card-title" style="margin-bottom:var(--sp-2)">Zaxira kodlar — hozir yozib oling</div>
+    <p class="muted" style="margin:0 0 var(--sp-3)">Telefon yo'qolsa yoki ilova o'chsa, shu kodlardan biri bilan kirasiz.
+      Har kod <b>bir marta</b> ishlaydi. Bu sahifadan chiqqach ular boshqa ko'rsatilmaydi.</p>
+    <div class="backup-grid num" data-noloc>{% for c in backup %}<span>{{ c }}</span>{% endfor %}</div>
+    <button type="button" class="btn btn-ghost" style="margin-top:var(--sp-3)" onclick="window.print()">
+      <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-printer"></use></svg> Chop etish</button>
+    <a class="btn" style="margin-top:var(--sp-3)" href="/">Yozib oldim — davom etish</a>
+  </div>
+  {% elif user.totp_enabled %}
+  <div class="card">
+    <div class="row gap-3" style="align-items:center">
+      <span class="stat-ic" style="color:var(--ok)"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg></span>
+      <div><b>Yoqilgan</b><div class="muted" style="font-size:var(--t--1)">Har kirishda parol + ilovadagi kod so'raladi.
+        Zaxira kodlar: {{ backup_left }} ta qoldi.</div></div>
+    </div>
+    <form method="post" class="row gap-2" style="margin-top:var(--sp-4);flex-wrap:wrap;align-items:flex-end">{% csrf_token %}
+      <div class="field" style="margin:0;flex:1 1 160px"><label class="label" for="c1">Hozirgi kod</label>
+        <input class="input num" id="c1" name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="123 456" required></div>
+      <button class="btn btn-ghost" name="action" value="backup">Yangi zaxira kodlar</button>
+      {% if not required %}<button class="btn btn-ghost" name="action" value="disable">O'chirish</button>{% endif %}
+    </form>
+    {% if required %}<p class="hint" style="margin:var(--sp-2) 0 0">Rolingiz uchun majburiy — o'chirib bo'lmaydi. Telefon almashsa, administrator qayta sozlash imkonini beradi.</p>{% endif %}
+  </div>
+  {% else %}
+  {% if required %}<div class="msg warning" style="margin:0">Tizim siyosati: rolingiz uchun ikki bosqichli himoya <b>majburiy</b>. Yoqmaguncha boshqa sahifalar ochilmaydi.</div>{% endif %}
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-2)">Yoqish — 3 qadam</div>
+    <ol class="twofa-steps">
+      <li>Telefoningizga autentifikator ilovasini o'rnating (Google Authenticator, Microsoft Authenticator yoki boshqasi).</li>
+      <li>Ilovada «+» → «QR kodni skanerlash» ni tanlang va quyidagi kodni skanerlang.</li>
+      <li>Ilova ko'rsatgan 6 xonali kodni pastga kiriting.</li>
+    </ol>
+    <div class="twofa-qr-row">
+      <div class="twofa-qr" aria-label="QR kod">{{ qr|safe }}</div>
+      <div style="min-width:0">
+        <div class="muted" style="font-size:var(--t--1)">Skanerlab bo'lmasa, kalitni qo'lda kiriting:</div>
+        <code class="twofa-secret" data-noloc>{{ secret }}</code>
+        <form method="post" style="margin-top:var(--sp-3)">{% csrf_token %}
+          <input type="hidden" name="action" value="enable">
+          <div class="field"><label class="label" for="c2">Ilovadagi kod</label>
+            <input class="input num otp-input" id="c2" name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="123 456" maxlength="7" required></div>
+          <button class="btn btn-block" type="submit">Tasdiqlash va yoqish</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

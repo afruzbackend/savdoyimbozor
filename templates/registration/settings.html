@@ -25,6 +25,9 @@
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-2)">Xavfsizlik</div>
     <a class="btn btn-ghost btn-block" href="{% url 'password_change' %}">Parolni almashtirish</a>
+    <a class="btn btn-ghost btn-block" href="{% url 'twofa_setup' %}" style="margin-top:var(--sp-2)">
+      <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg>
+      Ikki bosqichli himoya{% if user.totp_enabled %} · yoqilgan{% endif %}</a>
   </div>
 
   <div class="card">

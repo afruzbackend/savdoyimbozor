@@ -60,6 +60,13 @@
       <div class="field"><label class="label">Maks kirish urinishi</label><input class="input num" type="number" name="login_max_attempts" value="{{ s.login_max_attempts }}"></div>
       <div class="field"><label class="label">Blok davomiyligi (daq)</label><input class="input num" type="number" name="login_lock_minutes" value="{{ s.login_lock_minutes }}"></div>
     </div>
+    <input type="hidden" name="require_2fa_staff_present" value="1">
+    <label class="switch-row" style="margin-top:var(--sp-2)">
+      <span><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg>
+        Admin, tekshiruvchi va prokurorga ikki bosqichli himoya (2FA) majburiy</span>
+      <input type="checkbox" name="require_2fa_staff" {% if s.require_2fa_staff %}checked{% endif %}></label>
+    <p class="hint" style="margin:var(--sp-1) 0 0">Yoqilsa, 2FA'si yo'q xodim keyingi kirishda avval telefonidagi ilovani ulaydi.
+      Bir IP'dan 15 daqiqada {{ ip_max }} ta xato urinishdan keyin shu IP {{ ip_block }} daqiqa bloklanadi.</p>
   </div>
   <div><button class="btn btn-lg" type="submit">Saqlash</button></div>
 </form>

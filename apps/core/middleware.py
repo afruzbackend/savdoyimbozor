@@ -66,13 +66,40 @@ class ForcePasswordChangeMiddleware(MiddlewareMixin):
         return redirect("/password/change/")
 
 
+class ForceTwoFactorMiddleware(MiddlewareMixin):
+    """SystemSettings.require_2fa_staff yoqilgan bo'lsa: admin/tekshiruvchi/prokuror ikki bosqichli
+    himoyani yoqmaguncha boshqa sahifaga o'tolmaydi (sotuvchilarga majburiy emas)."""
+
+    ALLOWED = ("/profil/2fa/", "/logout/", "/login/", "/password/change/", "/static/", "/prefs/",
+               "/sw.js")
+
+    def process_request(self, request):
+        user = getattr(request, "user", None)
+        if not (user and user.is_authenticated and getattr(user, "is_staff_role", False)):
+            return None
+        if user.totp_enabled or request.path.startswith(self.ALLOWED):
+            return None
+        from apps.core.models import SystemSettings
+
+        if not SystemSettings.get_solo().require_2fa_staff:
+            return None
+        if request.path.startswith("/api/"):
+            from django.http import JsonResponse
+
+            return JsonResponse({"detail": "Avval ikki bosqichli himoyani yoqing."}, status=403)
+        from django.shortcuts import redirect
+
+        return redirect("/profil/2fa/")
+
+
 class ReadOnlyRoleMiddleware(MiddlewareMixin):
     """Prokuror (kuzatuvchi) hech narsani o'zgartira olmaydi — server tomonida bloklanadi.
 
     Faqat shaxsiy amallar ruxsat: chiqish, parol, o'z telefon/sozlamasi, til/mavzu.
     """
 
-    ALLOWED = ("/logout/", "/password/change/", "/profil/sozlamalar/", "/prefs/", "/login/")
+    ALLOWED = ("/logout/", "/password/change/", "/profil/sozlamalar/", "/profil/2fa/", "/prefs/",
+               "/login/")
 
     def process_request(self, request):
         user = getattr(request, "user", None)
