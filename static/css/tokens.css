@@ -77,6 +77,8 @@
 
   /* ---- Radius / harakat ---- */
   --r-sm:8px; --r:12px; --r-lg:16px; --r-full:999px;
+  /* komponentlarda ishlatilgan, lekin aniqlanmagan edi (burchak 0 bo'lib qolardi) */
+  --r-1:6px; --r-2:var(--r-sm); --r-3:var(--r);
   --dur:.18s; --ease:cubic-bezier(.4,0,.2,1);
   color-scheme:light;
 }

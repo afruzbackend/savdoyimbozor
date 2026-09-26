@@ -16,6 +16,7 @@ urlpatterns = [
     path("bozorlar/", v.markets, name="markets"),
     path("bozorlar/<int:pk>/", v.market_detail, name="market_detail"),
     path("toifalar/", v.categories, name="categories"),
+    path("mahsulot-turlari/", v.product_categories, name="product_categories"),
     path("kameralar/", v.cameras, name="cameras"),
     path("import/dokonlar/", v.import_shops, name="import_shops"),
     path("import/kassa/", v.import_cash, name="import_cash"),

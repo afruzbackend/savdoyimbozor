@@ -742,6 +742,20 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
   transition:background .12s,color .12s,border-color .12s}
 .size-pill[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:#fff}
 .size-add{width:96px;height:36px;padding:4px 10px}
+/* Kirim jadvalidagi .size-grid (katak-grid) bu yerni bosib ketmasin — formada ixcham qator */
+.variant-box .size-grid{display:flex;flex-wrap:wrap}
+
+/* Panel: mahsulot turlari — sotuvchi ko'radigan variantlar namunasi */
+.pc-grid{grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:var(--sp-4);align-items:start}
+@media (max-width:900px){.pc-grid{grid-template-columns:minmax(0,1fr)}}
+.pc-preview{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.pc-kind{min-width:180px}
+.pc-actions{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+.pc-sub{font-size:var(--t--1);margin-top:2px}
+.pc-preview span{font-size:var(--t--2);font-weight:600;padding:1px 7px;border:1px solid var(--border);
+  border-radius:var(--r-1);background:var(--surface-2);color:var(--ink-muted)}
+.pc-seller{border:1px dashed var(--border-strong);border-radius:var(--r-2);padding:var(--sp-2) var(--sp-3);
+  margin-bottom:var(--sp-3)}
 
 /* Hodisa turi tanlagich (radio o'rniga katta tugmalar) */
 .kind-grid{display:flex;flex-wrap:wrap;gap:8px}

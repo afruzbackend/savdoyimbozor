@@ -30,6 +30,21 @@ class ShopCategory(TimeStampedModel):
         return self.name
 
 
+class VariantKind(models.TextChoices):
+    """Mahsulot turiga mos variant: choyga kiyim razmeri emas — qadoq og'irligi (qoidalar: variants.py)."""
+
+    NONE = "none", _("Variantsiz")
+    CLOTHING = "clothing", _("Kiyim o'lchami (XS–3XL, 42–60)")
+    SHOES = "shoes", _("Poyabzal o'lchami (35–46)")
+    KIDS = "kids", _("Bolalar kiyimi (bo'y, sm)")
+    HEADWEAR = "headwear", _("Bosh kiyim o'lchami (52–62)")
+    SOCKS = "socks", _("Paypoq o'lchami (35-37...)")
+    PACK_WEIGHT = "pack_weight", _("Qadoq og'irligi (g, kg)")
+    PACK_VOLUME = "pack_volume", _("Qadoq hajmi (ml, L)")
+    TYPE = "type", _("Turi / modeli")
+    COLOR = "color", _("Faqat rang")
+
+
 class ProductCategory(TimeStampedModel):
     """Umumiy mahsulot turi ("Pomidor", "Kurtka") — bozor narxini solishtirish uchun.
 
@@ -51,6 +66,13 @@ class ProductCategory(TimeStampedModel):
     waste_norm_percent = models.DecimalField(
         _("Chirish me'yori (%)"), max_digits=5, decimal_places=2, default=5
     )
+    variant_kind = models.CharField(
+        _("Variant turi"), max_length=16, choices=VariantKind.choices, default=VariantKind.NONE
+    )
+    variant_options = models.CharField(
+        _("Tayyor variantlar"), max_length=300, blank=True,
+        help_text=_("Vergul bilan, masalan: 100 g, 250 g, 1 kg. Bo'sh — turning umumiy ro'yxati."),
+    )
 
     class Meta:
         verbose_name = _("Mahsulot toifasi")
@@ -59,6 +81,18 @@ class ProductCategory(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        # Yangi toifa turi aytilmasa — nomidan taxmin ("Krossovka" → poyabzal, "Choy" → qadoq).
+        # Admin panelda aniq tanlagan bo'lsa (kind_explicit) — tegilmaydi.
+        if (self._state.adding and not getattr(self, "kind_explicit", False)
+                and self.variant_kind == VariantKind.NONE and not self.variant_options):
+            from .variants import guess
+
+            self.variant_kind, self.variant_options = guess(
+                self.name, self.shop_category.name if self.shop_category_id else ""
+            )
+        super().save(*args, **kwargs)
 
 
 class Product(TimeStampedModel):

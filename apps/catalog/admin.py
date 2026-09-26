@@ -11,8 +11,8 @@ class ShopCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(ProductCategory)
 class ProductCategoryAdmin(admin.ModelAdmin):
-    list_display = ("name", "shop_category", "default_unit", "waste_norm_percent")
-    list_filter = ("shop_category",)
+    list_display = ("name", "shop_category", "default_unit", "variant_kind", "waste_norm_percent")
+    list_filter = ("shop_category", "variant_kind")
     search_fields = ("name",)
 
 

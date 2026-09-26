@@ -11,6 +11,7 @@ from django.db.models import Count, F, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from apps.catalog import variants
 from apps.catalog.models import Product, ProductCategory, Unit
 from apps.catalog.sizes import product_order, size_key, sorted_products
 from apps.core.dates import days_between, on_day, since_day
@@ -201,9 +202,15 @@ def products(request):
             return redirect("seller:products")
         if unit not in Unit.values:
             unit = Unit.PIECE
-        # Variantlar (kiyim/poyabzal): o'lcham × rang — har biri alohida mahsulot (qoldiq, barkod)
-        sizes = _clean_list(request.POST.getlist("sizes"), 20, upper=True)
+        # Variantlar: o'lcham/qadoq × rang — har biri alohida mahsulot (qoldiq, barkod).
+        # Toifa turiga mos kelmaganini rad etamiz: choyga "3XL", guruchga rang bo'lmaydi.
+        kind = variants.kind_of(cat) if cat else variants.guess(base_name)[0]  # toifasiz — nomidan
+        sizes = _clean_list([variants.normalize(x, kind) for x in request.POST.getlist("sizes")], 20)
         colors = _clean_list(request.POST.get("colors", "").replace(";", ",").split(","), 40)
+        err = _variant_error(cat, kind, unit, sizes, colors)
+        if err:
+            messages.error(request, err)
+            return redirect("seller:products")
         if sizes or colors:
             return _create_variants(request, shop, cat, name, unit, sizes or [""], colors or [""],
                                     buy, sell, low)
@@ -234,8 +241,9 @@ def products(request):
             ensure_barcode(p)
         messages.success(request, "Mahsulot qo'shildi.")
         return redirect("seller:products")
+    # Har toifa o'z variant qoidasi bilan (choy — qadoq, poyabzal — 35–46, guruch — variantsiz)
     catalog_json = [
-        {"id": c.pk, "name": c.name, "unit": c.default_unit}
+        {"id": c.pk, "name": c.name, "unit": c.default_unit, **variants.spec(c)}
         for c in catalog
     ]
     from apps.core.pagination import paginate
@@ -254,6 +262,7 @@ def products(request):
             .values_list("size", flat=True)),
         key=_size_key,
     )
+    size_matrix = [m for m in _size_models(shop) if not q or q.lower() in m["base"].lower()]
     return render(
         request,
         "seller/products.html",
@@ -268,19 +277,13 @@ def products(request):
             "size": size,
             "shop_sizes": shop_sizes,
             "querystring": f"q={q}&size={size}",
-            "size_presets": SIZE_PRESETS,
             # "Futbolka: M · 100, XL · 10" — model bo'yicha razmerlar qoldig'i (bir qarashda)
-            "size_matrix": [m for m in _size_models(shop) if not q or q.lower() in m["base"].lower()],
+            "size_matrix": size_matrix,
+            "size_heading": variants.section_title(m["cls"] for m in size_matrix) + " bo'yicha qoldiq",
         },
     )
 
 
-# O'lcham tayyor to'plamlari (bir bosishda tanlash)
-SIZE_PRESETS = {
-    "Kiyim": ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-    "Poyabzal": ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
-    "Bolalar": ["92", "98", "104", "110", "116", "122", "128", "134", "140"],
-}
 # Razmer tartibi yagona manbada (apps/catalog/sizes.py) — sotuvchi va inspektor bir xil ko'radi
 _size_key = size_key
 
@@ -297,29 +300,49 @@ def _clean_list(values, maxlen, upper=False):
     return out[:30]
 
 
-def _norm_size(size: str) -> str:
-    """"xl" → "XL", " 36 " → "36" (harfli razmer katta harf bilan saqlanadi)."""
-    size = " ".join(str(size).split())[:20]
-    return size.upper() if size.isalpha() or size[:1].isdigit() and size[-2:].isalpha() else size
+def _variant_error(cat, kind, unit, sizes, colors) -> str:
+    """Toifa turiga mos kelmaydigan variant — xato matni ("" — hammasi joyida)."""
+    name = cat.name if cat else "Bu mahsulot"
+    if sizes and kind in ("none", "color"):
+        return f"«{name}» o'lcham/qadoq bilan sotilmaydi — variantlarni olib tashlang."
+    if sizes and unit != Unit.PIECE:
+        return "O'lcham yoki qadoq faqat dona bilan sotiladigan mahsulotga beriladi."
+    if colors and not variants.KINDS[kind]["colors"]:
+        return f"«{name}» uchun rang tanlanmaydi."
+    if kind in variants.PACKS:
+        bad = [s for s in sizes if not variants.measure(s)]
+        if bad:
+            return f"Qadoq og'irlik yoki hajm bo'lsin (masalan 250 g, 1 L): {', '.join(bad[:5])}"
+    if kind in variants.SIZED and any(variants.measure(s) for s in sizes):
+        return "Kiyim/poyabzal o'lchami gramm yoki litr bo'lmaydi."
+    return ""
 
 
 def _variant_for(shop, base, size, unit=Unit.PIECE, price=0):
     """Model + razmer → mavjud variant yoki shu modelning yangi varianti (toifa, birlik, sotish
-    narxi, kam-qoldiq chegarasi qardosh razmerdan). Tez kirim va razmer jadvali shu yerdan."""
+    narxi, kam-qoldiq chegarasi qardosh razmerdan). Tez kirim va razmer jadvali shu yerdan.
+
+    Qadoq (250 g → 1 kg) narxi qardoshdan olinmaydi: 1 kg choy 250 g narxida sotilib ketmasin —
+    narx 0 qoladi va sotuvchiga belgilash eslatiladi."""
     from apps.catalog.barcodes import ensure_barcode
 
-    size = _norm_size(size)
-    p = Product.objects.filter(shop=shop, base_name__iexact=base, size__iexact=size,
-                               is_active=True).first()
+    p = next((x for x in Product.objects.filter(shop=shop, base_name__iexact=base, is_active=True)
+              .exclude(size="") if variants.same(x.size, size)), None)
     if p is not None:
         return p
     sib = (Product.objects.filter(shop=shop, base_name__iexact=base).exclude(size="")
-           .order_by("-is_active", "pk").first())
+           .order_by("-is_active", "pk").first()
+           # Razmersiz "Choy" bor, endi "Choy — 250 g" keldi — toifa/birlik shundan
+           or Product.objects.filter(shop=shop, name__iexact=base, size="").order_by("-is_active").first())
+    cat = sib.category if sib else ProductCategory.objects.filter(name__iexact=base).first()
+    size = variants.normalize(size, variants.kind_of(cat))
+    is_pack = bool(variants.measure(size))
+    base = (sib.base_name or sib.name) if sib else base
     p = Product.objects.create(
-        shop=shop, name=f"{sib.base_name if sib else base} — {size}"[:200],
-        base_name=(sib.base_name if sib else base)[:200], size=size,
-        category=sib.category if sib else None, unit=sib.unit if sib else unit,
-        buy_price=price or (sib.buy_price if sib else 0), sell_price=sib.sell_price if sib else 0,
+        shop=shop, name=f"{base} — {size}"[:200], base_name=base[:200], size=size,
+        category=cat, unit=Unit.PIECE if is_pack else (sib.unit if sib else unit),
+        buy_price=price or (sib.buy_price if sib and not is_pack else 0),
+        sell_price=sib.sell_price if sib and not is_pack else 0,
         low_stock_threshold=sib.low_stock_threshold if sib else 0,
     )
     ensure_barcode(p)
@@ -491,6 +514,7 @@ def stock_in(request):
                         user=request.user)
         messages.success(request, f"Kirim qo'shildi: {product.name} +{real_qty:g}")
         return redirect("seller:stock_in")
+    size_models = _size_models(shop)
     return render(
         request,
         "seller/stock_in.html",
@@ -501,21 +525,25 @@ def stock_in(request):
             "recent": StockIn.objects.filter(shop=shop).select_related("product")
             .order_by("-created_at")[:10],
             "photo_min": SystemSettings.get_solo().stockin_photo_min,
-            "size_models": _size_models(shop),
+            "size_models": size_models,
+            "size_title": variants.section_title(m["cls"] for m in size_models),
         },
     )
 
 
 def _size_models(shop) -> list[dict]:
-    """Razmerli modellar (kirim jadvali uchun): [{base, unit, buy_price, sizes:[{label, product_id, stock}]}]."""
+    """Variantli modellar (kirim jadvali, qoldiq matritsasi): [{base, unit, buy_price, cls, ask,
+    sizes:[{label, product_id, stock}]}]. cls — "size" (M, 36), "pack" (250 g) yoki "type" (AA)."""
     groups = {}
     for p in Product.objects.filter(shop=shop, is_active=True).exclude(size="").order_by("pk"):
         groups.setdefault(p.base_name or p.name.split(" — ")[0], []).append(p)
     out = []
     for base, ps in sorted(groups.items(), key=lambda x: x[0].lower()):
         ps.sort(key=lambda p: (_size_key(p.size), p.color))
+        cls = variants.size_class(p.size for p in ps)
         out.append({
-            "base": base, "unit": ps[0].unit, "buy_price": ps[0].buy_price,
+            "base": base, "unit": ps[0].unit, "buy_price": ps[0].buy_price, "cls": cls,
+            "noun": {"size": "Razmer", "pack": "Qadoq", "type": "Turi"}[cls],
             "sizes": [{"size": p.size, "label": p.size + (f", {p.color.lower()}" if p.color else ""),
                        "product_id": p.pk, "stock": float(p.stock),
                        "state": "zero" if p.stock <= 0 else ("low" if p.is_low_stock else "")}
@@ -607,10 +635,13 @@ def stock_in_quick_save(request):
     from .services.stock import record_move
 
     saved_photo = ""
+    no_price = []  # yangi qadoqlar — sotish narxi hali yo'q
     with transaction.atomic():
         for product, name, unit, qty, price, packs, variant in plan:
             if product is None and variant:
                 product = _variant_for(shop, variant[0], variant[1], unit, price)
+                if not product.sell_price:
+                    no_price.append(product.name)
             if product is None:
                 product = Product.objects.filter(shop=shop, name__iexact=name).first()
             if product is None:
@@ -633,6 +664,8 @@ def stock_in_quick_save(request):
                         user=request.user)
     request.audit_detail = f"Tez kirim: {len(plan)} qator, {som(total)} so'm"
     messages.success(request, f"Kirim qo'shildi: {len(plan)} ta mahsulot, jami {som(total)} so'm.")
+    if no_price:
+        messages.warning(request, "Sotish narxini «Mahsulotlar»da belgilang: " + ", ".join(no_price[:5]))
     return redirect("seller:stock_in")
 
 

@@ -22,6 +22,10 @@ solishtirib rostlik darajasi beradigan va yashiruvchini signal beradigan Django 
 - `geo` — Region → Market → Row. `catalog` — ShopCategory, ProductCategory (bozor narxi uchun), Product. `shops` — Shop.
 - `sales` — Sale/SaleItem, StockIn, SaleReturn, WriteOff, DailyClose, Debt; `services/pricing.py` (chegirma/yaxlitlash BITTA MANBA), `services/sales.py`; seller_views + api.
 - Razmer (variant): har razmer — alohida Product (`base_name` + `size`, nomi "Model — M", o'z qoldig'i/barkodi). Tartib yagona manbada `catalog/sizes.py` (XS<S<M, 36<37). Tez kirim (`services/quick_entry.py`) razmerni tushunadi ("36 razmerlik 10 ta 37 lik 50 ta", "XL 10, M 100"); kirim sahifasida razmerlar jadvali.
+- Variant turi mahsulot TOIFASIGA bog'liq (`ProductCategory.variant_kind`, qoidalar BITTA manbada `catalog/variants.py`):
+  kiyim XS–3XL, poyabzal 35–46, bolalar bo'y, paypoq 35-37, qadoq og'irligi/hajmi (choy 250 g, yog' 1 L — faqat dona),
+  turi (batareyka AA), faqat rang (gul), variantsiz (guruch, meva, go'sht). Admin `/mahsulot-turlari/` da o'zgartiradi;
+  yangi toifa nomidan taxmin qilinadi. Server mos kelmaganini rad etadi (choyga "3XL" yo'q).
 - `cash` — CashRecord (deklaratsiya; source: excel/tax_api/kassa).
 - `cameras` — Camera, CameraEvent; `api.py` (kontrakt); `simulate_camera`.
 - `analytics` — MarketPrice, DailyScore (agregat), Alert, Inspection, Appeal;

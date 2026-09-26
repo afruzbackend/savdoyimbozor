@@ -162,13 +162,13 @@
         <div class="field" x-data="{show:false}"><label class="label">Yangi parol</label>
           <div class="pw-input">
             <input class="input" :type="show?'text':'password'" name="password1" placeholder="Kamida 6 belgi" required minlength="6">
-            <button type="button" class="pw-eye" tabindex="-1" @click="show=!show" :aria-label="show ? 'Yashirish' : 'Ko&#39;rsatish'">
+            <button type="button" class="pw-eye" tabindex="-1" @click="show=!show" :aria-label="show ? 'Yashirish' : 'Ko\'rsatish'">
               <svg class="icon-sm"><use :href="'{% static 'icons/sprite.svg' %}#'+(show?'i-eye-off':'i-eye')"></use></svg></button>
           </div></div>
         <div class="field" x-data="{show:false}"><label class="label">Yangi parolni takrorlang</label>
           <div class="pw-input">
             <input class="input" :type="show?'text':'password'" name="password2" required minlength="6">
-            <button type="button" class="pw-eye" tabindex="-1" @click="show=!show" :aria-label="show ? 'Yashirish' : 'Ko&#39;rsatish'">
+            <button type="button" class="pw-eye" tabindex="-1" @click="show=!show" :aria-label="show ? 'Yashirish' : 'Ko\'rsatish'">
               <svg class="icon-sm"><use :href="'{% static 'icons/sprite.svg' %}#'+(show?'i-eye-off':'i-eye')"></use></svg></button>
           </div></div>
         <button class="btn btn-block" type="submit" style="margin-top:var(--sp-2)">Parolni yangilash</button>

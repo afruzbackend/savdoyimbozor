@@ -13,7 +13,7 @@
     <div class="segmented" style="margin-bottom:var(--sp-3)">
       <button type="button" :aria-selected="mode==='select'" @click="mode='select'">Ro'yxatdan</button>
       <button type="button" :aria-selected="mode==='manual'" @click="mode='manual'" title="Qo'lda (yangi mahsulot)">Yangi</button>
-      {% if size_models %}<button type="button" :aria-selected="mode==='sizes'" @click="mode='sizes'">Razmerlar</button>{% endif %}
+      {% if size_models %}<button type="button" :aria-selected="mode==='sizes'" @click="mode='sizes'">{{ size_title }}</button>{% endif %}
     </div>
     <form method="post" enctype="multipart/form-data" x-show="mode!=='sizes'">{% csrf_token %}
       <div class="field"><label class="label">Barkod</label>
@@ -89,15 +89,15 @@
           <div class="size-grid">
             <template x-for="(r, i) in rows" :key="r.label">
               <label class="size-cell" :class="+r.qty > 0 && 'filled'">
-                <span class="size-cell-name" x-text="r.label"></span>
-                <input class="input num" x-model="r.qty" inputmode="decimal" placeholder="0" :aria-label="'Razmer ' + r.label">
+                <span class="size-cell-name" x-text="r.label" data-noloc></span>
+                <input class="input num" x-model="r.qty" inputmode="decimal" placeholder="0" :aria-label="r.label">
                 <small class="faint num" x-text="r.product_id ? ('bor: ' + fmt(r.stock)) : 'yangi'"></small>
               </label>
             </template>
           </div>
           <div class="row gap-2" style="margin:var(--sp-2) 0 var(--sp-3)">
-            <input class="input" x-model="newSize" maxlength="20" placeholder="Yangi razmer (masalan 44 yoki XXL)"
-                   @keydown.enter.prevent="addSize()">
+            <input class="input" x-model="newSize" maxlength="20" @keydown.enter.prevent="addSize()"
+                   :placeholder="cls === 'pack' ? 'Yangi qadoq (masalan 750 g yoki 2 L)' : cls === 'type' ? 'Yangi turi' : 'Yangi razmer (masalan 44 yoki XXL)'">
             <button type="button" class="btn btn-ghost" @click="addSize()">Qo'shish</button>
           </div>
           <div class="field"><label class="label">Kelish narxi (1 dona uchun, so'm)</label>
@@ -156,7 +156,7 @@
                   <div class="faint" style="font-size:var(--t--2)" x-text="r.error ? r.error : ('«' + r.raw + '»')"></div>
                   <div class="row gap-1 wrap-flex" x-show="r.choices && r.choices.length" style="margin-top:4px">
                     <template x-for="c in (r.choices || [])" :key="c.product_id">
-                      <button type="button" class="chip" @click="Object.assign(r, {product_id: c.product_id, product_name: c.product_name, size: c.size, price: r.price || c.price || 0, error: '', choices: null})" x-text="c.size"></button>
+                      <button type="button" class="chip" @click="Object.assign(r, {product_id: c.product_id, product_name: c.product_name, size: c.size, price: r.price || c.price || 0, error: '', choices: null})" x-text="c.size" data-noloc></button>
                     </template>
                   </div></td>
                 <td class="num"><input class="input num qi-in" x-model="r.qty" inputmode="decimal" aria-label="Miqdor">
@@ -216,15 +216,22 @@
   document.addEventListener('alpine:init', () => {
     Alpine.data('sizeIn', () => ({
       models: JSON.parse(document.getElementById('size-models').textContent || '[]'),
-      base: '', unit: 'dona', rows: [], price: 0, newSize: '',
+      base: '', unit: 'dona', rows: [], price: 0, newSize: '', cls: 'size',
       fmt(n) { return window.BN ? window.BN.fmt(Math.round(+n || 0)) : Math.round(+n || 0); },
       pick(m) {
-        this.base = m.base; this.unit = m.unit; this.price = m.buy_price || 0;
+        this.base = m.base; this.unit = m.unit; this.price = m.buy_price || 0; this.cls = m.cls;
         this.rows = m.sizes.map(s => ({ ...s, qty: '' }));
       },
       addSize() {
         const s = this.newSize.trim().replace(/\s+/g, ' ');
-        const norm = /^[a-z0-9]+$/i.test(s) && /[a-z]$/i.test(s) ? s.toUpperCase() : s;
+        // Server bilan bir xil yozuv (variants.normalize): "750g" → "750 g", "xl" → "XL"
+        const U = { g: 'g', gr: 'g', gramm: 'g', kg: 'kg', kilo: 'kg', ml: 'ml', l: 'L', litr: 'L', w: 'W' };
+        const mm = s.match(/^(\d+(?:[.,]\d+)?)\s*(g|gr|gramm|kg|kilo|ml|l|litr|w)$/i);
+        const norm = mm ? mm[1].replace('.', ',') + ' ' + U[mm[2].toLowerCase()]
+          : /^(\d?x{0,3}[sml]|x{1,3}s|\d+xl)$/i.test(s) ? s.toUpperCase() : s;
+        if (norm && this.cls === 'pack' && !mm) {
+          window.toast("Qadoq og'irlik yoki hajm bo'lsin: masalan 250 g, 1 L", 'warn'); return;
+        }
         if (!norm || this.rows.some(r => r.size.toUpperCase() === norm.toUpperCase() && !r.label.includes(','))) {
           this.newSize = ''; return;
         }

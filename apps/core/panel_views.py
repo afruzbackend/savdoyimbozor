@@ -903,6 +903,112 @@ def categories(request):
     )
 
 
+def _product_category_fields(request, cat=None):
+    """Formadan mahsulot turi maydonlari (xato bo'lsa — matn qaytadi)."""
+    from decimal import Decimal, InvalidOperation
+
+    from apps.catalog import variants
+    from apps.catalog.models import ProductCategory, Unit, VariantKind
+
+    name = " ".join(request.POST.get("name", "").split())[:120]
+    if not name:
+        return None, "Mahsulot turi nomini yozing."
+    dup = ProductCategory.objects.filter(name__iexact=name)
+    if cat is not None:
+        dup = dup.exclude(pk=cat.pk)
+    if dup.exists():
+        return None, f"«{name}» mahsulot turi allaqachon bor."
+    kind = request.POST.get("variant_kind", "")
+    if kind not in VariantKind.values:
+        kind = VariantKind.NONE
+    unit = request.POST.get("default_unit", "")
+    if unit not in Unit.values:
+        unit = Unit.PIECE
+    opts = [variants.normalize(x, kind) for x in variants.split_list(request.POST.get("variant_options"))]
+    if kind in variants.PACKS and any(not variants.measure(o) for o in opts):
+        return None, "Qadoq qiymatlari og'irlik yoki hajm bo'lsin: 250 g, 1 kg, 0,5 L."
+    if kind in ("none", "color"):
+        opts = []  # o'lchamsiz turda tayyor qiymat ma'nosiz
+    try:
+        waste = Decimal(str(request.POST.get("waste_norm_percent") or "5").replace(",", "."))
+    except InvalidOperation:
+        waste = Decimal("5")
+    shop_cat = ShopCategory.objects.filter(pk=_pk(request.POST.get("shop_category"))).first()
+    return {"name": name, "variant_kind": kind, "default_unit": unit, "shop_category": shop_cat,
+            "variant_options": ", ".join(dict.fromkeys(opts))[:300],
+            "waste_norm_percent": min(max(waste, Decimal("0")), Decimal("100"))}, ""
+
+
+@superadmin_required
+def product_categories(request):
+    """Mahsulot turlari: birlik va VARIANT TURI (choy — qadoq, poyabzal — 35–46, guruch — yo'q).
+
+    Sotuvchining "Yangi mahsulot" oynasi shu yerdagi turga qarab faqat mos variantlarni taklif qiladi.
+    """
+    from django.db.models import Count
+
+    from apps.catalog import variants
+    from apps.catalog.models import ProductCategory, Unit, VariantKind
+
+    if request.method == "POST":
+        act = request.POST.get("action")
+        back = redirect(f"{request.path}?{request.GET.urlencode()}" if request.GET else request.path)
+        if act in ("add", "edit"):
+            cat = None
+            if act == "edit":
+                cat = ProductCategory.objects.filter(pk=_pk(request.POST.get("id"))).first()
+                if cat is None:
+                    messages.error(request, "Mahsulot turi topilmadi.")
+                    return back
+            fields, err = _product_category_fields(request, cat)
+            if err:
+                messages.error(request, err)
+                return back
+            if cat is None:
+                cat = ProductCategory(**fields)
+                cat.kind_explicit = True  # admin tanlovi — nomidan taxmin qilinmaydi
+                cat.save()
+                messages.success(request, f"«{cat.name}» qo'shildi.")
+            else:
+                for k, v in fields.items():
+                    setattr(cat, k, v)
+                cat.save()
+                messages.success(request, f"«{cat.name}» saqlandi.")
+            request.audit_detail = (f"Mahsulot turi: {cat.name} — {cat.get_variant_kind_display()}"
+                                    f"{' (' + cat.variant_options + ')' if cat.variant_options else ''}")
+        elif act == "delete":
+            cat = ProductCategory.objects.filter(pk=_pk(request.POST.get("id"))).first()
+            if cat is None:
+                messages.error(request, "Mahsulot turi topilmadi.")
+            elif cat.products.exists() or cat.market_prices.exists():
+                messages.error(request, f"«{cat.name}» ishlatilmoqda ({cat.products.count()} mahsulot) — "
+                                        "o'chirib bo'lmaydi.")
+            else:
+                cat.delete()
+                messages.success(request, "O'chirildi.")
+        return back
+
+    qs = (ProductCategory.objects.select_related("shop_category")
+          .annotate(nprod=Count("products", distinct=True)).order_by("shop_category__name", "name"))
+    shop_cat = ShopCategory.objects.filter(pk=_pk(request.GET.get("turi"))).first()
+    if shop_cat:
+        qs = qs.filter(shop_category=shop_cat)
+    kind = request.GET.get("variant", "")
+    if kind in VariantKind.values:
+        qs = qs.filter(variant_kind=kind)
+    cats = list(qs)
+    for c in cats:
+        c.preview = [x for g in variants.spec(c)["presets"].values() for x in g][:8]
+    return render(request, "panel/product_categories.html", {
+        "cats": cats, "shop_cats": ShopCategory.objects.all(), "shop_cat": shop_cat,
+        "kind": kind, "kinds": VariantKind.choices, "units": Unit.choices,
+        # Admin tanlaganda sotuvchi formasida nima chiqishini oldindan ko'rsatish uchun
+        "kinds_json": {k: {"noun": v["noun"], "colors": v["colors"],
+                           "presets": [x for g in v["presets"].values() for x in g][:10]}
+                       for k, v in variants.KINDS.items()},
+    })
+
+
 @superadmin_required
 def cameras(request):
     """Kameralar boshqaruvi — qo'shish, token ko'rish (django-adminsiz)."""

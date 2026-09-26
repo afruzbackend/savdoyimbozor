@@ -1,0 +1,27 @@
+{# Mahsulot turi maydonlari — qo'shish va tahrirlash oynasi uchun bitta qism #}
+<div x-data="pcFields('none')">
+  <div class="field"><label class="label" for="{{ prefix }}-name">Nomi</label>
+    <input class="input" id="{{ prefix }}-name" name="name" maxlength="120" placeholder="masalan: Krossovka, Choy, Batareyka" required></div>
+  <div class="grid grid-2">
+    <div class="field"><label class="label">Savdo turi</label>
+      <select class="select-native" name="shop_category"><option value="">— yo'q —</option>
+        {% for sc in shop_cats %}<option value="{{ sc.pk }}" {% if shop_cat.pk == sc.pk %}selected{% endif %}>{{ sc.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label class="label">Birlik</label>
+      <select class="select-native" name="default_unit">{% for v,l in units %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+  </div>
+  <div class="field"><label class="label">Variant turi</label>
+    <select class="select-native" name="variant_kind" @change="kind=$event.target.value">
+      {% for v,l in kinds %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+  <div class="field" x-show="needsOptions" x-cloak><label class="label" for="{{ prefix }}-opts">Tayyor variantlar <small class="muted">(ixtiyoriy, vergul bilan)</small></label>
+    <input class="input" id="{{ prefix }}-opts" name="variant_options" x-model="options" maxlength="300"
+           :placeholder="kind==='pack_weight' ? '100 g, 250 g, 1 kg' : kind==='pack_volume' ? '0,5 L, 1 L, 5 L' : kind==='type' ? 'AA, AAA, 9V' : 'bo\'sh — umumiy ro\'yxat'"></div>
+  <div class="pc-seller" x-show="kind !== 'none'" x-cloak>
+    <small class="muted">Sotuvchi ko'radi:</small>
+    <div class="pc-preview" data-noloc>
+      <template x-for="x in (needsOptions ? preview : [])" :key="x"><span x-text="x"></span></template>
+    </div>
+    <small class="muted" x-show="info.colors">+ ranglar</small>
+  </div>
+  <div class="field"><label class="label" for="{{ prefix }}-waste">Chirish me'yori, %</label>
+    <input class="input num" id="{{ prefix }}-waste" name="waste_norm_percent" inputmode="decimal" value="5" style="max-width:120px"></div>
+</div>

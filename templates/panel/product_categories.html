@@ -1,0 +1,95 @@
+{% extends 'panel/base.html' %}
+{% load static %}
+{% block title %}Mahsulot turlari{% endblock %}
+{% block heading %}Mahsulot turlari{% endblock %}
+{% block content %}
+<div x-data="pcPage()">
+<p class="hint" style="margin:0 0 var(--sp-3)">Har mahsulot turiga o'z varianti: choy — qadoq og'irligi, poyabzal — 35–46, guruch — variantsiz.
+  Sotuvchi «Yangi mahsulot» oynasida faqat shu yerda belgilangan variantlarni ko'radi.</p>
+<div class="row gap-1 wrap-flex" style="margin-bottom:var(--sp-3)">
+  <a class="chip" href="?" {% if not shop_cat and not kind %}aria-pressed="true"{% endif %}>Barchasi</a>
+  {% for sc in shop_cats %}<a class="chip" href="?turi={{ sc.pk }}" {% if shop_cat.pk == sc.pk %}aria-pressed="true"{% endif %}>{{ sc.name }}</a>{% endfor %}
+</div>
+<div class="grid pc-grid">
+  <div class="card">
+    <div class="card-title" style="margin-bottom:var(--sp-3)">Yangi mahsulot turi</div>
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      {% include 'panel/_product_category_fields.html' with prefix='n' %}
+      <button class="btn btn-block" type="submit">Qo'shish</button>
+    </form>
+  </div>
+  <div class="card" style="min-width:0">
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Nomi</th><th>Variant</th><th></th></tr></thead>
+      <tbody>
+      {% for c in cats %}
+        <tr><td><b>{{ c.name }}</b> <small class="muted">{{ c.get_default_unit_display }}</small>
+            <div class="faint pc-sub">{% if not shop_cat %}<span>{{ c.shop_category.name|default:"—" }}</span> · {% endif %}<span>Mahsulotlar:</span> <span class="num">{{ c.nprod }}</span></div></td>
+          <td class="pc-kind">{{ c.get_variant_kind_display }}
+            {% if c.preview %}<div class="pc-preview" data-noloc>{% for x in c.preview %}<span>{{ x }}</span>{% endfor %}</div>{% endif %}</td>
+          <td class="num"><div class="pc-actions">
+            <button type="button" class="btn-ghost" style="padding:4px 10px"
+                    data-id="{{ c.pk }}" data-name="{{ c.name }}" data-shop-category="{{ c.shop_category_id|default:'' }}"
+                    data-unit="{{ c.default_unit }}" data-kind="{{ c.variant_kind }}" data-options="{{ c.variant_options }}"
+                    data-waste="{{ c.waste_norm_percent }}" @click="edit($el.dataset)">Tahrirlash</button>
+            {% if not c.nprod %}
+            <form method="post" style="display:inline" data-confirm="Mahsulot turi o'chirilsinmi?" data-confirm-ok="Ha, o'chirish" data-danger>{% csrf_token %}
+              <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ c.pk }}">
+              <button class="btn-ghost" style="padding:4px 10px;color:var(--bad)">O'chirish</button></form>
+            {% endif %}</div></td>
+        </tr>
+      {% empty %}<tr><td colspan="3" class="muted">Mahsulot turi yo'q.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<div id="pc-edit" class="modal-backdrop" hidden @click.self="$el.hidden=true">
+  <div class="modal-card" style="max-width:460px">
+    <div class="settings-head">
+      <div class="settings-title">Mahsulot turini tahrirlash</div>
+      <button type="button" class="settings-x" title="Yopish" onclick="document.getElementById('pc-edit').hidden=true">
+        <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg></button>
+    </div>
+    <form method="post" x-ref="editForm">{% csrf_token %}
+      <input type="hidden" name="action" value="edit"><input type="hidden" name="id" x-ref="eid">
+      {% include 'panel/_product_category_fields.html' with prefix='e' %}
+      <p class="hint" style="margin-top:0">O'zgarish yangi qo'shiladigan mahsulotlarga ta'sir qiladi; mavjud variantlar o'zgarmaydi.</p>
+      <button class="btn btn-block" type="submit">Saqlash</button>
+    </form>
+  </div>
+</div>
+</div>
+{% endblock %}
+{% block extra_js %}
+{{ kinds_json|json_script:"variant-kinds" }}
+<script>
+  document.addEventListener('alpine:init', () => {
+    // Bitta forma qismi (qo'shish va tahrirlash): tur tanlanganda sotuvchi nimani ko'rishini ko'rsatadi
+    Alpine.data('pcFields', (kind) => ({
+      kind: kind || 'none', options: '',
+      kinds: JSON.parse(document.getElementById('variant-kinds').textContent),
+      get info() { return this.kinds[this.kind] || this.kinds.none; },
+      get needsOptions() { return !!this.info.noun || this.kind === 'type'; },
+      get preview() {
+        // Server bilan bir xil ajratish (variants.split_list): "0,5 L, 1 L" — ikki qiymat
+        const own = this.options.split(/;|,(?=\s)|(?<!\d),|,(?!\d)/).map(x => x.trim()).filter(Boolean);
+        return own.length ? own : this.info.presets;
+      },
+    }));
+    Alpine.data('pcPage', () => ({
+      edit(d) {
+        const f = this.$refs.editForm, set = (name, v) => {
+          const el = f.querySelector('[name="' + name + '"]'); if (!el) return;
+          el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+        };
+        this.$refs.eid.value = d.id;
+        set('name', d.name); set('shop_category', d.shopCategory); set('default_unit', d.unit);
+        set('variant_kind', d.kind); set('variant_options', d.options); set('waste_norm_percent', d.waste);
+        document.getElementById('pc-edit').hidden = false;
+      },
+    }));
+  });
+</script>
+{% endblock %}

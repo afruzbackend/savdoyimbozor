@@ -14,15 +14,15 @@
   {% if size %}<input type="hidden" name="size" value="{{ size }}">{% endif %}
   <button class="btn btn-ghost" type="submit" aria-label="Qidirish"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-search"></use></svg></button>
   {% if shop_sizes %}
-  <span class="muted" style="font-size:var(--t--1);margin-left:var(--sp-2)">O'lcham:</span>
+  <span class="muted" style="font-size:var(--t--1);margin-left:var(--sp-2)">Variant:</span>
   <a class="chip" href="?{% if q %}q={{ q|urlencode }}{% endif %}" {% if not size %}aria-pressed="true"{% endif %}>Barchasi</a>
   {% for sz in shop_sizes %}<a class="chip" href="?size={{ sz|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}" {% if size|upper == sz|upper %}aria-pressed="true"{% endif %} data-noloc>{{ sz }}</a>{% endfor %}
   {% endif %}
 </form>
 {% if size_matrix %}
 <div class="card" style="margin-bottom:var(--sp-3)">
-  <div class="card-header"><span class="card-title">Razmerlar bo'yicha qoldiq</span>
-    <small class="faint">Razmerni bosing — faqat o'sha variant ko'rinadi</small></div>
+  <div class="card-header"><span class="card-title">{{ size_heading }}</span>
+    <small class="faint">Bosing — faqat o'sha variant ko'rinadi</small></div>
   <div class="stack gap-2">
     {% for m in size_matrix %}
     <div class="size-row">
@@ -132,26 +132,31 @@
           </div>
         </div>
       </div>
-      <div class="field"><label class="label">Nav / rang / xil (ixtiyoriy)</label>
-        <input class="input" name="variant" placeholder="masalan: qizil, mahalliy, katta"></div>
+      {% comment %}Har mahsulot turi o'z variant qoidasi bilan: choy — qadoq (250 g), poyabzal — 35–46,
+         batareyka — AA/AAA, guruch — variantsiz. Qoidalar: apps/catalog/variants.py{% endcomment %}
+      <div class="field"><label class="label" x-text="spec.field">Navi (ixtiyoriy)</label>
+        <input class="input" name="variant" :placeholder="spec.hint"></div>
       <div class="field"><label class="label">Birlik</label>
-        <select class="select-native" name="unit" x-ref="unit" @change="unit=$event.target.value">{% for v,l in units %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
-      {# O'lcham × rang — kiyim/poyabzal: har biri alohida qoldiq va barkod #}
-      <div class="variant-box" x-show="unit==='dona'" x-cloak>
-        <div class="row" style="justify-content:space-between;align-items:center">
-          <label class="label" style="margin:0">O'lchamlar <small class="muted">(ixtiyoriy — kiyim, poyabzal)</small></label>
-          <div class="row gap-1">
-            {% for grp in size_presets %}<button type="button" class="chip chip-sm" @click="preset('{{ grp }}')">{{ grp }}</button>{% endfor %}
+        <select class="select-native" name="unit" x-ref="unit" @change="unit=$event.target.value">{% for v,l in units %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+        <div class="hint" x-show="spec.pack && unit!=='dona'" x-cloak>Qadoqlab (pachka, butilka) sotsangiz — birlikni «dona» qiling, qadoqlar chiqadi.</div></div>
+      <div class="variant-box" x-show="hasSizes || spec.colors" x-cloak>
+        <template x-if="hasSizes"><div>
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <label class="label" style="margin:0"><span x-text="spec.noun"></span> <small class="muted">(ixtiyoriy)</small></label>
+            <div class="row gap-1" x-show="groups.length>1">
+              <template x-for="g in groups" :key="g"><button type="button" class="chip chip-sm" :aria-pressed="group===g" @click="setGroup(g)" x-text="g"></button></template>
+            </div>
           </div>
-        </div>
-        <div class="size-grid">
-          <template x-for="sz in sizeOptions" :key="sz">
-            <button type="button" class="size-pill" :aria-pressed="sizes.includes(sz)" @click="toggleSize(sz)" x-text="sz"></button>
-          </template>
-          <input class="input num size-add" x-model="customSize" @keydown.enter.prevent="addSize()" placeholder="+ boshqa" maxlength="20">
-        </div>
+          <div class="size-grid">
+            <template x-for="sz in sizeOptions" :key="sz">
+              <button type="button" class="size-pill" :aria-pressed="sizes.includes(sz)" @click="toggleSize(sz)" x-text="sz" data-noloc></button>
+            </template>
+            <input class="input num size-add" x-model="customSize" @keydown.enter.prevent="addSize()" @blur="addSize()"
+                   :placeholder="addHint" maxlength="20" aria-label="Boshqa variant qo'shish">
+          </div>
+        </div></template>
         <template x-for="sz in sizes" :key="'h'+sz"><input type="hidden" name="sizes" :value="sz"></template>
-        <div class="field" style="margin:var(--sp-2) 0 0"><label class="label">Ranglar <small class="muted">(vergul bilan)</small></label>
+        <div class="field" x-show="spec.colors" :style="{ margin: hasSizes ? 'var(--sp-2) 0 0' : '0' }"><label class="label">Ranglar <small class="muted">(ixtiyoriy, vergul bilan)</small></label>
           <input class="input" name="colors" x-model="colors" placeholder="masalan: qora, oq, ko'k"></div>
         <div class="hint" x-show="variantCount>1">Har biri alohida qoldiq va barkod bilan <b x-text="variantCount"></b> ta variant yaratiladi.</div>
       </div>
@@ -179,7 +184,6 @@
 {% block extra_js %}
 <script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>
 {{ catalog_json|json_script:"catalog-data" }}
-{{ size_presets|json_script:"size-presets" }}
 <script>
   window.openProdEdit = function (b) {
     var d = b.dataset, $ = function (id) { return document.getElementById(id); };
@@ -195,16 +199,34 @@
     Alpine.data('prodForm', () => ({
       items: JSON.parse(document.getElementById('catalog-data').textContent),
       q: '', open: false, picked: null,
-      unit: 'dona', sizes: [], colors: '', customSize: '',
-      presets: JSON.parse(document.getElementById('size-presets').textContent),
-      sizeOptions: ['XS','S','M','L','XL','XXL','3XL'],
-      get variantCount(){ const c=this.colors.split(',').map(x=>x.trim()).filter(Boolean).length;
-        return Math.max(1,this.sizes.length) * Math.max(1,c); },
-      preset(g){ this.sizeOptions=[...new Set([...this.sizes, ...this.presets[g]])]; },
+      unit: 'dona', sizes: [], colors: '', customSize: '', group: '', sizeOptions: [],
+      spec: { kind: 'none', noun: '', colors: false, presets: {}, field: 'Navi (ixtiyoriy)',
+              hint: 'masalan: mahalliy, 1-nav, katta', pack: false },
+      get groups(){ return Object.keys(this.spec.presets || {}); },
+      get hasSizes(){ return this.unit === 'dona' && !!this.spec.noun; },
+      get addHint(){ return this.spec.kind === 'pack_weight' ? '+ 750 g' : this.spec.kind === 'pack_volume' ? '+ 2 L' : '+ boshqa'; },
+      get variantCount(){ const c = this.spec.colors ? this.colors.split(',').map(x=>x.trim()).filter(Boolean).length : 0;
+        return Math.max(1, this.hasSizes ? this.sizes.length : 0) * Math.max(1, c); },
+      setGroup(g){ this.group = g; this.sizeOptions = [...new Set([...this.sizes, ...(this.spec.presets[g] || [])])]; },
       toggleSize(sz){ const i=this.sizes.indexOf(sz); if(i>=0) this.sizes.splice(i,1); else this.sizes.push(sz); },
-      addSize(){ const v=this.customSize.trim().toUpperCase(); if(!v) return;
-        if(!this.sizeOptions.includes(v)) this.sizeOptions.push(v);
-        if(!this.sizes.includes(v)) this.sizes.push(v); this.customSize=''; },
+      // Server bilan bir xil yozuv (variants.normalize): "250g" → "250 g", choyda "250" → "250 g", "xl" → "XL"
+      normSize(v){
+        v = String(v || '').trim().replace(/\s+/g, ' ');
+        const U = { g:'g', gr:'g', gramm:'g', kg:'kg', kilo:'kg', ml:'ml', l:'L', litr:'L', w:'W' };
+        const m = v.match(/^(\d+(?:[.,]\d+)?)\s*(g|gr|gramm|kg|kilo|ml|l|litr|w)$/i);
+        if (m) return m[1].replace('.', ',') + ' ' + U[m[2].toLowerCase()];
+        if (this.spec.pack && /^\d+(?:[.,]\d+)?$/.test(v)) {
+          const n = parseFloat(v.replace(',', '.')), w = this.spec.kind === 'pack_weight';
+          return v.replace('.', ',') + ' ' + (n < 20 ? (w ? 'kg' : 'L') : (w ? 'g' : 'ml'));
+        }
+        return /^(\d?x{0,3}[sml]|x{1,3}s|\d+xl)$/i.test(v) ? v.toUpperCase() : v;
+      },
+      addSize(){ const v = this.normSize(this.customSize); if (!v) return;
+        const isMeasure = /^\d+(?:,\d+)? (g|kg|ml|L|W)$/.test(v);
+        if (this.spec.pack && !isMeasure) { window.toast("Qadoq og'irlik yoki hajm bo'lsin: masalan 250 g, 1 L", 'warn'); return; }
+        if (!this.spec.pack && this.spec.kind !== 'type' && isMeasure) { window.toast("O'lcham gramm yoki litr bo'lmaydi", 'warn'); return; }
+        if (!this.sizeOptions.includes(v)) this.sizeOptions.push(v);
+        if (!this.sizes.includes(v)) this.sizes.push(v); this.customSize=''; },
       init(){
         const id = new URLSearchParams(location.search).get('add');
         if(id){ const c = this.items.find(x=>String(x.id)===String(id)); if(c){ this.pick(c);
@@ -213,6 +235,9 @@
       get filtered(){ const s=this.q.toLowerCase();
         return this.items.filter(i=>i.name.toLowerCase().includes(s)); },
       pick(c){ this.picked=c; this.open=false; this.q=''; this.unit=c.unit;
+        // Toifa almashsa — oldingi toifaning razmer/ranglari qolib ketmasin (choyga 3XL)
+        this.spec = c; this.sizes = []; this.colors = ''; this.customSize = '';
+        this.group = this.groups[0] || ''; this.sizeOptions = this.group ? [...this.spec.presets[this.group]] : [];
         // change hodisasi — maxsus dropdown yorlig'i ham yangilansin (aks holda eski birlik ko'rinardi)
         this.$nextTick(()=>{ const u=this.$refs.unit; if(u){ u.value=c.unit;
           u.dispatchEvent(new Event('change', {bubbles:true})); } }); },

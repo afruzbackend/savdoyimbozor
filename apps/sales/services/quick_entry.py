@@ -4,6 +4,7 @@
     "15 kg olma narxi 12 000; banan 20 kilo 18 ming"
     "krossovka 36 razmerlik 10 ta 37 lik 50 ta"   → ikki qator (har razmer — alohida variant)
     "futbolka XL 10 ta, M 100 ta"                 → ikkinchisi ham futbolka (nom davom etadi)
+    "choy 250 g 10 ta, 1 kg 5 ta"                 → qadoq varianti (250 g) — 10 dona
 →   [{name: Pomidor, qty: 15, unit: kg, price: 8000}, {name: Kartoshka, qty: 2, packs}, ...]
 
 Server tomonda BITTA manba: son-so'zlar, birliklar, narx belgilari, mahsulotni do'kon
@@ -17,6 +18,8 @@ import re
 from dataclasses import asdict, dataclass
 from decimal import Decimal, InvalidOperation
 
+from apps.catalog.variants import ASK, measure, same, size_class
+
 APOSTROPHES = str.maketrans({"ʻ": "'", "’": "'", "‘": "'", "`": "'", "´": "'", "ʼ": "'"})
 
 ONES = {"bir": 1, "ikki": 2, "uch": 3, "to'rt": 4, "tort": 4, "besh": 5, "olti": 6, "yetti": 7,
@@ -28,7 +31,7 @@ SCALES = {"ming": 1000, "million": 1_000_000, "mln": 1_000_000, "milliard": 1_00
 # birlik so'zi → catalog.Unit qiymati ("g" — kg ga o'giriladi)
 UNITS = {
     "kilo": "kg", "kg": "kg", "kilogramm": "kg", "kilogram": "kg",
-    "gramm": "g", "gr": "g",
+    "gramm": "g", "gr": "g", "g": "g", "ml": "ml", "millilitr": "ml",
     "dona": "dona", "ta": "dona", "shtuk": "dona",
     "litr": "litr", "l": "litr",
     "metr": "metr", "m": "metr",
@@ -38,6 +41,8 @@ UNITS = {
     "bog'lam": "bog'lam", "bog'": "bog'lam", "boglam": "bog'lam",
 }
 PACK_UNITS = {"qop", "quti"}
+# Og'irlik/hajm birliklari: "250 g 10 ta" yoki "5 litrlik" — bu qadoq varianti, miqdor emas
+MEASURE_UNITS = {"g": "g", "kg": "kg", "litr": "L", "ml": "ml"}
 # Harfli razmerlar. "m"/"l" raqamdan KEYIN kelsa — birlik (metr/litr), aks holda razmer.
 LETTER_SIZES = {"xxs", "xs", "s", "m", "l", "xl", "xxl", "xxxl", "2xl", "3xl", "4xl", "5xl"}
 SIZE_MARKERS = {"razmer", "razmeri", "razmerli", "razmerlik", "razmerdagi", "razmerlari", "raz",
@@ -138,7 +143,7 @@ def _classify(tokens):
             if suf:
                 base, s2 = _strip_suffix(suf)
                 if base in UNITS:
-                    items.append(["unit", UNITS[base]])  # "15kg"
+                    items.append(["unit", UNITS[base], s2])  # "15kg", "250grammlik"
                 elif base in SCALES:
                     items[-1][1] *= SCALES[base]
                 if suf in ("dan", "ga") or s2 in ("dan", "ga") or base in CURRENCY:
@@ -178,7 +183,7 @@ def _classify(tokens):
                 last_num_to_size()  # "37 lik"
                 continue
             if word in UNITS and items and items[-1][0] == "num":
-                items.append(["unit", UNITS[word]])
+                items.append(["unit", UNITS[word], suf])
             elif tok in LETTER_SIZES:
                 items.append(["size", tok.upper()])
             elif word in PRICE_WORDS:
@@ -196,6 +201,27 @@ def _classify(tokens):
             items[-1][2] = True
     flush()
     return items
+
+
+def _packs(items):
+    """"250 g 10 ta", "5 litrlik 3 ta" → og'irlik/hajm qadoq razmeri (variant), soni esa dona.
+
+    Belgi: o'lchovdan keyin "-lik" yoki gapda alohida dona soni bor. "pomidor 15 kg" — miqdor.
+    """
+    pieces = any(it[0] == "unit" and it[1] == "dona" for it in items)
+    out, i = [], 0
+    while i < len(items):
+        it, nxt = items[i], items[i + 1] if i + 1 < len(items) else None
+        if (it[0] == "num" and not it[2] and nxt and nxt[0] == "unit" and nxt[1] in MEASURE_UNITS
+                and (pieces or nxt[2:3] in (["lik"], ["li"]))):
+            val = it[1]
+            num = str(int(val)) if val == val.to_integral() else format(val.normalize(), "f")
+            out.append(["size", f"{num.replace('.', ',')} {MEASURE_UNITS[nxt[1]]}"])
+            i += 2
+            continue
+        out.append(it)
+        i += 1
+    return out
 
 
 def _chunks(items):
@@ -250,6 +276,8 @@ def _analyze(items) -> dict:
         qty = rest.pop(0)
     if unit == "g" and qty is not None:  # "500 gramm" → 0.5 kg
         qty, unit = qty / 1000, "kg"
+    if unit == "ml" and qty is not None:  # "500 ml" → 0.5 litr
+        qty, unit = qty / 1000, "litr"
     # Narx aniq aytilmagan bo'lsa — qolgan son (lekin u razmer bo'lishi ham mumkin: parse() hal qiladi)
     return {"name": " ".join(name_words), "qty": qty, "unit": unit, "size": size,
             "price": int(price) if price is not None else None,
@@ -258,7 +286,7 @@ def _analyze(items) -> dict:
 
 def parse_segment_rows(text: str) -> list[dict]:
     """Bitta bo'lak (vergulgacha) → bir yoki bir necha qator (har razmerga bittadan)."""
-    items = _classify(TOKEN_RE.findall(_norm(text)))
+    items = _packs(_classify(TOKEN_RE.findall(_norm(text))))
     prefix, chunks = _chunks(items)
     if not prefix and len(chunks) == 1:
         return [_analyze(chunks[0])]
@@ -370,10 +398,16 @@ def _build_row(seg, data, prev, products, models) -> Row:
     model_key = _find_model(name, models)
     # Belgisiz raqamli razmer: "krossovka 36 10 ta" — 36 shu modelda bor razmer bo'lsa
     if not size and model_key:
-        known = {v.size.upper() for v in models[model_key]}
+        known = {v.size.upper(): v.size for v in models[model_key]}
+        # Qadoqli model: "choy 250 10 ta" — 250 faqat bitta qadoqqa ("250 g") mos kelsa
+        by_num = {}
+        for v in models[model_key]:
+            if measure(v.size):
+                by_num.setdefault(v.size.split()[0], []).append(v.size)
+        known.update({k: vs[0] for k, vs in by_num.items() if len(vs) == 1})
         hit = next((x for x in rest if str(x).upper() in known), None)
         if hit is not None:
-            size = str(hit).upper()
+            size = known[str(hit).upper()]
             rest.remove(hit)
     if price is None and rest:
         price = rest[0]
@@ -389,7 +423,8 @@ def _build_row(seg, data, prev, products, models) -> Row:
     if model_key and not _match_exact(name, products):
         # Model razmerli, lekin razmer aytilmadi — ixtiyoriy razmerga yozib yubormaymiz
         variants = models[model_key]
-        row.error = "razmerini tanlang: " + _sizes_hint(variants)
+        ask = ASK[size_class(v.size for v in variants)]  # razmerini / qadog'ini / turini
+        row.error = f"{ask} tanlang: " + _sizes_hint(variants)
         row.product_name = _base_of(variants[0])
         from apps.catalog.sizes import size_key as _size_key
 
@@ -426,7 +461,7 @@ def _fill_variant(row, name, size, model_key, models) -> Row:
     if model_key:
         variants = models[model_key]
         base = _base_of(variants[0])
-        p = next((v for v in variants if v.size.upper() == size.upper()), None)
+        p = next((v for v in variants if same(v.size, size)), None)
         if p is not None:
             row.product_id, row.product_name, row.unit = p.pk, p.name, p.unit
             if row.price is None:
