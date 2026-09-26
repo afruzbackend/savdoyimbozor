@@ -68,12 +68,15 @@
     // Oxirida tinish belgisi/strelka bo'lsa (":", "→", "»", "·") — asosini tarjima qilamiz
     const m = key.match(/^(.+?)\s*([:→»·]+)$/);
     if (m && RU[m[1]] !== undefined) return text.replace(m[1], RU[m[1]]);
-    // Aniq moslik yo'q — dinamik bo'laklarni almashtiramiz (signal sabablari)
-    let out = text;
+    // Aniq moslik yo'q — dinamik bo'laklarni almashtiramiz (signal sabablari, "{{ qiymat }}" yonidagi
+    // matn). Bo'shliqlar bittaga keltiriladi (brauzer baribir shunday ko'rsatadi) — shablon qatorlarga
+    // bo'lingan joyda ham bo'lak mos keladi.
+    let out = /\s\s|\n/.test(text) ? text.replace(/\s+/g, " ") : text;
+    const before = out;
     for (const [a, b] of RU_FRAG) {
       if (out.includes(a)) out = out.split(a).join(b);
     }
-    return out;
+    return out === before ? text : out;
   }
 
   // Tarjima qilinadigan atributlar (placeholder, tooltip, aria)
@@ -133,6 +136,12 @@
     }
     if (!transform) return;
     walk(document.body, transform);
+    // Brauzer tabidagi sarlavha ham ("Kirim — Bozor Nazorat"): butun holda, bo'lmasa qismlab
+    if (document.title) {
+      const whole = transform(document.title);
+      document.title = whole !== document.title ? whole
+        : document.title.split(" — ").map((p) => transform(p)).join(" — ");
+    }
     // HTMX bilan kelgan yangi bo'laklarni ham
     document.body.addEventListener("htmx:afterSwap", (e) => walk(e.target, transform));
     window.i18nApply = (node) => walk(node, transform);
