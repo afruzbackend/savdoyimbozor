@@ -25,6 +25,7 @@ Lokal PostgreSQL kerak. Baza va rol oching (nomlar `.env` bilan mos bo'lsin):
 psql -U postgres -c "CREATE ROLE bozor LOGIN PASSWORD 'bozor';" -c "CREATE DATABASE bozor OWNER bozor;"
 pip install -r requirements.txt
 cp .env.example .env          # SECRET_KEY, DATABASE_URL ni to'ldiring (DEBUG=False)
+# SECRET_KEY: python -c "import secrets; print(secrets.token_urlsafe(50))"  (prod kuchsiz kalit bilan ishga tushmaydi)
 python manage.py migrate
 python manage.py seed_demo --reset
 python manage.py runserver

@@ -68,6 +68,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
+    # Xodim uzoq faol bo'lmasa — tizimdan chiqariladi (sotuvchiga emas):
+    "apps.core.middleware.IdleTimeoutMiddleware",
     # Foydalanuvchi ROLIga qarab ROOT_URLCONF tanlaydi (bitta host):
     "apps.core.middleware.HostRoutingMiddleware",
     # Birinchi kirishda / tiklangan parolni almashtirish majburiy:
@@ -189,6 +191,9 @@ CELERY_TIMEZONE = TIME_ZONE
 # --- Xavfsizlik chegaralari (SystemSettings'da ham bor, bu default) ---
 LOGIN_MAX_ATTEMPTS = 5
 LOGIN_LOCK_MINUTES = 15
+
+# Admin/tekshiruvchi/prokuror shuncha daqiqa faol bo'lmasa tizimdan chiqadi (0 — o'chiq)
+STAFF_IDLE_MINUTES = env.int("STAFF_IDLE_MINUTES", default=120)
 
 # IP bo'yicha login cheklovi (apps.accounts.throttle): 15 daqiqada shuncha xato → IP bloklanadi
 LOGIN_IP_MAX_FAILS = env.int("LOGIN_IP_MAX_FAILS", default=20)

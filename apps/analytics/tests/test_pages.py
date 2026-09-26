@@ -45,6 +45,7 @@ def test_inventory_no_n_plus_1(iclient, market, django_assert_max_num_queries):
     from apps.core.models import SystemSettings
 
     SystemSettings.get_solo()  # sozlamalar keshda (prod'da doim shunday) — faqat N+1 o'lchanadi
+    iclient.get("/", HTTP_HOST=INSPECTOR_HOST)  # isitish: faollik vaqti sessiyaga (daqiqada bir) yozildi
     # 20 do'kon bo'lsa ham so'rov soni past va barqaror bo'lishi kerak
     with django_assert_max_num_queries(12):
         r = iclient.get("/ombor/", HTTP_HOST=INSPECTOR_HOST)
@@ -53,6 +54,7 @@ def test_inventory_no_n_plus_1(iclient, market, django_assert_max_num_queries):
 
 @pytest.mark.django_db
 def test_dashboard_query_budget(iclient, shop, django_assert_max_num_queries):
+    iclient.get("/", HTTP_HOST=INSPECTOR_HOST)  # isitish (sessiya/sozlamalar) — barqaror holat o'lchanadi
     with django_assert_max_num_queries(20):
         r = iclient.get("/", HTTP_HOST=INSPECTOR_HOST)
     assert r.status_code == 200

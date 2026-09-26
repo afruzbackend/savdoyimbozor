@@ -228,7 +228,9 @@
     ["click", "keydown", "touchstart", "input", "mousemove"].forEach(function (ev) {
       document.addEventListener(ev, mark, { passive: true, capture: true });
     });
-    setInterval(function () {
+    var timer = setInterval(function () {
+      // Xodim uzoq qimirlamagan — avto-yangilash to'xtaydi, server sessiyani yopadi (xavfsizlik)
+      if (window.BN_IDLE_MS && Date.now() - last > window.BN_IDLE_MS) { clearInterval(timer); return; }
       if (document.hidden) return;
       if (document.querySelector(".modal-backdrop:not([hidden])")) return;
       if (Date.now() - last < 20000) return; // foydalanuvchi faol — halaqit bermaymiz

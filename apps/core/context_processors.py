@@ -19,6 +19,9 @@ def ui_context(request):
         "theme": theme,  # "light" | "dark"
         "uilang": request.COOKIES.get("uilang", ""),  # "" lotin / "cyrl" kirill
         "asset_v": ASSET_V,
+        # Xodim uchun faolsizlik chegarasi (ms) — liveRefresh shundan keyin sahifani yangilamaydi
+        "idle_ms": (settings.STAFF_IDLE_MINUTES * 60_000
+                    if user and user.is_authenticated and getattr(user, "is_staff_role", False) else 0),
         # Telegram bot sozlanmagan bo'lsa — sozlamalarda foydasiz tugma ko'rsatilmaydi
         "telegram_enabled": bool(getattr(settings, "TELEGRAM_BOT_TOKEN", "")),
     }

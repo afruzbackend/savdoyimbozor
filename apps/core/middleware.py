@@ -16,6 +16,45 @@ ROLE_INTERFACE = {
 }
 
 
+class IdleTimeoutMiddleware(MiddlewareMixin):
+    """Xodim (admin/tekshiruvchi/prokuror) STAFF_IDLE_MINUTES faol bo'lmasa — tizimdan chiqariladi.
+
+    Umumiy kompyuterda (bozor idorasi) qoldirilgan sessiya 2 hafta ochiq turmasin. Sotuvchilarga
+    qo'llanmaydi (o'z telefoni, tez sotuv). Sessiyaga har so'rovda emas, daqiqada bir yoziladi.
+    Dashboard avto-yangilanishi foydalanuvchi faolligi emas — liveRefresh xodim uzoq qimirlamasa
+    to'xtaydi, shuning uchun muddat baribir tugaydi.
+    """
+
+    KEY = "idle_last"
+    WRITE_EVERY = 60
+
+    def process_request(self, request):
+        import time
+
+        limit = getattr(settings, "STAFF_IDLE_MINUTES", 0) * 60
+        user = getattr(request, "user", None)
+        if not limit or not (user and user.is_authenticated and getattr(user, "is_staff_role", False)):
+            return None
+        now = int(time.time())
+        last = request.session.get(self.KEY)
+        if last and now - last > limit:
+            from django.contrib.auth import logout
+
+            logout(request)
+            if request.path.startswith("/api/") or request.headers.get("HX-Request"):
+                from django.http import JsonResponse
+
+                return JsonResponse({"detail": "Sessiya tugadi — qaytadan kiring."}, status=401)
+            from urllib.parse import quote
+
+            from django.shortcuts import redirect
+
+            return redirect(f"/login/?timeout=1&next={quote(request.get_full_path(), safe='/')}")
+        if not last or now - last >= self.WRITE_EVERY:
+            request.session[self.KEY] = now
+        return None
+
+
 class HostRoutingMiddleware(MiddlewareMixin):
     """BITTA host — foydalanuvchi ROLIga qarab ROOT_URLCONF tanlaydi.
 

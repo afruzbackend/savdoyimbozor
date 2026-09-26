@@ -1313,6 +1313,8 @@ window.RU_DICT = {
   "Yong'in": "Пожар",
   "Yuborildi": "Отправлено",
   "bog'lam": "пучок",
+  "Uzoq vaqt faollik bo'lmagani uchun xavfsizlik maqsadida tizimdan chiqildi. Qaytadan kiring.": "Из-за долгого отсутствия активности выполнен выход в целях безопасности. Войдите снова.",
+  "Sessiya tugadi — qaytadan kiring.": "Сессия истекла — войдите снова.",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.

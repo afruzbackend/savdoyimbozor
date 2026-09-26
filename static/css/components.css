@@ -795,7 +795,9 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 .mic-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .mic-btn.on{background:var(--bad);color:#fff;border-color:var(--bad);animation:micPulse 1.2s ease-out infinite}
 @keyframes micPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--bad) 55%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
-.quick-rows .qi-in{width:90px;padding:6px 8px;text-align:right}
+.quick-rows .qi-in{width:74px;padding:6px 8px;text-align:right}
+.quick-rows td,.quick-rows th{padding-left:6px;padding-right:6px}
+.quick-rows td:nth-child(4){white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.mic-btn.on{animation:none}}
 
 

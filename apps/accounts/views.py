@@ -96,6 +96,9 @@ def login_view(request):
             return redirect("password_change")
         return redirect(_home_url_for(request))
 
+    if request.GET.get("timeout"):
+        messages.info(request, "Uzoq vaqt faollik bo'lmagani uchun xavfsizlik maqsadida tizimdan "
+                               "chiqildi. Qaytadan kiring.")
     return render(request, "registration/login.html")
 
 

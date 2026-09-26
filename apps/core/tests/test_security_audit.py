@@ -265,3 +265,21 @@ def test_client_ip_ignores_spoofed_forwarded_for(settings, rf):
     assert client_ip(req) == "203.0.113.9"
     req = rf.get("/", HTTP_X_FORWARDED_FOR="6.6.6.6, 203.0.113.9", REMOTE_ADDR="172.18.0.3")
     assert client_ip(req) == "203.0.113.9"
+
+
+# ---------- Production: ma'lum/kuchsiz SECRET_KEY bilan ishga tushmaydi ----------
+
+def test_prod_refuses_weak_secret_key():
+    import os
+    import subprocess
+    import sys
+
+    def run(key):
+        env = dict(os.environ, DJANGO_SETTINGS_MODULE="config.settings.prod", SECRET_KEY=key,
+                   DEBUG="False", ALLOWED_HOSTS="x", CSRF_TRUSTED_ORIGINS="https://x")
+        return subprocess.run([sys.executable, "-c", "import django; django.setup()"],
+                              env=env, capture_output=True, text=True, timeout=120)
+
+    weak = run("change-me-in-production")
+    assert weak.returncode != 0 and "SECRET_KEY" in weak.stderr
+    assert run("k" * 50).returncode == 0

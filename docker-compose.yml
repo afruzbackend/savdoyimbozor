@@ -1,6 +1,7 @@
 x-django-env: &django_env
   DJANGO_SETTINGS_MODULE: config.settings.prod
-  SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+  # Majburiy: .env da SECRET_KEY (python -c "import secrets; print(secrets.token_urlsafe(50))")
+  SECRET_KEY: ${SECRET_KEY:?.env faylida SECRET_KEY o'rnating}
   DEBUG: "False"
   DATABASE_URL: postgres://bozor:${DB_PASSWORD:-bozor}@db:5432/bozor
   CELERY_BROKER_URL: redis://redis:6379/0
