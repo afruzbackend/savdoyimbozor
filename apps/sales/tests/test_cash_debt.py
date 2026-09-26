@@ -274,3 +274,29 @@ def test_large_stock_in_requires_invoice_photo(sclient, shop, product, settings,
     assert si.invoice_photo and si.supplier_stir == "305111222"
     product.refresh_from_db()
     assert product.stock == before + Decimal("100")
+
+
+@pytest.mark.django_db(transaction=True)
+def test_debt_payment_works_outside_test_transaction(sclient, shop):
+    """Haqiqiy server autocommit rejimida: select_for_update tranzaksiyasiz 500 berardi.
+
+    Oddiy testlar har testni tranzaksiyaga o'raydi — xato ko'rinmagan. transaction=True —
+    xuddi runserver/gunicorn kabi.
+    """
+    d = Debt.objects.create(shop=shop, customer_name="Ali", amount=100000)
+    r = sclient.post("/nasiya/", {"pay": d.pk, "amount": "30000", "method": "cash"},
+                     HTTP_HOST=SELLER_HOST)
+    assert r.status_code == 302
+    d.refresh_from_db()
+    assert d.paid_amount == 30000
+
+
+@pytest.mark.django_db(transaction=True)
+def test_sale_and_stock_moves_work_outside_test_transaction(sclient, shop, product):
+    """Sotuv va qoldiq jurnali ham (select_for_update) — haqiqiy autocommit rejimida."""
+    import json
+
+    body = {"items": [{"product_id": product.pk, "name": product.name, "qty": 1, "unit_price": 12000}],
+            "discount": 0, "rounding": 0, "payment_type": "cash", "mode": "scan"}
+    r = sclient.post("/api/sales/", json.dumps(body), content_type="application/json", HTTP_HOST=SELLER_HOST)
+    assert r.status_code == 201

@@ -142,6 +142,7 @@ def refresh_register_close(shop, day):
     return rc
 
 
+@transaction.atomic  # select_for_update tranzaksiyasiz ishlamaydi (testlar o'ragani uchun ko'rinmagan edi)
 def pay_debt(debt: Debt, amount, method, seller) -> DebtPayment:
     """Nasiya to'lovi (qisman ham). Qoldiqdan ko'p to'lab bo'lmaydi."""
     debt = Debt.objects.select_for_update().get(pk=debt.pk)
