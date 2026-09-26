@@ -26,7 +26,7 @@
   <a class="chip" href="?mine=1" {% if mine %}aria-pressed="true"{% endif %}>Mening</a>
   <div class="search-inline" style="margin-left:auto;display:flex;gap:6px">
     <input class="input" name="q" value="{{ q }}" placeholder="Do'kon №, STIR yoki akt raqami" style="min-width:220px">
-    <button class="btn btn-ghost" type="submit"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-search"></use></svg></button>
+    <button class="btn btn-ghost" type="submit" aria-label="Qidirish"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-search"></use></svg></button>
   </div>
 </form>
 

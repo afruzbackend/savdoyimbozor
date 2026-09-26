@@ -242,6 +242,26 @@
     }, ms || 30000);
   };
 
+  // ---- Raqam maydoni: fokusda turganda g'ildirak qiymatni jimgina o'zgartirmasin ----
+  // (sotuvchi narxni yozib, sahifani aylantirsa — 8000 → 7999 bo'lib saqlanib ketardi)
+  document.addEventListener("wheel", function (e) {
+    var el = document.activeElement;
+    if (el && el.type === "number" && e.target === el) el.blur();
+  }, { passive: true });
+
+  // ---- .field ichidagi yorliq ↔ maydon bog'lanishi (yorliq bosilsa fokus; ekran o'qigich) ----
+  function linkLabels(root) {
+    (root || document).querySelectorAll(".field").forEach(function (f, i) {
+      var label = f.querySelector(":scope > label.label:not([for])");
+      var ctl = f.querySelector(
+        "input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]), textarea");
+      if (!label || !ctl || label.contains(ctl)) return;
+      if (!ctl.id) ctl.id = "fld-" + (ctl.name || "x") + "-" + i;
+      label.htmlFor = ctl.id;
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () { linkLabels(); });
+
   // ---- Skroll joyi xotirasi ----
   // .main (va [data-keep-scroll] bloklar) o'zi alohida skroll bloki — brauzer "Orqaga"da uni
   // TIKLAMAYDI: ro'yxatni pastga surib, do'konga kirib, qaytsangiz tepadan boshlanardi.
