@@ -20,7 +20,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN chmod +x docker/entrypoint.sh
+# Root EMAS: alohida cheklangan foydalanuvchi. Yoziladigan joylar faqat statik/media/zaxira/inbox
+# (nomli volume birinchi yaratilganda egalik shu kataloglardan olinadi).
+RUN chmod +x docker/entrypoint.sh \
+ && groupadd --system --gid 10001 app \
+ && useradd --system --uid 10001 --gid app --home-dir /app --shell /usr/sbin/nologin app \
+ && mkdir -p /app/staticfiles /app/media /backups /tax_inbox \
+ && chown -R app:app /app/staticfiles /app/media /backups /tax_inbox
+USER app
 
 EXPOSE 8000
 ENTRYPOINT ["/app/docker/entrypoint.sh"]

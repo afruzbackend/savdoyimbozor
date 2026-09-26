@@ -21,3 +21,10 @@ Thumbs.db
 .ruff_cache/
 /backups/
 /tax_inbox/
+
+# Qo'shimcha virtual muhitlar
+.venv*/
+
+# TLS kalitlari hech qachon repoga tushmasin
+docker/certs/*.pem
+docker/certs/*.key

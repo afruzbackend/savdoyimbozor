@@ -1,25 +1,23 @@
+# Production kutubxonalari — ANIQ versiyalar (har deploy bir xil, sinalgan to'plam).
+# Yangilash: requirements-dev.txt dagi pip-audit bilan zaiflik tekshiring, testlarni o'tkazing,
+# so'ng shu yerda versiyani oshiring. Django 5.2 — LTS (xavfsizlik yangilanishlari 2028-aprelgacha).
+
 # --- Asosiy ---
-Django>=5.1,<5.2
-djangorestframework==3.15.2
+Django==5.2.17
+djangorestframework==3.17.2
 django-htmx==1.27.0
 django-environ==0.11.2
-psycopg[binary]>=3.2
-Pillow
-openpyxl
-qrcode>=8.0  # xaridorga QR chek (BSD, SVG — Pillow shart emas)
+psycopg[binary]==3.3.6
+pillow==12.3.0
+openpyxl==3.1.5
+qrcode==8.2  # xaridorga QR chek (BSD, SVG)
 
 # --- Fon vazifalari ---
-celery>=5.4
-redis>=5.0
+celery==5.6.3
+redis==8.1.0
 
 # --- Production ---
-gunicorn
-sentry-sdk[django,celery]>=2.0  # SENTRY_DSN bo'lsa (GlitchTip/Sentry)
-
-# --- Dev / sifat ---
-ruff
-black
-pytest
-pytest-django
+gunicorn==26.2.0
 whitenoise==6.8.2
-Brotli>=1.1  # WhiteNoise statik fayllarni brotli bilan ham siqadi (gzip'dan ~15% kichik)
+brotli==1.2.0  # WhiteNoise statik fayllarni brotli bilan ham siqadi (gzip'dan ~15% kichik)
+sentry-sdk[django,celery]==2.70.0  # SENTRY_DSN bo'lsa (GlitchTip/Sentry)

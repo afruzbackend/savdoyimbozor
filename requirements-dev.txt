@@ -1,0 +1,7 @@
+# Ishlab chiqish va sifat (production obrazga KIRMAYDI)
+-r requirements.txt
+ruff==0.16.9
+black==26.5.1
+pytest==9.1.1
+pytest-django==4.14.0
+pip-audit  # zaiflik tekshiruvi: pip-audit -r requirements.txt

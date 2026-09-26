@@ -13,3 +13,10 @@ _preview.sqlite3
 .pytest_cache
 .ruff_cache
 node_modules
+.venv*
+.claude
+/backups
+/tax_inbox
+docker/certs
+*.pem
+*.key
