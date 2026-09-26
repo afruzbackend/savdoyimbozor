@@ -30,4 +30,9 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
 X_FRAME_OPTIONS = "DENY"
 
-STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+# Django 5.1 da STATICFILES_STORAGE olib tashlangan (e'tiborsiz qolardi) — STORAGES orqali.
+# WhiteNoise: fayl nomida xesh (abadiy kesh) + oldindan gzip/brotli siqilgan nusxalar.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "apps.core.storage.StaticStorage"},
+}

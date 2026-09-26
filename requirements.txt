@@ -22,3 +22,4 @@ black
 pytest
 pytest-django
 whitenoise==6.8.2
+Brotli>=1.1  # WhiteNoise statik fayllarni brotli bilan ham siqadi (gzip'dan ~15% kichik)

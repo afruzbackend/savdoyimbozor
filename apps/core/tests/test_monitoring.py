@@ -75,3 +75,19 @@ def test_scrub_removes_secrets_before_sending():
 
 def test_monitoring_off_without_dsn():
     assert monitoring.init("", environment="test", traces=0.0) is False
+
+
+def test_prod_collectstatic_hashes_and_compresses(tmp_path):
+    """Prod saqlagichi: collectstatic yiqilmaydi (vendor CSS dagi yo'q rasm ham), xesh + gzip/brotli."""
+    import io
+
+    from django.core.management import call_command
+    from django.test import override_settings
+
+    storages = {"default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+                "staticfiles": {"BACKEND": "apps.core.storage.StaticStorage"}}
+    with override_settings(STORAGES=storages, STATIC_ROOT=str(tmp_path)):
+        call_command("collectstatic", "--noinput", stdout=io.StringIO())
+    js = {p.name for p in (tmp_path / "js").iterdir()}
+    assert any(n.startswith("components.") and n.endswith(".js.gz") and n.count(".") >= 3 for n in js)
+    assert (tmp_path / "staticfiles.json").exists()
