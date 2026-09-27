@@ -1456,6 +1456,16 @@ window.RU_DICT = {
   "Kamida 8 belgi, harf va raqam": "Не менее 8 символов, буквы и цифры",
   "Kamida 12 belgi, harf va raqam": "Не менее 12 символов, буквы и цифры",
   "Parol juda oddiy (faqat raqam, keng tarqalgan yoki loginga o'xshash) — harf va raqam aralash, murakkabroq tanlang.": "Пароль слишком простой (только цифры, распространённый или похож на логин) — выберите сложнее, с буквами и цифрами.",
+  "Sotuv summalari kamaytirildi": "Суммы продаж уменьшены",
+  "Sotuvchi bir kunda cheklar summasini shuncha ulush va summadan ko'p kamaytirsa — nazoratchiga signal.": "Если продавец за день уменьшит суммы чеков больше этой доли и суммы — инспектор получит сигнал.",
+  "Tuzatish signali — kamida (so'm)": "Сигнал об исправлениях — минимум (сум)",
+  "Tuzatish signali — kunlik savdodan (%)": "Сигнал об исправлениях — от дневной выручки (%)",
+  "Dastlab": "Изначально",
+  "Sotuvchi bu chek summasini o'zgartirgan": "Продавец изменил сумму этого чека",
+  "Bugungi kassa yopilgan (Z-hisobot) — sotuvlarni endi tuzatib bo'lmaydi.": "Касса за сегодня закрыта (Z-отчёт) — продажи больше исправлять нельзя.",
+  "Bugungi kassa yopilgan (Z-hisobot) — sotuvlarni endi tuzatib bo'lmaydi. Farqni e'tirozda tushuntiring.": "Касса за сегодня закрыта (Z-отчёт) — продажи больше исправлять нельзя. Объясните расхождение в обращении.",
+  "Xato kiritilgan sotuv summasini shu yerda tuzatasiz. Yozuv o'chmaydi — eski qiymat saqlanadi va har tuzatish inspektorga ko'rinadi. Sabab yozish majburiy. Xaridor QR chekida ham \"summa o'zgartirilgan\" deb ko'rinadi. Bir kunda savdoning": "Здесь исправляется ошибочно внесённая сумма продажи. Запись не удаляется — старое значение сохраняется, и каждое исправление видит инспектор. Причина обязательна. На QR-чеке покупатель тоже увидит, что сумма изменена. Если за день уменьшить больше",
+  "idan ko'p kamaytirilsa — nazoratchiga signal boradi.": "выручки — инспектор получит сигнал.",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
@@ -1465,6 +1475,9 @@ window.RU_FRAGMENTS = [
 
   // Razmerli tovar
   ["razmerini tanlang: ", "выберите размер: "],
+  ["Sotuv summalari kamaytirildi: ", "Суммы продаж уменьшены: "],
+  [" ta chek, jami −", " чек(ов), всего −"],
+  ["(kunlik savdoning ", "(от дневной выручки: "],
   ["Parol kamida ", "Пароль должен быть не короче "],
   [" belgidan iborat bo'lsin.", " символов."],
   ["Qayta kiring — ", "Войдите снова — "],

@@ -595,7 +595,48 @@ def recompute_for_date(day, final: bool | None = None) -> int:
     if final:
         _generate_cash_mismatch_alerts(day, cfg, existing_alerts, insp_by_market)
         _generate_writeoff_alerts(day, cfg, shops, existing_alerts, insp_by_market)
+        _generate_correction_alerts(day, cfg, shops, entered_by, existing_alerts, insp_by_market)
     return count
+
+
+def correction_drops(shop_ids, day) -> dict:
+    """Shu kuni sotuv summalari qancha KAMAYTIRILGAN: {do'kon: (cheklar_soni, jami_kamayish)}."""
+    from apps.sales.models import Correction
+
+    out = {}
+    for c in Correction.objects.filter(shop_id__in=shop_ids, target_model="Sale", field="total",
+                                       **on_day("created_at", day)):
+        try:
+            drop = int(c.old_value) - int(c.new_value)
+        except ValueError:
+            continue
+        if drop > 0:
+            n, s = out.get(c.shop_id, (0, 0))
+            out[c.shop_id] = (n + 1, s + drop)
+    return out
+
+
+def _generate_correction_alerts(day, cfg, shops, entered_by, existing_alerts, insp_by_market):
+    """Sotuv summalari keskin kamaytirilsa — signal: xaridorga to'liq chek (QR) berib, keyin yozuvni
+    kamaytirish savdoni yashirish yo'li. Chegaralar: correction_alert_pct / correction_alert_min."""
+    from apps.analytics.models import Alert
+
+    by_id = {s.id: s for s in shops}
+    for sid, (n, drop) in correction_drops(list(by_id), day).items():
+        if (sid, Alert.Kind.CORRECTION) in existing_alerts:
+            continue
+        base = entered_by.get(sid, 0) + drop  # tuzatishgacha bo'lgan savdo
+        pct = round(drop / base * 100) if base else 100
+        if drop < cfg.correction_alert_min or pct < cfg.correction_alert_pct:
+            continue
+        existing_alerts.add((sid, Alert.Kind.CORRECTION))
+        Alert.objects.create(
+            shop=by_id[sid], date=day, kind=Alert.Kind.CORRECTION,
+            level="red" if pct >= cfg.correction_alert_pct * 2 else "yellow",
+            reason=(f"Sotuv summalari kamaytirildi: {n} ta chek, jami −{som(drop)} so'm "
+                    f"(kunlik savdoning {pct}%)")[:300],
+            assigned_to=insp_by_market.get(by_id[sid].market_id),
+        )
 
 
 def _generate_writeoff_alerts(day, cfg, shops, existing_alerts, insp_by_market):

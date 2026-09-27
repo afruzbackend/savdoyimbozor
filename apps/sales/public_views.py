@@ -49,9 +49,18 @@ def _can_report(sale) -> bool:
 def receipt(request, code):
     sale = _sale_or_404(code)
     items = list(sale.items.select_related("product"))
+    # Sotuvchi summani keyin o'zgartirgan bo'lsa — xaridor ko'radi (dastlabki → hozirgi, sabab):
+    # to'liq to'lagan xaridor darrov xabar bera oladi
+    from .models import Correction
+
+    corr = list(Correction.objects.filter(target_model="Sale", target_id=sale.pk, field="total")
+                .order_by("created_at"))
+    correction = ({"original": int(corr[0].old_value), "reason": corr[-1].reason,
+                   "at": corr[-1].created_at} if corr and corr[0].old_value.isdigit() else None)
     return render(request, "receipt/public.html", {
         "sale": sale,
         "items": items,
+        "correction": correction,
         "shop": sale.shop,
         "can_report": _can_report(sale),
         "reported": hasattr(sale, "buyer_report"),

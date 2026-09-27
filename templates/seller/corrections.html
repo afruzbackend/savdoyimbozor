@@ -6,7 +6,10 @@
 <div class="msg info" style="max-width:900px;margin:0 0 var(--sp-4)">
   Xato kiritilgan sotuv summasini shu yerda tuzatasiz. Yozuv o'chmaydi — eski qiymat
   saqlanadi va har tuzatish inspektorga ko'rinadi. Sabab yozish majburiy.
+  Xaridor QR chekida ham "summa o'zgartirilgan" deb ko'rinadi. Bir kunda savdoning
+  <b class="num">{{ alert_pct }}%</b> idan ko'p kamaytirilsa — nazoratchiga signal boradi.
 </div>
+{% if closed %}<div class="msg warning" style="max-width:900px;margin:0 0 var(--sp-4)">Bugungi kassa yopilgan (Z-hisobot) — sotuvlarni endi tuzatib bo'lmaydi.</div>{% endif %}
 <div class="grid" style="grid-template-columns:1fr 1fr;gap:var(--sp-4);align-items:start">
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Bugungi sotuvlar</div>

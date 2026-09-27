@@ -39,6 +39,8 @@
   .rc-code{text-align:center;margin-top:6px;letter-spacing:.18em;color:var(--ink-faint);font-size:var(--t--2)}
   .rc-note{max-width:400px;margin:22px 0 0;color:var(--ink-faint);font-size:var(--t--2);text-align:center}
   .rc-report{width:100%;max-width:400px;margin-top:22px}
+  .rc-corrected{margin-top:12px;padding:10px 12px;border:1px solid var(--warn);border-radius:10px;
+    background:color-mix(in srgb,var(--warn) 10%,transparent);font-size:.9em;display:grid;gap:3px}
   .rc-report summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-weight:600}
   .rc-report summary::-webkit-details-marker{display:none}
   @media (prefers-reduced-motion:reduce){.rc-paper,.rc-stamp svg{animation:none}}
@@ -71,6 +73,14 @@
       <div class="row"><span>To'lov</span><span>{{ sale.get_payment_type_display }}</span></div>
       <div class="rc-total"><span>Jami</span><span class="num">{{ sale.total|intcomma }} so'm</span></div>
     </div>
+    {% if correction %}
+    {# Sotuvchi summani keyin o'zgartirgan — xaridordan yashirilmaydi #}
+    <div class="rc-corrected" role="note">
+      <b>Sotuvchi bu chek summasini o'zgartirgan</b>
+      <div class="num"><span>Dastlab:</span> {{ correction.original|intcomma }} so'm → <span>hozir:</span> {{ sale.total|intcomma }} so'm</div>
+      {% if correction.reason %}<div class="muted"><span>Sabab:</span> {{ correction.reason }}</div>{% endif %}
+    </div>
+    {% endif %}
 
     <div class="rc-stamp">
       <svg class="icon" width="22" height="22"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg>
@@ -87,7 +97,7 @@
           <div class="muted" style="font-size:var(--t--1)">Farq bo'lsa, bozor nazoratchisi tekshiradi. Ismingiz va telefoningiz so'ralmaydi.</div></div>
       </div>
     {% elif can_report %}
-      <details {% if error %}open{% endif %}>
+      <details {% if error or correction %}open{% endif %}>
         <summary><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg>
           To'lagan summangiz boshqacha edimi?</summary>
         <p class="muted" style="font-size:var(--t--1);margin:var(--sp-2) 0 var(--sp-3)">

@@ -1359,7 +1359,11 @@ def corrections(request):
             Sale, pk=_pk(request.POST.get("sale")), shop=shop, **on_day("created_at", today))
         new_total = to_int(request.POST.get("new_total"), 0) or 0
         reason = request.POST.get("reason", "").strip()[:200]
-        if new_total <= 0 or not reason:
+        if RegisterClose.objects.filter(shop=shop, date=today).exists():
+            # Z-hisobot — kunning yakuniy hujjati: undan keyin sotuvlar orqaga o'zgarmaydi
+            messages.error(request, "Bugungi kassa yopilgan (Z-hisobot) — sotuvlarni endi tuzatib bo'lmaydi. "
+                                    "Farqni e'tirozda tushuntiring.")
+        elif new_total <= 0 or not reason:
             messages.error(request, "Yangi summa (0 dan katta) va sabab kiritilishi shart.")
         elif new_total == sale.total:
             messages.error(request, "Yangi summa eskisidan farq qilmaydi.")
@@ -1391,6 +1395,8 @@ def corrections(request):
             "shop": shop,
             "sales": Sale.objects.filter(shop=shop, **on_day("created_at", today)).order_by("-created_at"),
             "history": Correction.objects.filter(shop=shop).select_related("user")[:30],
+            "closed": RegisterClose.objects.filter(shop=shop, date=today).exists(),
+            "alert_pct": SystemSettings.get_solo().correction_alert_pct,
         },
     )
 

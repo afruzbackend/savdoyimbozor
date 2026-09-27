@@ -80,6 +80,14 @@ class SystemSettings(models.Model):
     writeoff_alert_min = models.PositiveBigIntegerField(
         _("Hisobdan chiqarish signali — kamida (so'm)"), default=200_000
     )
+    # Sotuv summasini kamaytirish (tuzatish) signali: kunlik kiritilgan savdoning shu %idan VA shu
+    # summadan ko'p kamaytirilsa — xaridorga to'liq chek berib, keyin yozuvni kamaytirish yo'li yopiladi
+    correction_alert_pct = models.PositiveSmallIntegerField(
+        _("Tuzatish signali — kunlik savdodan (%)"), default=10
+    )
+    correction_alert_min = models.PositiveBigIntegerField(
+        _("Tuzatish signali — kamida (so'm)"), default=100_000
+    )
 
     # Xavfsizlik
     login_max_attempts = models.PositiveSmallIntegerField(_("Maks kirish urinishi"), default=5)

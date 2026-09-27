@@ -555,6 +555,8 @@ def settings_edit(request):
             "cash_shortage_pct",
             "stockin_photo_min",
             "writeoff_alert_min",
+            "correction_alert_pct",
+            "correction_alert_min",
         ]
         # Har maydon uchun ruxsat etilgan oraliq (noto'g'ri qiymat tizimni buzmasin)
         limits = {
@@ -569,6 +571,7 @@ def settings_edit(request):
             "anomaly_drop_pct": (1, 100), "cash_shortage_pct": (1, 100),
             "stockin_photo_min": (0, 1_000_000_000),
             "writeoff_alert_min": (0, 1_000_000_000),
+            "correction_alert_pct": (1, 100), "correction_alert_min": (0, 1_000_000_000),
         }
         labels = {
             "green_threshold": "Yashil chegara", "yellow_threshold": "Sariq chegara",
@@ -581,6 +584,7 @@ def settings_edit(request):
             "anomaly_drop_pct": "Anomaliya chegarasi", "cash_shortage_pct": "Kassa kamomadi chegarasi",
             "stockin_photo_min": "Nakladnoy majburiy summa",
             "writeoff_alert_min": "Hisobdan chiqarish signali",
+            "correction_alert_pct": "Tuzatish signali (%)", "correction_alert_min": "Tuzatish signali (so'm)",
         }
         new, errors = {}, []
         for f in fields:
