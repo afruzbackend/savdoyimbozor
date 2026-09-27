@@ -13,7 +13,7 @@
       <input class="input" name="owner_name" value="{{ shop.owner_name }}" placeholder="Ism Familiya" required></div>
     <div class="grid grid-2">
       <div class="field"><label class="label">STIR</label>
-        <input class="input num" name="stir" value="{{ shop.stir }}" inputmode="numeric" placeholder="123456789" required></div>
+        <input class="input num" name="stir" value="{{ shop.stir }}" inputmode="numeric" data-digits="9" autocomplete="off" placeholder="123456789" required></div>
       <div class="field"><label class="label">Do'kon raqami</label>
         <input class="input num" name="number" value="{{ shop.number }}" required></div>
     </div>
@@ -22,7 +22,7 @@
       <div class="hint">Onlayn/virtual kassa raqami. Bitta STIR bir nechta do'konga ega bo'lsa, Soliq ma'lumoti shu raqam orqali aynan shu rastaga yoziladi.</div></div>
     <div class="grid grid-2">
       <div class="field"><label class="label">Telefon</label>
-        <input class="input" name="owner_phone" value="{{ shop.owner_phone }}" placeholder="+998..."></div>
+        <input class="input num" name="owner_phone" value="{{ shop.owner_phone }}" inputmode="tel" autocomplete="tel" data-phone placeholder="+998 90 123 45 67"></div>
       <div class="field"><label class="label">Savdo turi</label>
         <select class="select-native" name="category" required>
           <option value="" disabled {% if not shop.category_id %}selected{% endif %}>Tanlang</option>

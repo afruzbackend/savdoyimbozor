@@ -18,7 +18,7 @@
     <div class="field"><label class="label">F.I.O.</label>
       <input class="input" name="full_name" placeholder="Ism Familiya" required></div>
     <div class="field"><label class="label">Telefon</label>
-      <input class="input" name="phone" placeholder="+998..."></div>
+      <input class="input num" name="phone" inputmode="tel" autocomplete="tel" data-phone placeholder="+998 90 123 45 67"></div>
 
     <div x-show="role==='seller'" x-cloak>
       <div class="segmented" style="margin-bottom:var(--sp-3)">
@@ -30,7 +30,7 @@
         <div class="grid grid-2">
           <div class="field"><label class="label">Do'kon raqami (bo'sh — avto)</label><input class="input num" name="number" x-ref="number" placeholder="avto" autocomplete="off">
             <div class="field-err" id="number-taken" hidden></div></div>
-          <div class="field"><label class="label">STIR</label><input class="input num" name="stir" placeholder="123456789" required></div>
+          <div class="field"><label class="label">STIR</label><input class="input num" name="stir" placeholder="123456789" inputmode="numeric" data-digits="9" autocomplete="off" required></div>
         </div>
         <div class="grid grid-2">
           <div class="field"><label class="label">Bozor</label>

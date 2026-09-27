@@ -381,6 +381,9 @@ tr.row-muted td{color:var(--ink-faint)}
 .settings-x:hover{background:var(--surface-sunken);color:var(--ink)}
 .settings-user{display:flex;align-items:center;gap:12px;padding:var(--sp-4) var(--sp-5);
   background:var(--surface-2);border-bottom:1px solid var(--border)}
+.settings-user .login-pill{max-width:100%}
+.settings-user .login-pill b{overflow-wrap:anywhere}
+.settings-name{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-weight:700}
 .settings-avatar{flex:none;display:inline-flex;align-items:center;justify-content:center;
   width:46px;height:46px;border-radius:var(--r-full);background:var(--primary);color:var(--primary-ink);
   font-weight:700;font-size:var(--t-1)}
@@ -620,6 +623,9 @@ img.emblem{object-fit:contain;border-radius:9px;max-width:100%;height:auto}
 /* Logo tema bo'yicha: light = rangli, dark = oq siluet (BITTASI ko'rinadi) */
 .emblem-light{display:block}
 .emblem-dark{display:none}
+/* Oq plashka ustidagi gerb (akt, login) — har doim rangli: qora rejimda oq gerb oq fonda ko'rinmay qolardi */
+.emblem-plate .emblem-light{display:block!important}
+.emblem-plate .emblem-dark{display:none!important}
 :root[data-theme="dark"] .emblem-light{display:none}
 :root[data-theme="dark"] .emblem-dark{display:block}
 @media (prefers-color-scheme:dark){
@@ -884,3 +890,26 @@ use[href$="#i-settings"]{--ic:icTurn}
 .sq-rejected ul{margin:0 0 var(--sp-3);padding-left:18px;font-size:var(--t--1);max-height:160px;overflow:auto}
 .sq-rejected li{margin-bottom:4px}
 @media (max-width:768px){.sq-rejected{bottom:76px}}
+
+/* ---------- Jarima darajasi (tekshiruv formasi) ---------- */
+.fine-pick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2)}
+@media (max-width:560px){.fine-pick{grid-template-columns:1fr}}
+.fine-opt{position:relative;display:block;cursor:pointer}
+.fine-opt input{position:absolute;opacity:0;pointer-events:none}
+.fine-card{display:flex;flex-direction:column;gap:4px;height:100%;padding:12px;border:1.5px solid var(--border-strong);
+  border-radius:var(--r);background:var(--surface);transition:border-color .12s,background .12s,box-shadow .12s}
+.fine-top{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:24px}
+.fine-tag{font-size:var(--t--2);padding:1px 8px}
+.fine-sum{font-size:var(--t-1);font-weight:700;white-space:nowrap}
+.fine-sum small{font-size:var(--t--1);font-weight:500;color:var(--ink-muted)}
+.fine-when{font-size:var(--t--1);color:var(--ink-muted);line-height:1.35}
+.fine-small{--lvl:var(--warn)} .fine-medium{--lvl:var(--clay-500)} .fine-high{--lvl:var(--bad)}
+.fine-opt:hover .fine-card{border-color:var(--lvl)}
+.fine-opt input:checked+.fine-card{border-color:var(--lvl);box-shadow:0 0 0 1px var(--lvl);
+  background:color-mix(in srgb,var(--lvl) 9%,var(--surface))}
+.fine-opt input:focus-visible+.fine-card{outline:2px solid var(--ring);outline-offset:2px}
+.field:has(.field-err) .fine-card{border-color:var(--bad)}
+.fine-total{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:12px 14px;margin-bottom:var(--sp-3);
+  border-radius:var(--r);background:var(--surface-sunken)}
+.fine-total b{font-size:var(--t-2)}
+.fine-total small{flex-basis:100%}

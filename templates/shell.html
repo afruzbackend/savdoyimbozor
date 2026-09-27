@@ -126,13 +126,14 @@
       {# Foydalanuvchi kartasi #}
       <div class="settings-user">
         <span class="settings-avatar">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</span>
-        <div style="min-width:0">
-          <div style="font-weight:700">{{ user.get_full_name|default:user.username }}</div>
-          <div class="login-pill" style="margin-top:4px" data-noloc>
+        <div style="min-width:0;flex:1">
+          {# Rol belgisi ism yonida — tor oynada login ustiga chiqib ketmaydi #}
+          <div class="settings-name"><span>{{ user.get_full_name|default:user.username }}</span>
+            <span class="badge badge-neutral">{{ user.get_role_display }}</span></div>
+          <div class="login-pill" style="margin-top:6px" data-noloc>
             <span class="muted" style="font-size:var(--t--2)">Login:</span>
             <b class="num">{{ user.username }}</b></div>
         </div>
-        <span class="badge badge-neutral" style="margin-left:auto">{{ user.get_role_display }}</span>
       </div>
 
       {# Ichki tablar (vanilla JS) #}
@@ -145,7 +146,7 @@
       <form method="post" action="{% url 'account_settings' %}" id="spane-aloqa" class="settings-body dirty-guard">
         {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
         <div class="field"><label class="label">Telefon</label>
-          <input class="input" name="phone" value="{{ user.phone }}" placeholder="+998..."></div>
+          <input class="input num" name="phone" value="{{ user.phone }}" inputmode="tel" autocomplete="tel" data-phone placeholder="+998 90 123 45 67"></div>
         {% if telegram_enabled %}
         <div class="field"><label class="label">Telegram ID</label>
           <input class="input num" name="telegram_id" value="{{ user.telegram_id }}" inputmode="numeric" placeholder="botga /start yozib oling"></div>

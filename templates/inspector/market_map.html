@@ -20,7 +20,7 @@
 
 {% if market %}
 <div class="grid grid-4" style="margin-bottom:var(--sp-4)">
-  <div class="card"><small class="muted">Do'konlar</small><div class="truth-big" style="font-size:var(--t-3)">{{ market.shops.count }}</div></div>
+  <div class="card"><small class="muted">Do'konlar</small><div class="truth-big" style="font-size:var(--t-3)">{{ shop_total }}</div></div>
   <div class="card"><small class="muted">Rost</small><div class="truth-big" style="font-size:var(--t-3);color:var(--ok)">{{ counts.green }}</div></div>
   <div class="card"><small class="muted">E'tibor</small><div class="truth-big" style="font-size:var(--t-3);color:var(--warn)">{{ counts.yellow }}</div></div>
   <div class="card"><small class="muted">Xavf</small><div class="truth-big" style="font-size:var(--t-3);color:var(--bad)">{{ counts.red }}</div></div>
@@ -31,7 +31,7 @@
        try { sessionStorage.setItem('bn-map-zoom', this.zoom) } catch(e) {} }}">
   <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:var(--sp-3)">
     <div><span class="card-title">{{ market.name }}</span>
-      <small class="muted" style="margin-left:8px">{{ market.region.name }}{% if score_date and score_date != today %} · <span class="num">{{ score_date|uzdate }}</span> bo'yicha{% endif %}</small></div>
+      <small class="muted" style="margin-left:8px">{{ market.region.name }} · oxirgi <span class="num">{{ recent_days }}</span> kun</small></div>
     <div class="zoom-ctl" data-noloc>
       <button type="button" @click="setZoom(zoom-0.15)" :disabled="zoom<=0.6" aria-label="Kichraytirish">−</button>
       <button type="button" @click="setZoom(1)" aria-label="Asl o'lcham" :title="Math.round(zoom*100)+'%'">↺</button>
@@ -48,7 +48,7 @@
         <div class="bazaar-stalls">
           {% for st in row.stalls %}
           <a class="stall stall-{{ st.level }}" href="{% url 'inspector:shop_detail' st.id %}"
-             title="№{{ st.number }} {{ st.owner }}">
+             data-tip="№{{ st.number }} {{ st.owner }}{% if st.days %} · {{ st.days }} kun, oxirgisi {{ st.last|date:'d.m' }}{% else %} · o'lchanmagan{% endif %}">
             <span class="stall-no">№{{ st.number }}</span>
             <span class="stall-truth">{% if st.truth is not None %}{{ st.truth }}%{% else %}—{% endif %}</span>
           </a>
@@ -61,7 +61,9 @@
     </div>
   </div>
   <div class="muted" style="margin-top:var(--sp-3);font-size:var(--t--1)">
-    Har rasta ustidagi raqam — rostlik darajasi (%). Rastani bosing — batafsil. Kattalashtirish uchun +/−.
+    Har rasta ustidagi raqam — oxirgi {{ recent_days }} kundagi o'lchangan kunlar bo'yicha o'rtacha rostlik (%);
+    bitta kunlik ma'lumot ham hisoblanadi. «—» — bu davrda kassa, kamera yoki kun yakuni sanog'i yo'q.
+    Rastani bosing — batafsil. Kattalashtirish uchun +/−.
   </div>
 </div>
 {% else %}

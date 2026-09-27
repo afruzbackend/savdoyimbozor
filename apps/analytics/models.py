@@ -131,8 +131,16 @@ class Inspection(TimeStampedModel):
         on_delete=models.SET_NULL,
         related_name="inspections",
     )
+    class FineLevel(models.TextChoices):
+        # Summalar SystemSettings'da (panel → Sozlamalar); tavsiya — apps/analytics/fines.py
+        SMALL = "small", _("Kichik")
+        MEDIUM = "medium", _("O'rta")
+        HIGH = "high", _("Yuqori")
+
     result = models.CharField(max_length=12, choices=Result.choices, default=Result.PENDING)
     act_number = models.CharField(_("Dalolatnoma"), max_length=60, blank=True)
+    fine_level = models.CharField(_("Jarima darajasi"), max_length=8, choices=FineLevel.choices, blank=True)
+    # Saqlangan paytdagi summa (keyin panelda summa o'zgarsa ham eski akt o'zgarmaydi)
     fine_amount = models.BigIntegerField(_("Jarima (so'm)"), null=True, blank=True)
     photo = models.ImageField(upload_to="inspections/%Y/%m/", blank=True)
     notes = models.TextField(blank=True)

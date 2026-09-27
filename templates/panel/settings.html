@@ -30,9 +30,9 @@
     <div class="card-title" style="margin-bottom:var(--sp-3)">Savdo qoidalari</div>
     <div class="grid grid-2">
       <div class="field"><label class="label">Tannarx noma'lum — maks chegirma (%)</label><input class="input num" type="number" name="max_discount_no_cost_pct" value="{{ s.max_discount_no_cost_pct }}"></div>
-      <div class="field"><label class="label">Yaxlitlash maksimum (so'm)</label><input class="input num" type="number" name="rounding_max" value="{{ s.rounding_max }}"></div>
+      <div class="field"><label class="label">Yaxlitlash maksimum (so'm)</label><input class="input num" name="rounding_max" value="{{ s.rounding_max }}" inputmode="numeric" data-money></div>
       <div class="field"><label class="label">Nakladnoy majburiy summa (so'm)</label>
-        <input class="input num" type="number" name="stockin_photo_min" value="{{ s.stockin_photo_min }}">
+        <input class="input num" name="stockin_photo_min" value="{{ s.stockin_photo_min }}" inputmode="numeric" data-money>
         <div class="hint">Shu summadan katta kirimga yuk xati fotosi majburiy. 0 — hech qachon majburiy emas.</div></div>
       <div class="field"><label class="label">Chegirma tugmalari (chekdan %)</label>
         <input class="input num" name="discount_percents" value="{{ discount_percents }}" placeholder="5, 10, 15">
@@ -50,13 +50,18 @@
     <div class="card-title" style="margin-bottom:var(--sp-3)">Soliq va jarima</div>
     <div class="grid grid-2">
       <div class="field"><label class="label">Soliq stavkasi (%)</label><input class="input num" type="number" name="tax_rate_percent" value="{{ s.tax_rate_percent }}"></div>
-      <div class="field"><label class="label">Jarima ustamasi (%)</label><input class="input num" type="number" name="fine_penalty_percent" value="{{ s.fine_penalty_percent }}"></div>
+      <div class="field"><label class="label">Kichik jarima (so'm)</label><input class="input num" name="fine_small" value="{{ s.fine_small }}" data-money>
+        <div class="hint">Birinchi marta. Soliq kodeksi 221-m.: kassasiz savdo / chek bermaslik — 5 mln.</div></div>
+      <div class="field"><label class="label">O'rta jarima (so'm)</label><input class="input num" name="fine_medium" value="{{ s.fine_medium }}" data-money>
+        <div class="hint">Bir yil ichida takroran — 10 mln.</div></div>
+      <div class="field"><label class="label">Yuqori jarima (so'm)</label><input class="input num" name="fine_high" value="{{ s.fine_high }}" data-money>
+        <div class="hint">Ko'p marta takroriy / boshqa shaxs kassasi yoki QR kodi / katta yashirish — 20 mln.</div></div>
       <div class="field"><label class="label">Anomaliya tushish chegarasi (%)</label><input class="input num" type="number" name="anomaly_drop_pct" value="{{ s.anomaly_drop_pct }}"></div>
       <div class="field"><label class="label">Kassa kamomadi chegarasi (%)</label><input class="input num" type="number" name="cash_shortage_pct" value="{{ s.cash_shortage_pct }}"></div>
-      <div class="field"><label class="label">Hisobdan chiqarish signali — kamida (so'm)</label><input class="input num" type="number" name="writeoff_alert_min" value="{{ s.writeoff_alert_min }}">
+      <div class="field"><label class="label">Hisobdan chiqarish signali — kamida (so'm)</label><input class="input num" name="writeoff_alert_min" value="{{ s.writeoff_alert_min }}" inputmode="numeric" data-money>
         <div class="hint">30 kunda chiqarilgan ulush mahsulot turi me'yoridan (Mahsulot turlari sahifasi) oshsa va qiymati shundan kam bo'lmasa — signal.</div></div>
       <div class="field"><label class="label">Tuzatish signali — kunlik savdodan (%)</label><input class="input num" type="number" name="correction_alert_pct" value="{{ s.correction_alert_pct }}"></div>
-      <div class="field"><label class="label">Tuzatish signali — kamida (so'm)</label><input class="input num" type="number" name="correction_alert_min" value="{{ s.correction_alert_min }}">
+      <div class="field"><label class="label">Tuzatish signali — kamida (so'm)</label><input class="input num" name="correction_alert_min" value="{{ s.correction_alert_min }}" inputmode="numeric" data-money>
         <div class="hint">Sotuvchi bir kunda cheklar summasini shuncha ulush va summadan ko'p kamaytirsa — nazoratchiga signal.</div></div>
     </div>
   </div>

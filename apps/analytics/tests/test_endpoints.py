@@ -49,7 +49,8 @@ def test_alert_action_dismiss(iclient, shop):
 def test_inspection_create(iclient, shop):
     r = iclient.post(
         "/tekshiruv/yangi/",
-        {"shop": shop.pk, "result": "confirmed", "act_number": "A-1", "notes": "test"},
+        {"shop": shop.pk, "result": "confirmed", "act_number": "A-1", "fine_level": "small",
+         "notes": "test"},
         HTTP_HOST=INSPECTOR_HOST,
     )
     assert r.status_code == 302

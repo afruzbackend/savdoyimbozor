@@ -43,10 +43,12 @@ class SystemSettings(models.Model):
     )
     # Soliq stavkasi — yashirilgan savdodan potensial qo'shimcha soliqni baholash uchun
     tax_rate_percent = models.PositiveSmallIntegerField(_("Soliq stavkasi (%)"), default=12)
-    # Jarima ustamasi — dalolatnomadagi taxminiy jarima = yashirilgan soliq × (1 + ustama%)
-    fine_penalty_percent = models.PositiveSmallIntegerField(
-        _("Jarima ustamasi (%)"), default=100
-    )
+    # Jarima darajalari (so'm). Asos: Soliq kodeksi 221-modda — savdoda NKT qo'llamaslik / chek
+    # bermaslik 5 mln, bir yil ichida takroran 10 mln; boshqa shaxs NKT/QR kodidan foydalanish 20 mln.
+    # Qonun o'zgarsa — panelda tahrirlanadi (kodda qotirilmagan).
+    fine_small = models.PositiveBigIntegerField(_("Kichik jarima (so'm)"), default=5_000_000)
+    fine_medium = models.PositiveBigIntegerField(_("O'rta jarima (so'm)"), default=10_000_000)
+    fine_high = models.PositiveBigIntegerField(_("Yuqori jarima (so'm)"), default=20_000_000)
     # Anomaliya signali: kunlik savdo 30-kunlik o'rtachadan shu %dan ko'p tushsa
     anomaly_drop_pct = models.PositiveSmallIntegerField(
         _("Savdo tushishi chegarasi (%)"), default=60

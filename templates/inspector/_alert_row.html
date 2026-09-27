@@ -1,7 +1,7 @@
-{% load static %}
+{% load uzdate static %}
 <tr id="alert-{{ a.pk }}" class="{% if a.status == 'dismissed' %}{% elif a.level == 'red' %}row-bad{% elif a.level == 'yellow' %}row-warn{% endif %}"
     {% if a.status == 'dismissed' %}style="opacity:.5"{% endif %}>
-  <td class="num">{{ a.date }}</td>
+  <td class="num">{{ a.date|uzdate }}</td>
   <td><a href="{% url 'inspector:shop_detail' a.shop.pk %}">№{{ a.shop.number }} {{ a.shop.owner_name }}</a>
       <div class="muted" style="font-size:var(--t--1)">{{ a.shop.market.name }}</div></td>
   <td><div class="faint" style="font-size:var(--t--2);font-weight:600">{{ a.get_kind_display }}</div>{{ a.reason }}</td>

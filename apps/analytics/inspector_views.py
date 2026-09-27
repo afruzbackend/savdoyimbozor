@@ -52,17 +52,40 @@ def _level(truth, cfg):
     return "red"
 
 
-def _score_date(shops, today):
-    """Bugun hali hisoblanmagan bo'lsa (ertalab / fon vazifasi kutilmoqda) — oxirgi o'lchangan kun.
+RECENT_DAYS = 7
 
-    Aks holda dashboard va xarita har ertalab bo'm-bo'sh ko'rinadi.
+
+def _recent_scores(shops, today, days=RECENT_DAYS):
+    """Har do'kon: oxirgi `days` kun ichidagi O'LCHANGAN kunlar bo'yicha rostlik.
+
+    Ilgari bitta umumiy sana olinardi: o'sha kuni o'lchanmagan do'kon (bugun hali hisoblanmagan,
+    1-2 kunlik yangi do'kon, kechagi kassa yuklanmagan) xaritada "—" bo'lib qolardi. Endi har
+    do'kon o'zining oxirgi kunlaridan hisoblanadi — bitta o'lchangan kun ham yetadi.
     """
-    if DailyScore.objects.filter(shop__in=shops, date=today, measured=True).exists():
-        return today
-    return (
-        DailyScore.objects.filter(shop__in=shops, date__lt=today, measured=True)
-        .order_by("-date").values_list("date", flat=True).first()
-    ) or today
+    from collections import defaultdict
+
+    since = today - timedelta(days=days - 1)
+    acc = defaultdict(list)
+    for s in (DailyScore.objects.filter(shop__in=shops, date__range=(since, today), measured=True)
+              .order_by("date")):
+        acc[s.shop_id].append(s)
+    return {
+        sid: {
+            "truth": round(sum(x.truth_pct for x in lst) / len(lst)),
+            "days": len(lst),
+            "last": lst[-1].date,
+            "entered": sum(x.entered_sales for x in lst),
+            "cash": sum(x.cash_amount for x in lst),
+        }
+        for sid, lst in acc.items()
+    }
+
+
+def _num_key(number):
+    """Do'kon raqami matn: "9" < "10" bo'lsin ("10" < "9" emas), "12A" ham to'g'ri joyda."""
+    import re
+
+    return [int(p) if p.isdigit() else p.lower() for p in re.split(r"(\d+)", str(number or "")) if p]
 
 
 @login_required
@@ -73,15 +96,18 @@ def dashboard(request):
     shops = _visible_shops(request)
     today = timezone.localdate()
 
-    score_date = _score_date(shops, today)
-    latest = {
-        s.shop_id: s
-        for s in DailyScore.objects.filter(shop__in=shops, date=score_date).select_related(
-            "shop", "shop__category", "shop__market"
-        )
-    }
-    # Faqat O'LCHANGAN ballar: ma'lumoti yo'q do'kon 0% bo'lib o'rtachani tushirmasin
-    measured = [s for s in latest.values() if s.measured]
+    # Har do'kon oxirgi 7 kundagi o'lchangan kunlari bo'yicha (xarita bilan bir xil manba).
+    # Ma'lumoti yo'q do'kon 0% bo'lib o'rtachani tushirmaydi — umuman kirmaydi.
+    from types import SimpleNamespace
+
+    recent = _recent_scores(shops, today)
+    shop_objs = shops.filter(id__in=list(recent)).select_related("category", "market")
+    measured = [
+        SimpleNamespace(shop=sh, shop_id=sh.id, truth_pct=recent[sh.id]["truth"],
+                        entered_sales=recent[sh.id]["entered"], cash_amount=recent[sh.id]["cash"],
+                        days=recent[sh.id]["days"])
+        for sh in shop_objs
+    ]
     truths = [s.truth_pct for s in measured]
     avg_truth = round(sum(truths) / len(truths)) if truths else None
 
@@ -93,8 +119,8 @@ def dashboard(request):
     false_sig = insp.filter(result=Inspection.Result.FALSE).count()
     accuracy = round(confirmed / (confirmed + false_sig) * 100) if (confirmed + false_sig) else None
 
-    # Eng xavfli do'konlar (score_date balli bo'yicha)
-    risky = sorted(measured, key=lambda s: s.truth_pct)[:8]
+    # Eng xavfli do'konlar (oxirgi 7 kun)
+    risky = sorted(measured, key=lambda s: (s.truth_pct, _num_key(s.shop.number)))[:8]
 
     # Yashirilgan savdo (oxirgi 30 kun) + potensial qo'shimcha soliq
     from django.db.models import Sum
@@ -117,7 +143,7 @@ def dashboard(request):
         "alerts": new_alerts.order_by("-created_at")[:12],
         "risky": [(s, _level(s.truth_pct, cfg)) for s in risky],
         "today": today,
-        "score_date": score_date,
+        "recent_days": RECENT_DAYS,
         "hidden_sales": int(hidden),
         "potential_tax": potential_tax,
         "tax_rate": cfg.tax_rate_percent,
@@ -136,33 +162,43 @@ def market_map(request, pk=None):
         return render(request, "inspector/market_map.html", {"markets": markets, "market": None})
 
     today = timezone.localdate()
-    score_date = _score_date(market.shops.all(), today)
     # Ma'lumotsiz (solishtiruvsiz) do'kon 0% qizil emas — "none" (kulrang) bo'lsin
-    scores = {
-        s.shop_id: (s.truth_pct if s.has_data else None)
-        for s in DailyScore.objects.filter(shop__market=market, date=score_date)
-    }
+    recent = _recent_scores(market.shops.all(), today)
 
     # Bozor sxemasi: do'konlar QATOR bo'yicha guruhlanadi, har rasta rangli % belgi.
+    # Qatorlar — admin bergan tartibda (Row.order), qatorsizlar ("Boshqa") — oxirida;
+    # rastalar raqam bo'yicha tabiiy tartibda (№9 → №10, "10" < "9" emas).
     from collections import defaultdict
 
     by_row = defaultdict(list)
+    row_sort = {}
     counts = {"green": 0, "yellow": 0, "red": 0, "none": 0}
-    for shop in market.shops.filter(is_active=True).select_related("row").order_by("number"):
-        t = scores.get(shop.id)
+    for shop in market.shops.filter(is_active=True).select_related("row"):
+        r = recent.get(shop.id)
+        t = r["truth"] if r else None
         lvl = _level(t, cfg) if t is not None else "none"
         counts[lvl] += 1
-        row_label = shop.row.label if shop.row_id else "Boshqa"
-        by_row[row_label].append(
+        if shop.row_id:
+            key = shop.row_id
+            row_sort[key] = (0, shop.row.order, shop.row.label.lower(), shop.row.label)
+        else:
+            key = None
+            row_sort[key] = (1, 0, "", "Boshqa")
+        by_row[key].append(
             {
                 "id": shop.id,
                 "number": shop.number,
                 "owner": shop.owner_name,
                 "truth": t,
+                "days": r["days"] if r else 0,
+                "last": r["last"] if r else None,
                 "level": lvl,
             }
         )
-    rows_data = [{"label": lbl, "stalls": by_row[lbl]} for lbl in sorted(by_row)]
+    rows_data = [
+        {"label": row_sort[k][3], "stalls": sorted(by_row[k], key=lambda st: _num_key(st["number"]))}
+        for k in sorted(by_row, key=lambda k: row_sort[k][:3])
+    ]
 
     return render(
         request,
@@ -172,7 +208,8 @@ def market_map(request, pk=None):
             "market": market,
             "rows_data": rows_data,
             "counts": counts,
-            "score_date": score_date,
+            "shop_total": sum(counts.values()),
+            "recent_days": RECENT_DAYS,
             "today": today,
         },
     )
@@ -233,21 +270,27 @@ def shop_detail(request, pk):
 
     scores = list(DailyScore.objects.filter(shop=shop, date__range=(start, today)).order_by("date"))
     latest = scores[-1] if scores else None
-    level = _level(latest.truth_pct, cfg) if latest and latest.measured else "none"
+    # Asosiy ball — xarita bilan BIR XIL: oxirgi 7 kundagi o'lchangan kunlar (ilgari faqat bugungi
+    # kun olinardi: bugun kassa yuklanmagan bo'lsa xaritada 48%, do'kon sahifasida "—" chiqardi)
+    recent = _recent_scores([shop], today).get(shop.pk)
+    level = _level(recent["truth"], cfg) if recent else "none"
+    measured_scores = [s for s in scores if s.measured]
+    parts_day = measured_scores[-1] if measured_scores else latest
 
-    chart = {
-        "labels": [s.date.strftime("%d.%m") for s in scores],
-        "entered": [s.entered_sales for s in scores],
-        "cash": [s.cash_amount for s in scores],
-        # O'lchanmagan kun grafikda uzilish (null), 0% emas
-        "truth": [s.truth_pct if s.measured else None for s in scores],
-    }
+    from apps.analytics.charts import day_series
+
+    # O'lchanmagan kun grafikda uzilish (null), 0% emas; hisoblanmagan kun ham o'qda turadi
+    chart = day_series(
+        {s.date: {"entered": s.entered_sales, "cash": s.cash_amount,
+                  "truth": s.truth_pct if s.measured else None} for s in scores},
+        scores[0].date if scores else today, today,
+    )
 
     # O'xshash do'konlar (bir bozor + bir toifa) bilan solishtirish
     peers = shop.similar_shops()
-    peer_scores = DailyScore.objects.filter(shop__in=peers, date=today, measured=True)
-    _pa = peer_scores.aggregate(a=Avg("truth_pct"))["a"]
-    peer_avg = round(_pa) if _pa is not None else None
+    peer_recent = _recent_scores(peers, today)
+    peer_avg = (round(sum(r["truth"] for r in peer_recent.values()) / len(peer_recent))
+                if peer_recent else None)
 
     part_labels = {
         "cash": "Kassa / deklaratsiya",
@@ -256,9 +299,9 @@ def shop_detail(request, pk):
         "price": "Narx",
     }
     parts = []
-    if latest:
+    if parts_day:
         for k, lbl in part_labels.items():
-            v = latest.parts.get(k)
+            v = parts_day.parts.get(k)
             parts.append(
                 {
                     "key": k,
@@ -271,8 +314,11 @@ def shop_detail(request, pk):
     ctx = {
         "shop": shop,
         "latest": latest,
+        "recent": recent,
+        "recent_days": RECENT_DAYS,
         "level": level,
         "parts": parts,
+        "parts_day": parts_day,
         "chart": chart,  # json_script o'zi serializatsiya qiladi
         "peer_avg": peer_avg,
         "peer_count": peers.count(),
@@ -406,10 +452,15 @@ def inspection_create(request):
     preselect = alert.shop if alert else (
         shops.filter(pk=_pk(request.GET.get("shop"))).first() if request.GET.get("shop") else None)
 
+    from apps.analytics.fines import FINE_LEVELS, level_amounts, shop_fine_hints
+    from apps.core.models import SystemSettings
+
+    cfg = SystemSettings.get_solo()
+    amounts = level_amounts(cfg)
+    posted = {}
+
     if request.method == "POST":
         from django.contrib import messages as _msg
-
-        from apps.core.format import to_int
 
         shop = get_object_or_404(shops, pk=_pk(request.POST.get("shop")))
         # Signal FAQAT shu do'konniki bo'lsin (boshqa bozor signalini yopib bo'lmasin)
@@ -417,14 +468,25 @@ def inspection_create(request):
         if request.POST.get("alert"):
             post_alert = Alert.objects.filter(pk=_pk(request.POST.get("alert")), shop=shop).first()
         result = request.POST.get("result")
+        act_number = " ".join(request.POST.get("act_number", "").split())[:60]
+        fine_level = request.POST.get("fine_level", "")
+        posted = {"shop": shop.pk, "result": result or "", "act_number": act_number,
+                  "fine_level": fine_level, "notes": request.POST.get("notes", "")}
+        errors = []
         if result not in Inspection.Result.values:
             # Natija aniq tanlanishi shart (jim standart ayblov bo'lmasin)
-            _msg.error(request, "Tekshiruv natijasini tanlang.")
-            return redirect(request.get_full_path())
-        fine = to_int(request.POST.get("fine_amount"))
-        if fine is not None and fine < 0:
-            _msg.error(request, "Jarima manfiy bo'lmasin.")
-            return redirect(request.get_full_path())
+            errors.append("Tekshiruv natijasini tanlang.")
+        confirmed = result == Inspection.Result.CONFIRMED
+        if confirmed:
+            # Tasdiqlangan huquqbuzarlik = rasmiy hujjat: raqam va jarima darajasi MAJBURIY
+            if not act_number:
+                errors.append("Tasdiqlangan tekshiruvda dalolatnoma raqami majburiy.")
+            if fine_level not in Inspection.FineLevel.values:
+                errors.append("Jarima darajasini tanlang: kichik, o'rta yoki yuqori.")
+        else:
+            fine_level = ""  # huquqbuzarlik tasdiqlanmagan — jarima yo'q
+        if act_number and Inspection.objects.filter(act_number__iexact=act_number).exists():
+            errors.append(f"№{act_number} dalolatnoma allaqachon bor — raqam takrorlanmasin.")
         photo = request.FILES.get("photo")
         if photo is not None:
             from django.core.exceptions import ValidationError
@@ -434,33 +496,30 @@ def inspection_create(request):
             try:
                 validate_image_upload(photo)
             except ValidationError as e:
-                _msg.error(request, e.messages[0])
-                return redirect(request.get_full_path())
-        insp = Inspection.objects.create(
-            shop=shop,
-            alert=post_alert,
-            inspector=request.user,
-            result=result,
-            act_number=request.POST.get("act_number", "").strip()[:60],
-            fine_amount=fine or None,
-            notes=request.POST.get("notes", ""),
-            photo=photo,
-        )
-        if insp.alert_id:
-            insp.alert.status = Alert.Status.RESOLVED
-            insp.alert.save(update_fields=["status"])
-        request.audit_detail = (
-            f"Tekshiruv #{insp.pk}: №{shop.number} — {insp.get_result_display()}"
-            + (f", jarima {fine}" if fine else "")
-        )
-        from django.contrib import messages
+                errors.append(e.messages[0])
+        if errors:
+            # Kiritilganlar saqlanib qoladi (qaytadan yozdirmaymiz), faqat xato ko'rsatiladi
+            for e in errors:
+                _msg.error(request, e)
+            preselect = shop
+        else:
+            # Summa serverda darajadan olinadi (qo'lda ixtiyoriy summa yozib bo'lmaydi)
+            fine = amounts[fine_level] if fine_level else None
+            insp = Inspection.objects.create(
+                shop=shop,
+                alert=post_alert,
+                inspector=request.user,
+                result=result,
+                act_number=act_number,
+                fine_level=fine_level,
+                fine_amount=fine,
+                notes=request.POST.get("notes", ""),
+                photo=photo,
+            )
+            return _inspection_saved(request, insp, fine)
 
-        messages.success(request, "Tekshiruv natijasi saqlandi.")
-        # Tasdiqlangan bo'lsa — to'g'ridan-to'g'ri jarima aktiga o'tamiz
-        if insp.result == Inspection.Result.CONFIRMED:
-            return redirect("inspector:inspection_act", pk=insp.pk)
-        return redirect("inspector:inspections")
-
+    today = timezone.localdate()
+    last_pk = Inspection.objects.order_by("-pk").values_list("pk", flat=True).first() or 0
     return render(
         request,
         "inspector/inspection_form.html",
@@ -469,8 +528,33 @@ def inspection_create(request):
             "alert": alert,
             "preselect": preselect,
             "results": Inspection.Result.choices,
+            "posted": posted,
+            "fine_levels": [{"code": c, "label": lbl, "when": w, "amount": amounts[c]}
+                            for c, lbl, w in FINE_LEVELS],
+            "fine_hints": shop_fine_hints(shops, today),
+            "next_act": f"BN-{today.year}-{last_pk + 1:05d}",
         },
     )
+
+
+def _inspection_saved(request, insp, fine):
+    """Tekshiruv yozilgach: signal yopiladi, audit, tasdiqlangan bo'lsa — to'g'ridan aktga."""
+    shop = insp.shop
+    if insp.alert_id:
+        insp.alert.status = Alert.Status.RESOLVED
+        insp.alert.save(update_fields=["status"])
+    request.audit_detail = (
+        f"Tekshiruv #{insp.pk}: №{shop.number} — {insp.get_result_display()}"
+        + (f", akt {insp.act_number}" if insp.act_number else "")
+        + (f", jarima {insp.get_fine_level_display()} {fine}" if fine else "")
+    )
+    from django.contrib import messages
+
+    messages.success(request, "Tekshiruv natijasi saqlandi.")
+    # Tasdiqlangan bo'lsa — to'g'ridan-to'g'ri jarima aktiga o'tamiz
+    if insp.result == Inspection.Result.CONFIRMED:
+        return redirect("inspector:inspection_act", pk=insp.pk)
+    return redirect("inspector:inspections")
 
 
 @login_required
@@ -503,22 +587,27 @@ def inspection_act(request, pk):
         .exclude(pk=insp.pk)
         .exists()
     )
-    from apps.analytics.fines import classify_hidden
+    from apps.analytics.fines import FINE_LEVELS, classify_hidden, level_amounts, suggest_level
 
     tier = classify_hidden(hidden, repeat=repeat)
-    suggested_fine = int(evaded_tax * (1 + cfg.fine_penalty_percent / 100))
-    if repeat:
-        suggested_fine *= 2  # takroriy — 2 baravar
+    confirmed = insp.result == Inspection.Result.CONFIRMED
+    prior_year = Inspection.objects.filter(
+        shop=shop, result=Inspection.Result.CONFIRMED, created_at__lt=insp.created_at,
+        created_at__gte=insp.created_at - timedelta(days=365)).exclude(pk=insp.pk).count()
 
     changed = []
-    if not insp.act_number:  # dalolatnoma raqami — avtomatik
+    if not insp.act_number:  # eski yozuvlar: dalolatnoma raqami — avtomatik
         insp.act_number = f"BN-{today.year}-{insp.pk:05d}"
         changed.append("act_number")
-    if insp.fine_amount in (None, 0):  # jarima bo'sh bo'lsa — taxminiy to'ldiramiz
-        insp.fine_amount = suggested_fine
-        changed.append("fine_amount")
+    if confirmed and not insp.fine_level and insp.fine_amount in (None, 0):
+        # Eski yozuv (darajasiz): tavsiya etilgan daraja summasi bilan to'ldiriladi
+        insp.fine_level = suggest_level(hidden, prior_year)
+        insp.fine_amount = level_amounts(cfg)[insp.fine_level]
+        changed += ["fine_level", "fine_amount"]
     if changed and not request.user.is_prosecutor:  # kuzatuvchi ko'rishi bazaga yozmaydi
         insp.save(update_fields=changed)
+    level_when = {c: w for c, _lbl, w in FINE_LEVELS}.get(insp.fine_level, "")
+    suggested_level = suggest_level(hidden, prior_year)
 
     return render(
         request,
@@ -530,9 +619,12 @@ def inspection_act(request, pk):
             "today": today,
             "hidden_sales": hidden,
             "evaded_tax": evaded_tax,
-            "suggested_fine": suggested_fine,
+            "confirmed": confirmed,
+            "level_when": level_when,
+            "suggested_level": suggested_level,
+            "suggested_label": {c: lbl for c, lbl, _w in FINE_LEVELS}[suggested_level],
+            "total_due": (insp.fine_amount or 0) + evaded_tax if confirmed else 0,
             "tax_rate": cfg.tax_rate_percent,
-            "penalty_pct": cfg.fine_penalty_percent,
             "tier": tier,
             "repeat": repeat,
             "now": act_dt,  # akt sanasi = tekshiruv vaqti (har ochilganda o'zgarmaydi)
@@ -956,17 +1048,16 @@ def statistics(request):
         if s.measured:
             d["truth"].append(s.truth_pct)
         d["count"] += 1
+    from apps.analytics.charts import day_series
+
+    # Sanalar UZLUKSIZ: hisoblanmagan kun (masalan 22.09) o'qdan tushib qolmaydi — bo'sh turadi
     days = sorted(by_date)
-    dynamics = {
-        "labels": [d.strftime("%d.%m") for d in days],
-        "entered": [by_date[d]["entered"] for d in days],
-        "cash": [by_date[d]["cash"] for d in days],
-        "truth": [
-            round(sum(by_date[d]["truth"]) / len(by_date[d]["truth"])) if by_date[d]["truth"]
-            else None
-            for d in days
-        ],
-    }
+    dynamics = day_series(
+        {d: {"entered": by_date[d]["entered"], "cash": by_date[d]["cash"],
+             "truth": round(sum(by_date[d]["truth"]) / len(by_date[d]["truth"]))
+             if by_date[d]["truth"] else None} for d in days},
+        days[0], min(end, timezone.localdate()),
+    ) if days else {"labels": []}
 
     # 2) Sotuvchilar statistikasi — har do'kon: savdo, o'rtacha rostlik, signal, trend
     per_shop = defaultdict(lambda: {"entered": 0, "cash": 0, "truth": []})

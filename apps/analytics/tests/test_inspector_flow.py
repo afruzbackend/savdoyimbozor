@@ -71,9 +71,9 @@ def test_dashboard_falls_back_to_last_measured_day(iclient, shop):
 
     y = timezone.localdate() - datetime.timedelta(days=1)
     DailyScore.objects.create(shop=shop, date=y, truth_pct=31, entered_sales=100000,
-                              cash_amount=300000, measured=True)
+                              cash_amount=300000, measured=True, parts={"cash": 33})
     r = iclient.get("/", HTTP_HOST=INSPECTOR_HOST)
-    assert r.context["score_date"] == y
+    assert r.context["recent_days"] == 7
     assert r.context["avg_truth"] == 31
     assert [s.shop_id for s, _lvl in r.context["risky"]] == [shop.pk]
 

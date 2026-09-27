@@ -40,7 +40,7 @@
       <form method="post" class="row gap-2" style="align-items:flex-end">{% csrf_token %}
         <input type="hidden" name="action" value="opening">
         <div class="field grow" style="margin:0"><label class="label">Ertalabki maydalik (so'm)</label>
-          <input class="input num" type="number" name="opening_cash" min="0" inputmode="numeric"
+          <input class="input num" name="opening_cash" inputmode="numeric" data-money autocomplete="off"
                  value="{{ t.opening|default:'' }}" placeholder="Sandiqdagi qaytim puli, bo'lmasa 0" required></div>
         <button class="btn btn-ghost" type="submit">Saqlash</button>
       </form>
@@ -60,7 +60,7 @@
     <form method="post" class="stack gap-3" data-queue-guard>{% csrf_token %}
       <div class="field"><label class="label">Sanalgan naqd (so'm)</label>
         {# Kutilgan summa bilan OLDINDAN TO'LDIRILMAYDI — aks holda sanamasdan "mos keldi" bo'lardi #}
-        <input class="input num" type="number" name="counted_cash" min="0" inputmode="numeric"
+        <input class="input num" name="counted_cash" inputmode="numeric" data-money autocomplete="off"
                placeholder="Sandiqdagi naqdni sanab yozing"
                value="{% if today_close %}{{ today_close.counted_cash }}{% endif %}" required></div>
       <div class="field"><label class="label">Izoh (ixtiyoriy)</label>

@@ -66,7 +66,7 @@
     </div>
     <div class="debtor-box" x-show="pay==='debt'" x-cloak>
       <input class="input" x-ref="debtor" x-model="debtorName" placeholder="Xaridor ismi (majburiy)" :class="debtorErr&&'err'" @input="debtorErr=false">
-      <input class="input num" x-model="debtorPhone" placeholder="Telefon" inputmode="tel">
+      <input class="input num" x-model="debtorPhone" inputmode="tel" autocomplete="tel" data-phone placeholder="+998 90 123 45 67">
       <div class="debtor-due" :class="dueErr&&'due-err'">{% include 'components/_duefield.html' with name='debtor_due' model='debtorDue' label='Qaytarish sanasi' %}</div>
     </div>
     <button class="btn btn-lg btn-block" :disabled="total<=0||saving" @click="submit()">

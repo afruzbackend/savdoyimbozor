@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.db import transaction
 from django.utils import timezone
 
+from apps.core.format import clean_phone
 from apps.core.models import SystemSettings
 
 from ..models import Sale, SaleItem
@@ -178,7 +179,7 @@ def create_sale(
             shop=shop,
             sale=sale,
             customer_name=debtor_name,
-            customer_phone=str(debtor.get("phone") or "").strip()[:20],
+            customer_phone=clean_phone(debtor.get("phone")) or str(debtor.get("phone") or "").strip()[:20],
             amount=sale.total,
             due_date=debtor_due,
             note=f"Chek #{sale.pk}",

@@ -17,7 +17,7 @@
     <div class="field"><label class="label">F.I.O.</label>
       <input class="input" name="full_name" value="{{ u.get_full_name }}" placeholder="Ism Familiya" required></div>
     <div class="field"><label class="label">Telefon</label>
-      <input class="input" name="phone" value="{{ u.phone }}" placeholder="+998..."></div>
+      <input class="input num" name="phone" value="{{ u.phone }}" inputmode="tel" autocomplete="tel" data-phone placeholder="+998 90 123 45 67"></div>
     <div class="field"><label class="label">Telegram ID <small class="muted">(qizil signal xabari uchun)</small></label>
       <input class="input num" name="telegram_id" value="{{ u.telegram_id }}" inputmode="numeric" placeholder="masalan 123456789">
       {% if not telegram_enabled %}<div class="hint">Telegram bot hali sozlanmagan (TELEGRAM_BOT_TOKEN) — xabar yuborilmaydi.</div>{% endif %}</div>

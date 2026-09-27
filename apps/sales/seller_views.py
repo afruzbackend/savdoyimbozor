@@ -15,7 +15,7 @@ from apps.catalog import variants
 from apps.catalog.models import Product, ProductCategory, Unit, whole_qty_error
 from apps.catalog.sizes import product_order, size_key, sorted_products
 from apps.core.dates import days_between, on_day, since_day
-from apps.core.format import som, to_dec, to_int
+from apps.core.format import PHONE_ERROR, clean_phone, som, to_dec, to_int
 from apps.core.models import SystemSettings
 
 from .models import (
@@ -1038,11 +1038,13 @@ def debts(request):
                 messages.error(request, "Qaytarish sanasini tanlang.")
             elif due < timezone.localdate():
                 messages.error(request, "Qaytarish sanasi o'tgan kun bo'lmasin.")
+            elif clean_phone(request.POST.get("customer_phone")) is None:
+                messages.error(request, PHONE_ERROR)
             else:
                 Debt.objects.create(
                     shop=shop,
                     customer_name=name,
-                    customer_phone=request.POST.get("customer_phone", "").strip()[:20],
+                    customer_phone=clean_phone(request.POST.get("customer_phone")),
                     amount=amount,
                     due_date=due,
                     note=request.POST.get("note", "").strip()[:200],
@@ -1125,11 +1127,13 @@ def report(request):
         "remaining": Product.objects.filter(shop=shop, is_active=True, stock__gt=0).count(),
     }
 
-    chart = {
-        "labels": [s.date.strftime("%d.%m") for s in scores],
-        "truth": [s.truth_pct if s.measured else None for s in scores],
-        "entered": [s.entered_sales for s in scores],
-    }
+    from apps.analytics.charts import day_series
+
+    chart = day_series(
+        {s.date: {"entered": s.entered_sales, "truth": s.truth_pct if s.measured else None}
+         for s in scores},
+        scores[0].date if scores else today, today, keys=("entered", "truth"),
+    )
 
     # "Qanday oshiraman" maslahati — eng zaif qismga qarab
     advice = _advice(latest)

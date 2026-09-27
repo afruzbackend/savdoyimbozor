@@ -1,5 +1,5 @@
 {% extends 'inspector/base.html' %}
-{% load static humanize %}
+{% load static humanize uzdate %}
 {% block title %}№{{ shop.number }} — {{ shop.owner_name }}{% endblock %}
 {% block heading %}№{{ shop.number }} · {{ shop.owner_name }}{% endblock %}
 {% block topbar_actions %}
@@ -15,23 +15,23 @@
   {# Chap: rostlik + do'kon ma'lumoti #}
   <div class="stack gap-4">
     <div class="card center">
-      {% if latest and latest.has_data %}
-      <div class="truth-ring lvl-{{ level }}" style="--v:{{ latest.truth_pct }};margin:0 auto var(--sp-3)">
-        <span class="val num">{{ latest.truth_pct }}</span>
+      {% if recent %}
+      <div class="truth-ring lvl-{{ level }}" style="--v:{{ recent.truth }};margin:0 auto var(--sp-3)">
+        <span class="val num">{{ recent.truth }}</span>
       </div>
       <div class="card-title">Rostlik darajasi</div>
-      <small class="muted">Bugungi baho · {{ latest.date }}</small>
-      {% elif latest %}
+      <small class="muted">Oxirgi <span class="num">{{ recent_days }}</span>&nbsp;kun · o'lchangan: <span class="num">{{ recent.days }}</span>&nbsp;kun</small>
+      {% else %}
       <div class="truth-ring lvl-none" style="--v:0;margin:0 auto var(--sp-3)">
         <span class="val">—</span>
       </div>
       <div class="card-title">Ma'lumot yetarli emas</div>
-      <small class="muted">Solishtirish uchun kassa, kamera yoki narx ma'lumoti kerak</small>
-      {% else %}<p class="muted">Bugun uchun ball yo'q.</p>{% endif %}
+      <small class="muted">Oxirgi {{ recent_days }} kunda kassa, kamera yoki kun yakuni sanog'i yo'q — faqat narx yetmaydi</small>
+      {% endif %}
     </div>
 
     <div class="card">
-      <div class="card-title" style="margin-bottom:var(--sp-3)">Rostlik tarkibi</div>
+      <div class="card-title" style="margin-bottom:var(--sp-3)">Rostlik tarkibi{% if parts_day %} <small class="muted num" style="font-weight:400">· {{ parts_day.date|uzdate }}</small>{% endif %}</div>
       {% for p in parts %}
       <div style="margin-bottom:var(--sp-3)">
         <div class="row" style="justify-content:space-between;font-size:var(--t--1)">
@@ -92,7 +92,7 @@
         <div class="card-title" style="margin-bottom:var(--sp-3)">Signallar tarixi</div>
         {% for a in alerts %}
         <div class="row" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-          <div><small class="num muted">{{ a.date }}</small><div style="font-size:var(--t--1)">{{ a.reason }}</div></div>
+          <div><small class="num muted">{{ a.date|uzdate }}</small><div style="font-size:var(--t--1)">{{ a.reason }}</div></div>
           <span class="badge badge-{% if a.level == 'red' %}bad{% elif a.level == 'yellow' %}warn{% else %}ok{% endif %}">{{ a.get_level_display }}</span>
         </div>
         {% empty %}<p class="muted">Signal yo'q.</p>{% endfor %}
@@ -252,20 +252,7 @@
 <script src="{% static 'js/chart.umd.min.js' %}"></script>
 {{ chart|json_script:"chart-data" }}
 <script>
-  (function(){
-    const d = JSON.parse(document.getElementById('chart-data').textContent);
-    const ctx = document.getElementById('shopChart'); if(!ctx||!window.Chart) return;
-    const css = getComputedStyle(document.documentElement);
-    const c = n => css.getPropertyValue(n).trim();
-    const L = window.locText || (s=>s);
-    new Chart(ctx, { data:{ labels:d.labels, datasets:[
-      { type:'bar', label:L('Kiritilgan'), data:d.entered, backgroundColor:c('--brand-300') },
-      { type:'bar', label:L('Deklaratsiya'), data:d.cash, backgroundColor:c('--clay-400') },
-      { type:'line', label:L('Rostlik %'), data:d.truth, borderColor:c('--ok'), yAxisID:'y1', tension:.3, borderWidth:2, pointRadius:2 }
-    ]}, options:{ responsive:true, interaction:{mode:'index',intersect:false},
-      scales:{ y:{ position:'left', beginAtZero:true, ticks:{precision:0,callback:v=>window.BN.moneyTick(v)} },
-        y1:{ position:'right', min:0, max:100, grid:{drawOnChartArea:false} } },
-      plugins:{ legend:{ labels:{ boxWidth:12, font:{size:11} } } } }});
-  })();
+  window.BN.salesChart(document.getElementById('shopChart'),
+    JSON.parse(document.getElementById('chart-data').textContent));
 </script>
 {% endblock %}

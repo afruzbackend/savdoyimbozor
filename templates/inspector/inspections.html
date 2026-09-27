@@ -42,7 +42,7 @@
           <div class="muted" style="font-size:var(--t--1)">{{ i.shop.market.name }}{% if i.alert %} · {{ i.alert.reason|truncatechars:60 }}{% endif %}</div></td>
         <td><span class="badge badge-{% if i.result == 'confirmed' %}bad{% elif i.result == 'false' %}ok{% else %}neutral{% endif %}">{{ i.get_result_display }}</span></td>
         <td class="num" data-noloc>{{ i.act_number|default:"—" }}</td>
-        <td class="num">{% if i.fine_amount %}{{ i.fine_amount|intcomma }}{% else %}—{% endif %}</td>
+        <td class="num">{% if i.fine_amount %}{{ i.fine_amount|intcomma }}{% if i.fine_level %}<div class="muted" style="font-size:var(--t--1)">{{ i.get_fine_level_display }}</div>{% endif %}{% else %}—{% endif %}</td>
         <td>{{ i.inspector.get_full_name|default:i.inspector.username|default:"—" }}</td>
         <td style="white-space:nowrap">
           {% if i.result == 'confirmed' %}

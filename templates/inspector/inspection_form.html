@@ -1,9 +1,9 @@
 {% extends 'inspector/base.html' %}
-{% load static %}
+{% load static humanize %}
 {% block title %}Tekshiruv{% endblock %}
 {% block heading %}Tekshiruv natijasi{% endblock %}
 {% block content %}
-<div class="card" style="max-width:600px">
+<div class="card" style="max-width:640px" x-data="inspForm('{% if preselect %}{{ preselect.pk }}{% endif %}', '{{ posted.result|default:'' }}', '{{ posted.fine_level|default:'' }}')">
   {% if alert %}<div class="msg info">Signal: <b>№{{ alert.shop.number }} {{ alert.shop.owner_name }}</b> — {{ alert.reason }}</div>{% endif %}
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
@@ -15,7 +15,7 @@
       <div class="input" style="background:var(--surface-sunken)">№{{ alert.shop.number }} — {{ alert.shop.owner_name }} ({{ alert.shop.market.name }})</div></div>
     {% else %}
     <div class="field"><label class="label">Do'kon</label>
-      <select class="select-native" name="shop" required>
+      <select class="select-native" name="shop" required @change="pickShop($event.target.value)">
         <option value="" disabled {% if not preselect %}selected{% endif %}>Tanlang</option>
         {% for s in shops %}<option value="{{ s.pk }}" {% if preselect and s.pk == preselect.pk %}selected{% endif %}>№{{ s.number }} — {{ s.owner_name }} ({{ s.market.name }})</option>{% endfor %}
       </select>
@@ -23,19 +23,49 @@
     {% endif %}
     <div class="field"><label class="label">Natija</label>
       {# Standart qiymat YO'Q: "Tasdiqlandi" tasodifan tanlanib, do'kon ayblanib qolmasin #}
-      <select class="select-native" name="result" required>
-        <option value="" disabled selected>Tanlang</option>
-        {% for val, lbl in results %}<option value="{{ val }}">{{ lbl }}</option>{% endfor %}
+      <select class="select-native" name="result" required @change="pickResult($event.target.value)">
+        <option value="" disabled {% if not posted.result %}selected{% endif %}>Tanlang</option>
+        {% for val, lbl in results %}<option value="{{ val }}" {% if posted.result == val %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
       </select>
     </div>
-    <div class="grid grid-2">
-      <div class="field"><label class="label">Dalolatnoma raqami</label>
-        <input class="input" name="act_number" placeholder="A-2026-0142"></div>
-      <div class="field"><label class="label">Jarima (so'm)</label>
-        <input class="input num" name="fine_amount" type="number" min="0" step="1000" placeholder="bo'sh — aktda avtomatik"></div>
+
+    {# Faqat huquqbuzarlik TASDIQLANGANDA: rasmiy hujjat raqami va jarima darajasi majburiy #}
+    <div class="fine-section" x-show="result === 'confirmed'" x-cloak>
+      <div class="field"><label class="label" for="act-no">Dalolatnoma raqami</label>
+        <div class="row gap-2">
+          <input class="input grow" id="act-no" name="act_number" value="{{ posted.act_number|default:'' }}" x-ref="act"
+                 maxlength="60" placeholder="masalan: {{ next_act }}" autocomplete="off" required data-noloc>
+          <button type="button" class="btn btn-ghost" data-tip="Tizim bergan keyingi raqam"
+                  @click="if (!$refs.act.value) { $refs.act.value = '{{ next_act }}'; $refs.act.dispatchEvent(new Event('input', {bubbles: true})) }">
+            <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-hash"></use></svg> Avto raqam</button>
+        </div>
+        <div class="hint">Qog'oz blankadagi raqam. Bir raqam ikki marta ishlatilmaydi.</div></div>
+
+      <div class="field"><span class="label">Jarima darajasi</span>
+        <div class="fine-pick" role="radiogroup" aria-label="Jarima darajasi">
+          {% for f in fine_levels %}
+          <label class="fine-opt fine-{{ f.code }}">
+            <input type="radio" name="fine_level" value="{{ f.code }}" x-model="level" @change="manual = true" required>
+            <span class="fine-card">
+              <span class="fine-top"><b>{{ f.label }}</b>
+                <span class="badge badge-neutral fine-tag" x-show="suggest === '{{ f.code }}'">Tavsiya</span></span>
+              <span class="fine-sum num">{{ f.amount|intcomma }} <small>so'm</small></span>
+              <span class="fine-when">{{ f.when }}</span>
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+        <div class="hint" x-show="shop" x-text="hintText()"></div>
+      </div>
+      <div class="fine-total" x-show="level">
+        <span class="muted">Jarima summasi</span>
+        <b class="num" x-text="money(amounts[level]) + ' so\'m'"></b>
+        <small class="muted">Summa darajadan olinadi (panel → Sozlamalar). Asos: Soliq kodeksi 221-modda.</small>
+      </div>
     </div>
+
     <div class="field"><label class="label">Izoh</label>
-      <textarea class="textarea" name="notes" rows="3"></textarea></div>
+      <textarea class="textarea" name="notes" rows="3">{{ posted.notes|default:'' }}</textarea></div>
     <div class="field"><label class="label">Foto (dalolat)</label>
       <label class="file-drop">
         <input type="file" name="photo" accept="image/*" capture="environment" hidden>
@@ -45,4 +75,33 @@
     <button class="btn btn-lg" type="submit">Saqlash</button>
   </form>
 </div>
+{% endblock %}
+{% block extra_js %}
+{{ fine_hints|json_script:"fine-hints" }}
+<script>
+  document.addEventListener('alpine:init', function () {
+    var hints = JSON.parse(document.getElementById('fine-hints').textContent);
+    var amounts = { {% for f in fine_levels %}"{{ f.code }}": {{ f.amount }}{% if not forloop.last %}, {% endif %}{% endfor %} };
+    var labels = { {% for f in fine_levels %}"{{ f.code }}": "{{ f.label|escapejs }}"{% if not forloop.last %}, {% endif %}{% endfor %} };
+    window.Alpine.data('inspForm', function (shop, result, level) {
+      return {
+        shop: shop, result: result, level: level, manual: !!level, amounts: amounts,
+        get hint() { return hints[this.shop] || { hidden: 0, prior: 0, level: 'small' }; },
+        get suggest() { return this.hint.level; },
+        money: function (v) { return window.BN.fmt(v || 0); },
+        // Tavsiya etilgan daraja oldindan belgilanadi; tekshiruvchi o'zi boshqasini tanlasa — o'zgarmaydi
+        pickShop: function (v) { this.shop = v; if (!this.manual && this.result === 'confirmed') this.level = this.suggest; },
+        pickResult: function (v) { this.result = v; if (v === 'confirmed' && !this.level) this.level = this.suggest; },
+        hintText: function () {
+          var h = this.hint, L = window.locText || function (s) { return s; };
+          var why = h.prior >= 2 ? L("oxirgi 1 yilda tasdiqlangan: ") + h.prior + L(" marta")
+            : h.prior === 1 ? L("oxirgi 1 yilda 1 marta tasdiqlangan — takroriy")
+            : L("oxirgi 1 yilda tasdiqlangan tekshiruv yo'q — birinchi marta");
+          return L("Tavsiya: ") + L(labels[h.level]) + " — " + why + L(". Yashirilgan savdo (30 kun): ")
+            + this.money(h.hidden) + L(" so'm.");
+        },
+      };
+    });
+  });
+</script>
 {% endblock %}

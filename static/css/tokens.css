@@ -34,6 +34,9 @@
   /* ---- Qo'llab-quvvatlash: pista-yashil ---- */
   --pist-400:#9aa864; --pist-500:#7e8a4f; --pist-600:#65703d;
 
+  /* ---- Grafik palitrasi (hamma diagramma): firuza · binafsha · oltin ---- */
+  --chart-1:#0e9a8a; --chart-2:#7461d8; --chart-3:#c98a0c; --chart-grid:rgba(35,32,27,.08);
+
   /* ---- Holat ranglari (FAQAT funksiya, brenddan farqli hue) ---- */
   --ok:#1e8a5a;   --ok-bg:#dcf2e6;   --ok-ink:#0f5c3a;
   --warn:#bf7d16; --warn-bg:#fbeecd; --warn-ink:#7d5209;
@@ -108,6 +111,7 @@
   --ok:#3fbd83;   --ok-bg:#12362a;   --ok-ink:#8fe3bd;
   --warn:#e0a63c; --warn-bg:#3a2e12;  --warn-ink:#f2cf86;
   --bad:#e46464;  --bad-bg:#3a1e1e;   --bad-ink:#f2a6a6;
+  --chart-1:#38c3b0; --chart-2:#9d8cf0; --chart-3:#f2c14e; --chart-grid:rgba(237,232,222,.07);
   color-scheme:dark;
 }
 
@@ -125,6 +129,7 @@
     --ok:#3fbd83; --ok-bg:#12362a; --ok-ink:#8fe3bd;
     --warn:#e0a63c; --warn-bg:#3a2e12; --warn-ink:#f2cf86;
     --bad:#e46464; --bad-bg:#3a1e1e; --bad-ink:#f2a6a6;
+    --chart-1:#38c3b0; --chart-2:#9d8cf0; --chart-3:#f2c14e; --chart-grid:rgba(237,232,222,.07);
     color-scheme:dark;
   }
 }

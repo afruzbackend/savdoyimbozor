@@ -49,7 +49,7 @@
       </div>
       <div class="field"><label class="label">Sandiqdagi sanalgan naqd (so'm)</label>
         {# Kutilgan summa bilan OLDINDAN TO'LDIRILMAYDI — sotuvchi haqiqatan sanab yozsin #}
-        <input class="input num" type="number" name="counted_cash" min="0" required inputmode="numeric"
+        <input class="input num" name="counted_cash" required inputmode="numeric" data-money autocomplete="off"
                placeholder="Sandiqdagi naqdni sanab yozing"
                value="{% if today_close %}{{ today_close.counted_cash }}{% endif %}"></div>
       <div class="field"><label class="label">Kassa izohi (ixtiyoriy)</label>

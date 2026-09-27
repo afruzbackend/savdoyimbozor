@@ -16,7 +16,7 @@ from apps.catalog.models import ShopCategory
 from apps.geo.models import Market, Region, Row
 from apps.shops.models import Shop
 
-from .format import to_int
+from .format import PHONE_ERROR, clean_phone, to_int
 from .models import AuditLog, SystemSettings
 
 
@@ -266,6 +266,10 @@ def account_create(request):
         if not request.POST.get("full_name", "").strip():
             messages.error(request, "F.I.O. ni yozing.")
             return redirect("panel:account_create")
+        phone = clean_phone(request.POST.get("phone"))
+        if phone is None:
+            messages.error(request, PHONE_ERROR)
+            return redirect("panel:account_create")
         if role == Role.SELLER:
             # "mode" formadan: mavjud do'kon faqat existing rejimda ishlatiladi
             # (yangi rejimda yashirin shop select qiymati e'tiborga olinmaydi).
@@ -309,7 +313,7 @@ def account_create(request):
                     number=number,
                     stir=_digits(request.POST.get("stir"))[:15],
                     owner_name=request.POST.get("full_name", "").strip()[:200],
-                    owner_phone=request.POST.get("phone", "").strip()[:20],
+                    owner_phone=phone,
                     address=request.POST.get("address", "").strip()[:300],
                     category=category,
                     # Koordinata so'ralmaydi — bozor markazi olinadi (xarita uchun kifoya)
@@ -319,7 +323,7 @@ def account_create(request):
             cred = create_seller(
                 shop,
                 full_name=request.POST.get("full_name", ""),
-                phone=request.POST.get("phone", ""),
+                phone=phone,
             )
         elif role == Role.PROSECUTOR:
             # Kuzatuvchi: bozor tanlanmasa — butun respublika (faqat ko'rish)
@@ -328,8 +332,7 @@ def account_create(request):
             markets = Market.objects.filter(
                 pk__in=[_pk(x) for x in request.POST.getlist("markets")]
             )
-            cred = create_prosecutor(request.POST.get("full_name", ""), list(markets),
-                                     phone=request.POST.get("phone", ""))
+            cred = create_prosecutor(request.POST.get("full_name", ""), list(markets), phone=phone)
         else:
             markets = Market.objects.filter(
                 pk__in=[_pk(x) for x in request.POST.getlist("markets")]
@@ -341,7 +344,7 @@ def account_create(request):
             cred = create_inspector(
                 request.POST.get("full_name", "Inspektor"),
                 list(markets),
-                phone=request.POST.get("phone", ""),
+                phone=phone,
             )
         request.session["login_sheet"] = [cred_serializable(cred)]
         messages.success(request, "Hisob ochildi. Login varaqasi tayyor.")
@@ -397,6 +400,9 @@ def import_shops(request):
                 stir = _digits(excel_str(row[1]))[:15] if len(row) > 1 else ""
                 owner = excel_str(row[2]) if len(row) > 2 else ""
                 phone = excel_str(row[3]) if len(row) > 3 else ""
+                if clean_phone(phone) is None:
+                    raise ValueError(f"telefon noto'g'ri: {phone}")
+                phone = clean_phone(phone)
                 cat_name = excel_str(row[4]) if len(row) > 4 else ""
                 row_name = excel_str(row[5]) if len(row) > 5 else ""
                 if not number:
@@ -572,7 +578,9 @@ def settings_edit(request):
             "login_max_attempts",
             "login_lock_minutes",
             "tax_rate_percent",
-            "fine_penalty_percent",
+            "fine_small",
+            "fine_medium",
+            "fine_high",
             "anomaly_drop_pct",
             "cash_shortage_pct",
             "stockin_photo_min",
@@ -589,7 +597,9 @@ def settings_edit(request):
             "rounding_max": (0, 100000),
             # 0/1 bo'lsa hamma (admin ham) birinchi xatodayoq bloklanardi
             "login_max_attempts": (3, 20), "login_lock_minutes": (1, 1440),
-            "tax_rate_percent": (0, 100), "fine_penalty_percent": (0, 500),
+            "tax_rate_percent": (0, 100),
+            "fine_small": (0, 10_000_000_000), "fine_medium": (0, 10_000_000_000),
+            "fine_high": (0, 10_000_000_000),
             "anomaly_drop_pct": (1, 100), "cash_shortage_pct": (1, 100),
             "stockin_photo_min": (0, 1_000_000_000),
             "writeoff_alert_min": (0, 1_000_000_000),
@@ -602,7 +612,8 @@ def settings_edit(request):
             "weakest_part_cap": "Eng zaif qism ustamasi",
             "max_discount_no_cost_pct": "Maks. chegirma (%)", "rounding_max": "Yaxlitlash maks.",
             "login_max_attempts": "Kirish urinishlari", "login_lock_minutes": "Blok muddati",
-            "tax_rate_percent": "Soliq stavkasi", "fine_penalty_percent": "Jarima ustamasi",
+            "tax_rate_percent": "Soliq stavkasi", "fine_small": "Kichik jarima",
+            "fine_medium": "O'rta jarima", "fine_high": "Yuqori jarima",
             "anomaly_drop_pct": "Anomaliya chegarasi", "cash_shortage_pct": "Kassa kamomadi chegarasi",
             "stockin_photo_min": "Nakladnoy majburiy summa",
             "writeoff_alert_min": "Hisobdan chiqarish signali",
@@ -623,6 +634,9 @@ def settings_edit(request):
         y = new.get("yellow_threshold", s.yellow_threshold)
         if not errors and g <= y:
             errors.append("Yashil chegara sariqdan katta bo'lsin")
+        fs, fm, fh = (new.get(k, getattr(s, k)) for k in ("fine_small", "fine_medium", "fine_high"))
+        if not errors and not (fs <= fm <= fh):
+            errors.append("Jarimalar: kichik ≤ o'rta ≤ yuqori bo'lsin")
         weights = [new.get(k, getattr(s, k)) for k in
                    ("weight_cash", "weight_camera", "weight_stock", "weight_price")]
         if not errors and sum(weights) <= 0:
@@ -833,7 +847,11 @@ def shop_edit(request, pk):
         shop.stir = stir
         shop.number = number
         shop.category = category
-        shop.owner_phone = p.get("owner_phone", "").strip()[:20]
+        owner_phone = clean_phone(p.get("owner_phone"))
+        if owner_phone is None:
+            messages.error(request, PHONE_ERROR)
+            return redirect("panel:shop_edit", pk=shop.pk)
+        shop.owner_phone = owner_phone
         shop.address = p.get("address", "").strip()[:300]
         fiscal = p.get("fiscal_id", "").strip().upper()[:40]
         if fiscal and Shop.objects.filter(fiscal_id=fiscal).exclude(pk=shop.pk).exists():
@@ -873,7 +891,11 @@ def user_edit(request, pk):
             return redirect("panel:user_edit", pk=u.pk)
         u.first_name = full[0][:150]
         u.last_name = " ".join(full[1:])[:150]
-        u.phone = request.POST.get("phone", "").strip()[:20]
+        phone = clean_phone(request.POST.get("phone"))
+        if phone is None:
+            messages.error(request, PHONE_ERROR)
+            return redirect("panel:user_edit", pk=u.pk)
+        u.phone = phone
         tg = request.POST.get("telegram_id", "").strip()
         if tg and not tg.lstrip("-").isdigit():
             messages.error(request, "Telegram ID faqat raqam bo'lsin.")

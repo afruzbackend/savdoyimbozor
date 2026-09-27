@@ -17,8 +17,8 @@ class AlertAdmin(admin.ModelAdmin):
 
 @admin.register(Inspection)
 class InspectionAdmin(admin.ModelAdmin):
-    list_display = ("shop", "inspector", "result", "fine_amount", "act_number", "created_at")
-    list_filter = ("result", "shop__market")
+    list_display = ("shop", "inspector", "result", "fine_level", "fine_amount", "act_number", "created_at")
+    list_filter = ("result", "fine_level", "shop__market")
 
 
 admin.site.register(MarketPrice)

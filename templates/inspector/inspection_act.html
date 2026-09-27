@@ -36,7 +36,7 @@
 </div>
 <div class="doc">
   <div class="doc-head">
-    <span class="emblem-wrap">{% include 'components/_emblem.html' %}</span>
+    <span class="emblem-wrap emblem-plate">{% include 'components/_emblem.html' %}</span>
     <div class="org">O'zbekiston Respublikasi Davlat soliq qo'mitasi
       <small>Bozor savdosini nazorat qilish tizimi — «Bozor Nazorat»</small></div>
   </div>
@@ -65,25 +65,37 @@
 
   <h2>3. Huquqiy tasnif</h2>
   <table>
-    <tr><td>Daraja</td><td><b>{{ tier.label }}</b>{% if repeat %} <span style="color:var(--bad)">· takroriy (2×)</span>{% endif %}</td></tr>
+    <tr><td>Yashirish miqyosi</td><td><b>{{ tier.label }}</b></td></tr>
     <tr><td>Miqdor oralig'i (taxminiy)</td><td>{{ tier.range_text }}</td></tr>
     <tr><td>Tavsiya etilgan chora</td><td>
-      {% if tier.warning_only %}Ogohlantirish (kichik miqdor — jarima o'rniga)
+      {% if tier.warning_only %}Ogohlantirish yoki kichik jarima (birinchi marta, kichik miqdor)
       {% elif tier.is_criminal %}Jinoyat ishi materiallari + jarima
       {% else %}Ma'muriy jarima{% endif %}</td></tr>
   </table>
   <p class="note">Miqyos (taxminiy): 6.6–11 mln — kam · 13.2–22 mln — ancha · 44–66 mln — jinoyat ·
-    132–264 mln — juda katta. Takroriy huquqbuzarlikda jarima 2 baravar.</p>
+    132–264 mln — juda katta. Takroriy huquqbuzarlikda jarima darajasi oshadi (kichik → o'rta → yuqori).</p>
 
   <h2>4. Belgilangan jarima</h2>
+  {% if confirmed %}
+  <table>
+    <tr><td>Jarima darajasi</td><td><b>{{ insp.get_fine_level_display|default:"—" }}</b>{% if level_when %} <span class="muted">— {{ level_when }}</span>{% endif %}</td></tr>
+    {# Tavsiyadan farqli daraja tanlangan bo'lsa — aktda ochiq ko'rinadi (shaffoflik) #}
+    <tr><td>Tizim tavsiyasi</td><td>{{ suggested_label }}{% if suggested_level != insp.fine_level %} <span class="muted">(tekshiruvchi boshqa daraja tanlagan)</span>{% endif %}</td></tr>
+    <tr><td>Asos</td><td>Soliq kodeksi 221-modda (nazorat-kassa texnikasini qo'llash tartibini buzish)</td></tr>
+    <tr><td>Jarima</td><td class="num"><b>{{ insp.fine_amount|default:0|intcomma }} so'm</b></td></tr>
+    <tr><td>Undiriladigan soliq (taxminiy, {{ tax_rate }}%)</td><td class="num">{{ evaded_tax|intcomma }} so'm</td></tr>
+  </table>
   <div class="fine-box">
-    <div class="k" style="color:var(--ink-muted);font-size:var(--t--1)">Jarima summasi (yashirilgan soliq + {{ penalty_pct }}% ustama{% if repeat %} × 2 takroriy{% endif %})</div>
-    <div class="v">{{ insp.fine_amount|intcomma }} so'm</div>
-    {% if tier.warning_only %}<div class="k" style="color:var(--warn);font-weight:600;margin-top:4px">Kichik miqdor — jarima o'rniga OGOHLANTIRISH berish mumkin.</div>{% endif %}
-    <div class="note">Eslatma: summa va tasnif tizim baholovi asosida <b>taxminiy</b>.
+    <div class="k" style="color:var(--ink-muted);font-size:var(--t--1)">Jami to'lanadigan (jarima + undiriladigan soliq)</div>
+    <div class="v">{{ total_due|intcomma }} so'm</div>
+    {% if tier.warning_only and insp.fine_level == 'small' %}<div class="k" style="color:var(--warn);font-weight:600;margin-top:4px">Kichik miqdor, birinchi marta — jarima o'rniga OGOHLANTIRISH berish mumkin.</div>{% endif %}
+    <div class="note">Eslatma: yashirilgan savdo va soliq — tizim baholovi, <b>taxminiy</b>.
       Yakuniy jarima/chora vakolatli organ tomonidan amaldagi qonunchilik asosida rasman belgilanadi.
       Ushbu dalolatnoma tekshiruvga asos bo'lgan signal va hisob-kitob natijalarini aks ettiradi.</div>
   </div>
+  {% else %}
+  <p class="note" style="font-size:var(--t--1)">Huquqbuzarlik tasdiqlanmagan ({{ insp.get_result_display }}) — jarima qo'llanilmaydi.</p>
+  {% endif %}
 
   <h2>5. Imzolar</h2>
   <div class="signs">

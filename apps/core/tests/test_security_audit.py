@@ -152,7 +152,7 @@ def test_admin_can_save_own_phone(aclient, admin_user):
     """Panelda /sozlamalar/ (tizim) va hisob sozlamalari to'qnashmasin."""
     aclient.post("/profil/sozlamalar/", {"phone": "+998901234567"}, HTTP_HOST="panel.localhost")
     admin_user.refresh_from_db()
-    assert admin_user.phone == "+998901234567"
+    assert admin_user.phone == "+998 90 123 45 67"  # bitta ko'rinishda saqlanadi
 
 
 @pytest.mark.django_db

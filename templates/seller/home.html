@@ -17,7 +17,7 @@
     </div>
     <form method="post" action="{% url 'seller:register' %}" class="row gap-2" style="flex-wrap:wrap" data-no-validate>
       {% csrf_token %}<input type="hidden" name="action" value="opening"><input type="hidden" name="next" value="{{ request.path }}">
-      <input class="input num" type="number" name="opening_cash" min="0" step="1000" inputmode="numeric" placeholder="masalan 100 000" style="width:150px">
+      <input class="input num" name="opening_cash" inputmode="numeric" data-money autocomplete="off" placeholder="masalan 100 000" style="width:150px">
       <button class="btn" type="submit">Saqlash</button>
       <button class="btn btn-ghost" type="submit" onclick="this.form.opening_cash.value='0'">Maydalik yo'q</button>
     </form>

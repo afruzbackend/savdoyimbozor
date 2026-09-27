@@ -281,7 +281,13 @@ def account_settings(request):
     """Foydalanuvchi sozlamalari: parol, telefon, bildirishnoma afzalliklari."""
     user = request.user
     if request.method == "POST":
-        user.phone = request.POST.get("phone", "").strip()[:20]  # bo'sh qoldirsa — o'chiriladi
+        from apps.core.format import PHONE_ERROR, clean_phone
+
+        phone = clean_phone(request.POST.get("phone"))  # bo'sh qoldirsa — o'chiriladi
+        if phone is None:
+            messages.error(request, PHONE_ERROR)
+            return redirect(_safe_next(request, "account_settings"))
+        user.phone = phone
         fields = ["phone"]
         if "telegram_id" in request.POST:  # faqat bot sozlangan bo'lsa formada bor
             tg = request.POST.get("telegram_id", "").strip()

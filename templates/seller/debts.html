@@ -9,8 +9,8 @@
     <p class="hint" style="margin:0 0 var(--sp-3)">Hozir sotayotgan bo'lsangiz — sotuv ekranida «Nasiya» to'lovini tanlang: chek va nasiya birga yoziladi. Bu forma eski (daftardagi) nasiyalar uchun.</p>
     <form method="post">{% csrf_token %}
       <div class="field"><label class="label">Xaridor</label><input class="input" name="customer_name" placeholder="Ism, mo'ljal" required></div>
-      <div class="field"><label class="label">Telefon</label><input class="input" name="customer_phone" placeholder="+998..." inputmode="tel"></div>
-      <div class="field"><label class="label">Summa (so'm)</label><input class="input num" name="amount" inputmode="numeric" autocomplete="off" required></div>
+      <div class="field"><label class="label">Telefon</label><input class="input num" name="customer_phone" inputmode="tel" autocomplete="tel" data-phone placeholder="+998 90 123 45 67"></div>
+      <div class="field"><label class="label">Summa (so'm)</label><input class="input num" name="amount" inputmode="numeric" data-money autocomplete="off" required></div>
       {% include 'components/_duefield.html' with name='due_date' label='Qaytarish sanasi' %}
       <div class="field"><label class="label">Izoh</label><input class="input" name="note"></div>
       <label class="switch" style="margin-bottom:var(--sp-3)"><input type="checkbox" name="sms_remind" checked><span class="track"></span><span class="thumb"></span>

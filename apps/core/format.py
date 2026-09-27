@@ -88,3 +88,20 @@ def excel_safe(value):
 
 def excel_row(values):
     return [excel_safe(v) for v in values]
+
+
+PHONE_ERROR = "Telefon noto'g'ri — masalan +998 90 123 45 67"
+
+
+def clean_phone(raw) -> str | None:
+    """Telefon → "+998 90 123 45 67" (hamma joyda bir xil ko'rinish). Bo'sh (yoki faqat "+998") → "".
+    Noto'g'ri → None (formada xato ko'rsatiladi). "90 1234567", "998901234567", "8 90..." ham qabul."""
+    from apps.core.sms import normalize_phone
+
+    digits = "".join(c for c in str(raw or "") if c.isdigit())
+    if digits in ("", "998"):
+        return ""
+    n = normalize_phone(digits)
+    if n is None:
+        return None
+    return f"+{n[:3]} {n[3:5]} {n[5:8]} {n[8:10]} {n[10:12]}"

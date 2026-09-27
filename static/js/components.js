@@ -32,6 +32,98 @@
   }
   window.BN = { fmt, unfmt, moneyTick, UZ_MONTHS, UZ_WD };
 
+  // ---- Grafiklar: BITTA uslub va palitra (tokens.css --chart-*) — hamma diagramma bir xil ----
+  // Kiritilgan — firuza, deklaratsiya — binafsha, rostlik chizig'i — oltin. Tema almashsa grafik
+  // o'zi qayta chiziladi (ilgari qora rejimga o'tganda eski ranglar qolib ketardi).
+  function cssv(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  var CHART_ROLE = { entered: "--chart-1", cash: "--chart-2", truth: "--chart-3" };
+  var charts = [];
+  function chartTheme() {
+    var C = window.Chart;
+    if (!C) return;
+    C.defaults.font.family = cssv("--font-sans") || "Inter, system-ui, sans-serif";
+    C.defaults.font.size = 12;
+    C.defaults.color = cssv("--ink-muted");
+    C.defaults.borderColor = cssv("--chart-grid");
+    var tt = C.defaults.plugins.tooltip;
+    tt.backgroundColor = cssv("--surface");
+    tt.titleColor = cssv("--ink");
+    tt.bodyColor = cssv("--ink");
+    tt.borderColor = cssv("--border-strong");
+    tt.borderWidth = 1; tt.padding = 10; tt.cornerRadius = 10; tt.boxPadding = 4; tt.usePointStyle = true;
+    var lg = C.defaults.plugins.legend.labels;
+    lg.usePointStyle = true; lg.pointStyle = "rectRounded"; lg.boxWidth = 10; lg.boxHeight = 10; lg.padding = 16;
+  }
+  function paintSet(ds) {
+    var col = cssv(CHART_ROLE[ds._role] || "--chart-1");
+    ds.borderColor = col; ds.backgroundColor = col; ds.hoverBackgroundColor = col;
+    if (ds.type === "line") { ds.pointBackgroundColor = col; ds.pointBorderColor = cssv("--surface"); }
+  }
+  function buildSalesChart(canvas, d, opt) {
+    var C = window.Chart, L = window.locText || function (s) { return s; };
+    var bar = { type: "bar", borderRadius: 5, borderSkipped: false, maxBarThickness: 26,
+                categoryPercentage: 0.72, barPercentage: 0.9 };
+    var sets = [Object.assign({ _role: "entered", label: L(opt.enteredLabel || "Kiritilgan"), data: d.entered, order: 2 }, bar)];
+    if (d.cash) sets.push(Object.assign({ _role: "cash", label: L("Deklaratsiya"), data: d.cash, order: 3 }, bar));
+    sets.push({ _role: "truth", type: "line", label: L("Rostlik %"), data: d.truth, yAxisID: "y1", order: 1,
+                tension: 0.35, borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 5, pointBorderWidth: 1.5,
+                spanGaps: false });
+    sets.forEach(paintSet);
+    var som = L("so'm");
+    return new C(canvas, {
+      data: { labels: d.labels, datasets: sets },
+      options: {
+        responsive: true,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { grid: { display: false }, border: { display: false } },
+          y: { position: "left", beginAtZero: true, border: { display: false },
+               ticks: { precision: 0, callback: function (v) { return moneyTick(v); } } },
+          y1: { position: "right", min: 0, max: 100, border: { display: false }, grid: { drawOnChartArea: false },
+                ticks: { callback: function (v) { return v + "%"; } } },
+        },
+        plugins: {
+          // Legend — ustunlar, keyin chiziq (chizish tartibi "order" legendni aralashtirmasin)
+          legend: { labels: { sort: function (a, b) { return a.datasetIndex - b.datasetIndex; } } },
+          tooltip: {
+            itemSort: function (a, b) { return a.datasetIndex - b.datasetIndex; },
+            // Bo'sh (hisoblanmagan) kun qatori ko'rsatilmaydi
+            filter: function (it) { return it.raw !== null && it.raw !== undefined; },
+            callbacks: {
+              label: function (c) {
+                var pct = c.dataset.yAxisID === "y1";
+                return " " + (pct ? c.dataset.label.replace(/\s*%$/, "") : c.dataset.label) + ": " +
+                  (pct ? c.raw + "%" : fmt(c.raw) + " " + som);
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+  // Sotuv grafigi: d = {labels, entered, cash?, truth}; opt.enteredLabel — birinchi ustun nomi
+  window.BN.salesChart = function (canvas, d, opt) {
+    if (!canvas || !window.Chart || !d || !d.labels) return null;
+    chartTheme();
+    var rec = { canvas: canvas, d: d, opt: opt || {} };
+    rec.chart = buildSalesChart(canvas, d, rec.opt);
+    charts.push(rec);
+    return rec.chart;
+  };
+  function repaintCharts() {
+    if (!window.Chart || !charts.length) return;
+    chartTheme();
+    var anim = window.Chart.defaults.animation;
+    window.Chart.defaults.animation = false;
+    charts.forEach(function (r) { r.chart.destroy(); r.chart = buildSalesChart(r.canvas, r.d, r.opt); });
+    window.Chart.defaults.animation = anim;
+  }
+  new MutationObserver(repaintCharts).observe(document.documentElement,
+    { attributes: true, attributeFilter: ["data-theme"] });
+  try {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", repaintCharts);
+  } catch (e) { /* eski brauzer */ }
+
   function getCookie(name) {
     const m = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
     return m ? m.pop() : "";
@@ -322,6 +414,121 @@
     });
     if (bad) { e.preventDefault(); e.stopImmediatePropagation(); bad.focus(); }
   }, true);
+
+  // ---- Umumiy: maydon ostidagi qizil xabar (brauzerning default oynasi o'rniga) ----
+  function markErr(inp, on, key, text) {
+    inp.classList.toggle("err", on);
+    var f = inp.closest(".field") || inp.parentNode;
+    var e = f.querySelector('.field-err[data-err="' + key + '"]');
+    if (on && !e) {
+      e = document.createElement("div");
+      e.className = "field-err";
+      e.setAttribute("data-err", key);
+      e.textContent = (window.locText || function (s) { return s; })(text);
+      f.appendChild(e);
+    } else if (!on && e) { e.remove(); }
+  }
+  // Formatlangandan keyin kursor joyi: shuncha raqamdan keyin turadi (o'rtada tahrirlash buzilmaydi)
+  function caretAfterDigits(el, n) {
+    if (document.activeElement !== el || !el.setSelectionRange) return;
+    var v = el.value, i = 0, c = 0;
+    while (i < v.length && c < n) { if (/\d/.test(v[i])) c++; i++; }
+    try { el.setSelectionRange(i, i); } catch (e) { /* ok */ }
+  }
+  function digitsBeforeCaret(el) {
+    var pos = el.selectionStart == null ? el.value.length : el.selectionStart;
+    return el.value.slice(0, pos).replace(/\D/g, "").length;
+  }
+
+  // ---- Telefon [data-phone]: "+998" o'zi yoziladi, "+998 90 123 45 67" ko'rinishida ----
+  function phoneLocal(raw) {
+    var s = String(raw || ""), d = s.replace(/\D/g, "");
+    if (d.slice(0, 3) === "998" && (/^\s*\+/.test(s) || d.length >= 12)) d = d.slice(3);
+    else if (d.length === 10 && d[0] === "8") d = d.slice(1); // eski "8 90 ..." yozuvi
+    return d.slice(0, 9);
+  }
+  function fmtPhone(local) {
+    if (!local) return "";
+    var out = "+998 " + local.slice(0, 2);
+    if (local.length > 2) out += " " + local.slice(2, 5);
+    if (local.length > 5) out += " " + local.slice(5, 7);
+    if (local.length > 7) out += " " + local.slice(7, 9);
+    return out;
+  }
+  function phoneInput(t) {
+    var hadPrefix = /^\s*\+998/.test(t.value);
+    var n = digitsBeforeCaret(t) + (hadPrefix ? 0 : 3);
+    var local = phoneLocal(t.value);
+    var v = local ? fmtPhone(local) : (hadPrefix && document.activeElement === t ? "+998 " : "");
+    if (v !== t.value) { t.value = v; caretAfterDigits(t, n); }
+    if (t.classList.contains("err") && local.length === 9) markErr(t, false, "phone");
+  }
+
+  // ---- Raqam [data-digits="9"]: faqat raqam, uzunlik chegarasi (STIR 9, JShShIR 14) ----
+  // ---- Summa [data-money]: "1 500 000" ko'rinishida (server bo'sh joyni o'zi tozalaydi) ----
+  function maskInput(t) {
+    if (t.matches("input[data-phone]")) return phoneInput(t);
+    if (t.matches("input[data-digits]")) {
+      var max = parseInt(t.getAttribute("data-digits"), 10) || 30;
+      var v = t.value.replace(/\D/g, "").slice(0, max);
+      if (v !== t.value) { var n = digitsBeforeCaret(t); t.value = v; caretAfterDigits(t, n); }
+      return;
+    }
+    if (t.matches("input[data-money]")) {
+      var n2 = digitsBeforeCaret(t);
+      var m = t.value.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 15);
+      var f = fmt(m);
+      if (f !== t.value) { t.value = f; caretAfterDigits(t, n2); }
+    }
+  }
+  // capture: Alpine x-model qiymatni o'qishidan OLDIN formatlanadi
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (t && t.matches && t.matches("input[data-phone],input[data-digits],input[data-money]")) maskInput(t);
+  }, true);
+  document.addEventListener("focusin", function (e) {
+    var t = e.target;
+    if (t && t.matches && t.matches("input[data-phone]") && !t.value && !t.readOnly) {
+      t.value = "+998 ";
+      try { t.setSelectionRange(5, 5); } catch (x) { /* ok */ }
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target;
+    // "+998" prefiksini Backspace bilan o'chirib bo'lmaydi (butunlay tozalash — belgilab o'chirish)
+    if (e.key === "Backspace" && t && t.matches && t.matches("input[data-phone]") &&
+        t.selectionStart === t.selectionEnd && t.selectionStart <= 5 && /^\+998/.test(t.value)) {
+      e.preventDefault();
+    }
+  });
+  document.addEventListener("focusout", function (e) {
+    var t = e.target;
+    if (!t || !t.matches || !t.matches("input[data-phone]")) return;
+    var local = phoneLocal(t.value);
+    if (!local) { t.value = ""; markErr(t, false, "phone"); return; }
+    markErr(t, local.length !== 9, "phone", "Telefon to'liq emas — masalan +998 90 123 45 67");
+  });
+  document.addEventListener("submit", function (e) {
+    var bad = null;
+    (e.target.querySelectorAll ? e.target.querySelectorAll("input[data-phone]") : []).forEach(function (t) {
+      var local = phoneLocal(t.value);
+      if (!local) t.value = "";
+      var wrong = (local && local.length !== 9) || (!local && t.required);
+      markErr(t, wrong, "phone", "Telefon to'liq emas — masalan +998 90 123 45 67");
+      if (wrong && !bad) bad = t;
+    });
+    if (bad) { e.preventDefault(); e.stopImmediatePropagation(); bad.focus(); }
+  }, true);
+  function initMasks(root) {
+    (root || document).querySelectorAll("input[data-phone],input[data-money],input[data-digits]").forEach(function (t) {
+      if (!t.value) return;
+      if (t.matches("[data-phone]")) { var l = phoneLocal(t.value); if (l.length === 9) t.value = fmtPhone(l); }
+      else maskInput(t);
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () { initMasks(); });
+  document.body && document.body.addEventListener &&
+    document.body.addEventListener("htmx:afterSwap", function (e) { initMasks(e.target); });
 
   // ---- Miqdor maydoni mahsulot birligiga qarab ----
   // dona/quti/bog'lam — butun son (qadam 1, raqam klaviaturasi); kg/litr/metr/qop — kasr (2,5 kg).
