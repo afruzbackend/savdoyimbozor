@@ -107,7 +107,8 @@
       <p class="muted" style="margin:0 0 var(--sp-4)">Qaytadan kirish uchun login va parol kerak bo'ladi.</p>
       <div class="row gap-2" style="justify-content:center">
         <button class="btn btn-ghost" onclick="document.getElementById('logout-confirm').hidden=true">Bekor</button>
-        <a class="btn btn-danger" href="{% url 'logout' %}">Ha, chiqish</a>
+        <form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}
+          <button class="btn btn-danger" type="submit">Ha, chiqish</button></form>
       </div>
     </div>
   </div>

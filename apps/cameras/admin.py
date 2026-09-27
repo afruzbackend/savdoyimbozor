@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from apps.core.admin import EvidenceAdmin
+
 from .models import Camera, CameraEvent
 
 
@@ -17,7 +19,7 @@ class CameraAdmin(admin.ModelAdmin):
 
 
 @admin.register(CameraEvent)
-class CameraEventAdmin(admin.ModelAdmin):
+class CameraEventAdmin(EvidenceAdmin):
     list_display = ("camera", "type", "count", "ts")
     list_filter = ("type",)
     date_hierarchy = "ts"

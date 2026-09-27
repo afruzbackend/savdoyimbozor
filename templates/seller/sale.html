@@ -103,8 +103,9 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ pricing_config|json_script:"pricing-config" }}
 <script>
-  window.__PRICING__ = {{ pricing_config|safe }};
+  window.__PRICING__ = JSON.parse(document.getElementById('pricing-config').textContent);
   document.addEventListener('alpine:init', () => {
     Alpine.data('saleScreen', () => ({
       cfg: window.__PRICING__,

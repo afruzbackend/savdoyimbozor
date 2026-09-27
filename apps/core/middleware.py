@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import re
 
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
+
+log = logging.getLogger(__name__)
 
 # Rol → o'ziga tegishli interfeys (urlconf tanlash uchun)
 ROLE_INTERFACE = {
@@ -183,8 +186,8 @@ class AuditMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
         try:
             self._log(request, response)
-        except Exception:
-            pass  # audit asosiy oqimni buzmasin
+        except Exception:  # noqa: BLE001 — audit asosiy oqimni buzmasin, lekin JIM qolmasin
+            log.exception("Audit yozuvi saqlanmadi: %s %s", request.method, request.path)
         return response
 
     def _log(self, request, response):

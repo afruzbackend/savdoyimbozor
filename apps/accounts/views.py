@@ -211,6 +211,10 @@ def twofa_setup(request):
 
 
 def logout_view(request):
+    # Faqat POST (CSRF tokeni bilan). GET bilan chiqarilsa, begona sahifadagi <img src="/logout/">
+    # ham foydalanuvchini tizimdan chiqarib yuborardi (CSRF logout).
+    if request.method != "POST":
+        return redirect("/" if request.user.is_authenticated else "login")
     logout(request)
     return redirect("login")
 

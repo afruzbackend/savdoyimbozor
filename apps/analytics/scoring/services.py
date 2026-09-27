@@ -7,8 +7,12 @@ Funksiyalar sof (I/O yo'q) — test qilish oson va sudda tushuntirish mumkin.
 
 from __future__ import annotations
 
+import logging
+
 from apps.core.dates import on_day
 from apps.core.format import som
+
+log = logging.getLogger(__name__)
 
 # Savdo HAJMINI mustaqil tekshiradigan qismlar. Narx qismi — faqat qo'shimcha: yolg'iz o'zi rostlikni
 # o'lchamaydi (1 000 so'm yozgan do'kon ham narxi to'g'ri bo'lsa 100% chiqardi).
@@ -308,7 +312,7 @@ def refresh_today_if_stale(seconds: int = 12) -> bool:
     try:
         _recompute_stale_days()  # kechikkan oflayn sotuvlar tushgan o'tgan kunlar
     except Exception:  # noqa: BLE001 — sotuv baribir yozilsin
-        pass
+        log.exception("Kechikkan kunlarni qayta hisoblash yiqildi")
     newest = (
         DailyScore.objects.filter(date=today)
         .order_by("-updated_at")
@@ -322,6 +326,7 @@ def refresh_today_if_stale(seconds: int = 12) -> bool:
         recompute_for_date(today)
         return True
     except Exception:  # noqa: BLE001 — sotuv baribir yozilsin
+        log.exception("Bugungi rostlikni qayta hisoblash yiqildi")
         return False
 
 
@@ -555,7 +560,7 @@ def recompute_for_date(day, final: bool | None = None) -> int:
 
                         notify_alert(za)
                     except Exception:  # noqa: BLE001
-                        pass
+                        log.exception("Signal xabari yuborilmadi (alert #%s)", za.pk)
             continue  # nol-savdoda rostlik signali ortiqcha
 
         # Anomaliya: bugungi savdo 30-kunlik o'rtachadan keskin tushsa (batched tarix)
@@ -595,7 +600,7 @@ def recompute_for_date(day, final: bool | None = None) -> int:
 
                 notify_alert(alert)
             except Exception:  # noqa: BLE001 — xabar asosiy oqimni buzmasin
-                pass
+                log.exception("Signal xabari yuborilmadi (alert #%s)", alert.pk)
 
     # Kassa nomuvofiqligi signali (Z-hisobot asosida, rostlik ballidan mustaqil)
     if final:
@@ -787,7 +792,7 @@ def _generate_cash_mismatch_alerts(day, cfg, existing_alerts=None, insp_by_marke
 
                 notify_alert(alert)
             except Exception:  # noqa: BLE001
-                pass
+                log.exception("Signal xabari yuborilmadi (alert #%s)", alert.pk)
 
 
 def _alert_reason(result, parts, entered, cash):

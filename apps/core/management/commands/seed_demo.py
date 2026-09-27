@@ -20,6 +20,7 @@ from apps.analytics.scoring.services import recompute_for_date
 from apps.cameras.models import Camera, CameraEvent
 from apps.cash.models import CashRecord
 from apps.catalog.models import Product, ProductCategory, ShopCategory, Unit
+from apps.core.format import clean_phone
 from apps.geo.models import Market, Region, Row
 from apps.sales.models import (
     Correction,
@@ -206,7 +207,7 @@ class Command(BaseCommand):
                     defaults={
                         "stir": f"3{num:08d}",
                         "owner_name": self._name(num),
-                        "owner_phone": f"+99890{random.randint(1000000,9999999)}",
+                        "owner_phone": clean_phone(f"+99890{random.randint(1000000, 9999999)}"),
                         "category": shop_cats[scat],
                         "row": rows[rowname],
                         "map_x": (j % 6) * 90 + 40,

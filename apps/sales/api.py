@@ -1,5 +1,7 @@
 """Sotuvchi API'lari (API-first). Alpine frontend shu endpointlarni chaqiradi."""
 
+import logging
+
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -9,6 +11,8 @@ from apps.core.dates import on_day
 
 from .models import Sale
 from .services.sales import DebtorRequired, InsufficientStock, InvalidQuantity, create_sale
+
+log = logging.getLogger(__name__)
 
 
 def _seller_shop(request):
@@ -160,7 +164,7 @@ def create_sale_api(request):
 
         refresh_today_if_stale()
     except Exception:  # noqa: BLE001 — sotuv javobi kechikmasin
-        pass
+        log.exception("Sotuvdan keyin rostlikni yangilash yiqildi")
     return _ok(sale, status.HTTP_201_CREATED)
 
 

@@ -13,9 +13,12 @@ qoldiq/rostlik solishtiruvidan ham yashiriladi. Kun tugab, oxirgi hodisa oynasi 
 from __future__ import annotations
 
 import datetime
+import logging
 from collections import defaultdict
 
 from django.utils import timezone
+
+log = logging.getLogger(__name__)
 
 WINDOW_BEFORE = datetime.timedelta(hours=2)
 WINDOW_AFTER = datetime.timedelta(hours=14)
@@ -108,7 +111,7 @@ def check_day(day, *, force=False) -> int:
 
                 notify_alert(alert)
             except Exception:  # noqa: BLE001 — xabar asosiy oqimni buzmasin
-                pass
+                log.exception("Signal xabari yuborilmadi (alert #%s)", alert.pk)
     return created
 
 

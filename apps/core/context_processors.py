@@ -1,6 +1,9 @@
+import logging
 import time
 
 from django.conf import settings
+
+log = logging.getLogger(__name__)
 
 # Statik fayllar versiyasi — kesh-buster. Har server ishga tushganda yangilanadi (dev);
 # prod'da ManifestStaticFilesStorage o'zi hashlaydi, lekin bu ham zarar qilmaydi.
@@ -36,7 +39,7 @@ def ui_context(request):
 
                 debt_reminders(user, getattr(user, "shop", None))
             except Exception:  # noqa: BLE001 — sahifa ochilishini buzmasin
-                pass
+                log.exception("Nasiya eslatmasi hisoblanmadi")
         try:
             ctx["unread_notifications"] = user.notifications.filter(is_read=False).count()
         except Exception:

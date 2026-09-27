@@ -1,5 +1,6 @@
 """Super admin paneli: hisob ochish, import, sozlamalar, audit."""
 
+import logging
 from decimal import Decimal, InvalidOperation
 from functools import wraps
 
@@ -36,6 +37,9 @@ def _load_xlsx(request):
 
     f = request.FILES.get("file")
     if f is None:
+        return None
+    if f.size and f.size > 10 * 1024 * 1024:
+        messages.error(request, "Fayl juda katta (10 MB dan ortiq) — bo'lib yuklang.")
         return None
     try:
         return openpyxl.load_workbook(f, data_only=True, read_only=True)
@@ -391,6 +395,7 @@ def import_shops(request):
         created = []
         errors = 0
         bad_rows = []
+        phone_warn = []
         for idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
             if not row or row[0] is None:
                 continue
@@ -399,10 +404,11 @@ def import_shops(request):
                 number = excel_str(row[0])
                 stir = _digits(excel_str(row[1]))[:15] if len(row) > 1 else ""
                 owner = excel_str(row[2]) if len(row) > 2 else ""
-                phone = excel_str(row[3]) if len(row) > 3 else ""
-                if clean_phone(phone) is None:
-                    raise ValueError(f"telefon noto'g'ri: {phone}")
-                phone = clean_phone(phone)
+                raw_phone = excel_str(row[3]) if len(row) > 3 else ""
+                phone = clean_phone(raw_phone)
+                if phone is None:  # do'kon baribir ochiladi, telefon keyin tuzatiladi
+                    phone_warn.append(f"{idx}-qator ({raw_phone})")
+                    phone = ""
                 cat_name = excel_str(row[4]) if len(row) > 4 else ""
                 row_name = excel_str(row[5]) if len(row) > 5 else ""
                 if not number:
@@ -446,6 +452,9 @@ def import_shops(request):
         if bad_rows:
             messages.warning(request, "Xato qatorlar: " + "; ".join(bad_rows[:10])
                              + (" ..." if len(bad_rows) > 10 else ""))
+        if phone_warn:
+            messages.warning(request, "Telefon noto'g'ri — bo'sh qoldirildi (do'kon sahifasida tuzating): "
+                             + "; ".join(phone_warn[:10]) + (" ..." if len(phone_warn) > 10 else ""))
         return redirect("panel:login_sheet")
     return render(
         request,
@@ -681,9 +690,11 @@ def settings_edit(request):
             from apps.analytics.scoring.services import recompute_for_date
 
             recompute_for_date(timezone.localdate())
+            messages.success(request, "Sozlamalar saqlandi. Bugungi ballar qayta hisoblandi.")
         except Exception:  # noqa: BLE001 — sozlama baribir saqlandi
-            pass
-        messages.success(request, "Sozlamalar saqlandi. Bugungi ballar qayta hisoblandi.")
+            logging.getLogger(__name__).exception("Sozlamadan keyin qayta hisoblash yiqildi")
+            messages.warning(request, "Sozlamalar saqlandi, lekin ballarni qayta hisoblab bo'lmadi — "
+                                      "keyingi fon hisobida yangilanadi.")
         return redirect("panel:settings")
     return render(
         request,

@@ -16,3 +16,9 @@ def heartbeat():
     from apps.core.health import beat
 
     beat()
+
+
+@shared_task
+def clear_sessions():
+    """Muddati o'tgan sessiyalarni o'chiradi — django_session jadvali yillar davomida cheksiz o'smasin."""
+    call_command("clearsessions")

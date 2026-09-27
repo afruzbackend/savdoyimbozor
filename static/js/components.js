@@ -441,11 +441,23 @@
   }
 
   // ---- Telefon [data-phone]: "+998" o'zi yoziladi, "+998 90 123 45 67" ko'rinishida ----
+  // Xorijiy raqam: "+" dan keyin 998 dan boshqa kod ("+7", "+996") — formatlanmaydi, 8–15 raqam
+  function phoneIntl(raw) {
+    var s = String(raw || ""), d = s.replace(/\D/g, "");
+    return /^\s*\+/.test(s) && d.length > 0 && "998".indexOf(d.slice(0, 3)) !== 0;
+  }
   function phoneLocal(raw) {
     var s = String(raw || ""), d = s.replace(/\D/g, "");
     if (d.slice(0, 3) === "998" && (/^\s*\+/.test(s) || d.length >= 12)) d = d.slice(3);
     else if (d.length === 10 && d[0] === "8") d = d.slice(1); // eski "8 90 ..." yozuvi
     return d.slice(0, 9);
+  }
+  function phoneValid(raw) {
+    var d = String(raw || "").replace(/\D/g, "");
+    return phoneIntl(raw) ? d.length >= 8 && d.length <= 15 : phoneLocal(raw).length === 9;
+  }
+  function phoneEmpty(raw) {
+    return phoneIntl(raw) ? false : !phoneLocal(raw);
   }
   function fmtPhone(local) {
     if (!local) return "";
@@ -456,6 +468,13 @@
     return out;
   }
   function phoneInput(t) {
+    if (phoneIntl(t.value)) {
+      var n0 = digitsBeforeCaret(t);
+      var iv = "+" + t.value.replace(/\D/g, "").slice(0, 15);
+      if (iv !== t.value) { t.value = iv; caretAfterDigits(t, n0); }
+      if (t.classList.contains("err") && phoneValid(iv)) markErr(t, false, "phone");
+      return;
+    }
     var hadPrefix = /^\s*\+998/.test(t.value);
     var n = digitsBeforeCaret(t) + (hadPrefix ? 0 : 3);
     var local = phoneLocal(t.value);
@@ -504,16 +523,15 @@
   document.addEventListener("focusout", function (e) {
     var t = e.target;
     if (!t || !t.matches || !t.matches("input[data-phone]")) return;
-    var local = phoneLocal(t.value);
-    if (!local) { t.value = ""; markErr(t, false, "phone"); return; }
-    markErr(t, local.length !== 9, "phone", "Telefon to'liq emas — masalan +998 90 123 45 67");
+    if (phoneEmpty(t.value)) { t.value = ""; markErr(t, false, "phone"); return; }
+    markErr(t, !phoneValid(t.value), "phone", "Telefon to'liq emas — masalan +998 90 123 45 67");
   });
   document.addEventListener("submit", function (e) {
     var bad = null;
     (e.target.querySelectorAll ? e.target.querySelectorAll("input[data-phone]") : []).forEach(function (t) {
-      var local = phoneLocal(t.value);
-      if (!local) t.value = "";
-      var wrong = (local && local.length !== 9) || (!local && t.required);
+      var empty = phoneEmpty(t.value);
+      if (empty) t.value = "";
+      var wrong = (!empty && !phoneValid(t.value)) || (empty && t.required);
       markErr(t, wrong, "phone", "Telefon to'liq emas — masalan +998 90 123 45 67");
       if (wrong && !bad) bad = t;
     });
@@ -522,7 +540,10 @@
   function initMasks(root) {
     (root || document).querySelectorAll("input[data-phone],input[data-money],input[data-digits]").forEach(function (t) {
       if (!t.value) return;
-      if (t.matches("[data-phone]")) { var l = phoneLocal(t.value); if (l.length === 9) t.value = fmtPhone(l); }
+      if (t.matches("[data-phone]")) {
+        var l = phoneLocal(t.value);
+        if (!phoneIntl(t.value) && l.length === 9) t.value = fmtPhone(l);
+      }
       else maskInput(t);
     });
   }

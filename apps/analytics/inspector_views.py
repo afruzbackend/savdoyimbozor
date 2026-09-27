@@ -8,6 +8,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from apps.analytics.recent import RECENT_DAYS
+from apps.analytics.recent import recent_scores as _recent_scores
 from apps.cameras.models import Camera
 from apps.core.dates import day_start, days_between
 from apps.geo.models import Market
@@ -52,40 +54,13 @@ def _level(truth, cfg):
     return "red"
 
 
-RECENT_DAYS = 7
-
-
-def _recent_scores(shops, today, days=RECENT_DAYS):
-    """Har do'kon: oxirgi `days` kun ichidagi O'LCHANGAN kunlar bo'yicha rostlik.
-
-    Ilgari bitta umumiy sana olinardi: o'sha kuni o'lchanmagan do'kon (bugun hali hisoblanmagan,
-    1-2 kunlik yangi do'kon, kechagi kassa yuklanmagan) xaritada "—" bo'lib qolardi. Endi har
-    do'kon o'zining oxirgi kunlaridan hisoblanadi — bitta o'lchangan kun ham yetadi.
-    """
-    from collections import defaultdict
-
-    since = today - timedelta(days=days - 1)
-    acc = defaultdict(list)
-    for s in (DailyScore.objects.filter(shop__in=shops, date__range=(since, today), measured=True)
-              .order_by("date")):
-        acc[s.shop_id].append(s)
-    return {
-        sid: {
-            "truth": round(sum(x.truth_pct for x in lst) / len(lst)),
-            "days": len(lst),
-            "last": lst[-1].date,
-            "entered": sum(x.entered_sales for x in lst),
-            "cash": sum(x.cash_amount for x in lst),
-        }
-        for sid, lst in acc.items()
-    }
-
-
 def _num_key(number):
     """Do'kon raqami matn: "9" < "10" bo'lsin ("10" < "9" emas), "12A" ham to'g'ri joyda."""
     import re
 
-    return [int(p) if p.isdigit() else p.lower() for p in re.split(r"(\d+)", str(number or "")) if p]
+    # (tur, son, matn): son bilan matn to'qnashsa TypeError bo'lmasin ("A12" va "9" bir bozorda)
+    return [(0, int(p), "") if p.isdigit() else (1, 0, p.lower())
+            for p in re.split(r"(\d+)", str(number or "")) if p]
 
 
 @login_required

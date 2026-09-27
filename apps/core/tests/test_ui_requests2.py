@@ -242,7 +242,7 @@ def test_panel_fine_amounts_must_be_ordered(aclient):
         ("", ""),
         ("+998 ", ""),
         ("12345", None),
-        ("+7 999 123 45 67", None),
+        ("+7 999 123 45 67", "+79991234567"),  # xorijiy — qabul qilinadi
     ],
 )
 def test_clean_phone(raw, out):

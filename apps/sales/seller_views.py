@@ -157,7 +157,7 @@ def sale_screen(request):
     if shop is None:
         return redirect("seller:home")
     cfg = pricing.frontend_config(SystemSettings.get_solo())
-    return render(request, "seller/sale.html", {"shop": shop, "pricing_config": json.dumps(cfg)})
+    return render(request, "seller/sale.html", {"shop": shop, "pricing_config": cfg})
 
 
 @login_required
@@ -166,7 +166,7 @@ def scan_screen(request):
     if shop is None:
         return redirect("seller:home")
     cfg = pricing.frontend_config(SystemSettings.get_solo())
-    return render(request, "seller/scan.html", {"shop": shop, "pricing_config": json.dumps(cfg)})
+    return render(request, "seller/scan.html", {"shop": shop, "pricing_config": cfg})
 
 
 @login_required
@@ -1094,6 +1094,13 @@ def report(request):
     start = today - timedelta(days=13)
     scores = list(DailyScore.objects.filter(shop=shop, date__range=(start, today)).order_by("date"))
     latest = scores[-1] if scores else None
+    # Nazoratchi ko'radigan raqam bilan BIR XIL: oxirgi 7 kundagi o'lchangan kunlar (ilgari faqat
+    # bugungi kun — kun bo'yi "—", nazoratchida esa boshqa raqam turardi)
+    from apps.analytics.recent import RECENT_DAYS, level, recent_scores
+
+    recent = recent_scores([shop], today).get(shop.pk)
+    measured_days = [s for s in scores if s.measured]
+    parts_day = measured_days[-1] if measured_days else latest
 
     # Foyda (sotilgan mahsulot bo'yicha, taxminiy)
     items = SaleItem.objects.filter(
@@ -1122,6 +1129,7 @@ def report(request):
         "total": _sum(sales_all),
         "discount": sales_all.aggregate(s=Sum("discount"))["s"] or 0,
         "count": sales_all.count(),
+        "avg_check": (_sum(sales_all) // sales_all.count()) if sales_all.exists() else 0,
         "sold_qty": SaleItem.objects.filter(sale__shop=shop).aggregate(q=Sum("quantity"))["q"] or 0,
         # kg + dona + bog'lamni qo'shish ma'nosiz — qoldiqdagi mahsulot TURLARI soni
         "remaining": Product.objects.filter(shop=shop, is_active=True, stock__gt=0).count(),
@@ -1135,8 +1143,8 @@ def report(request):
         scores[0].date if scores else today, today, keys=("entered", "truth"),
     )
 
-    # "Qanday oshiraman" maslahati — eng zaif qismga qarab
-    advice = _advice(latest)
+    # "Qanday oshiraman" maslahati — eng zaif qismga qarab (oxirgi o'lchangan kun)
+    advice = _advice(parts_day)
 
     part_labels = {
         "cash": "Kassa / deklaratsiya",
@@ -1145,9 +1153,9 @@ def report(request):
         "price": "Narx",
     }
     parts = []
-    if latest:
+    if parts_day:
         for k, lbl in part_labels.items():
-            v = latest.parts.get(k)
+            v = parts_day.parts.get(k)
             parts.append({"label": lbl, "value": v})
 
     return render(
@@ -1156,6 +1164,9 @@ def report(request):
         {
             "shop": shop,
             "latest": latest,
+            "recent": recent,
+            "recent_days": RECENT_DAYS,
+            "level": level(recent["truth"] if recent else None, SystemSettings.get_solo()),
             "chart": chart,
             "parts": parts,
             "revenue": revenue,

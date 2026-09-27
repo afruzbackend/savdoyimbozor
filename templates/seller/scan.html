@@ -94,8 +94,9 @@
 
 {% block extra_js %}
 <script src="{% static 'js/zxing.min.js' %}?v={{ asset_v }}"></script>
+{{ pricing_config|json_script:"pricing-config" }}
 <script>
-  window.__PRICING__ = {{ pricing_config|safe }};
+  window.__PRICING__ = JSON.parse(document.getElementById('pricing-config').textContent);
   document.addEventListener('alpine:init', () => {
     Alpine.data('scanSale', () => ({
       cfg: window.__PRICING__, q: '', results: [], cart: [], discount: 0, pay: 'cash', saving: false, lastReceipt: null,

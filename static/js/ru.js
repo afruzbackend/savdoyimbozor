@@ -1547,6 +1547,10 @@ window.RU_DICT = {
   "Oxirgi": "Последние",
   "kun · o'lchangan:": "дн. · измерено:",
   "kunda kassa, kamera yoki kun yakuni sanog'i yo'q — faqat narx yetmaydi": "дн. нет кассы, камеры или пересчёта в конце дня — одной цены недостаточно",
+  "O'rtacha chek": "Средний чек",
+  "oxirgi": "последние",
+  "Fayl juda katta (10 MB dan ortiq) — bo'lib yuklang.": "Файл слишком большой (более 10 МБ) — загрузите частями.",
+  "Sozlamalar saqlandi, lekin ballarni qayta hisoblab bo'lmadi — keyingi fon hisobida yangilanadi.": "Настройки сохранены, но пересчитать баллы не удалось — обновятся при следующем фоновом расчёте.",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
@@ -1556,6 +1560,7 @@ window.RU_FRAGMENTS = [
 
   // Razmerli tovar
   ["razmerini tanlang: ", "выберите размер: "],
+  ["Telefon noto'g'ri — bo'sh qoldirildi (do'kon sahifasida tuzating): ", "Неверный телефон — оставлен пустым (исправьте на странице магазина): "],
   [" kun, oxirgisi ", " дн., последний "],
   [" · o'lchanmagan", " · не измерено"],
   [" dalolatnoma allaqachon bor — raqam takrorlanmasin.", " — акт уже существует, номер не должен повторяться."],

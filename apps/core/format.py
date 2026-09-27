@@ -95,12 +95,17 @@ PHONE_ERROR = "Telefon noto'g'ri — masalan +998 90 123 45 67"
 
 def clean_phone(raw) -> str | None:
     """Telefon → "+998 90 123 45 67" (hamma joyda bir xil ko'rinish). Bo'sh (yoki faqat "+998") → "".
-    Noto'g'ri → None (formada xato ko'rsatiladi). "90 1234567", "998901234567", "8 90..." ham qabul."""
+    Noto'g'ri → None (formada xato ko'rsatiladi). "90 1234567", "998901234567", "8 90..." ham qabul.
+    Xorijiy raqam "+" bilan ("+7 701 ...", "+996 ...") — "+77011234567" ko'rinishida qabul qilinadi
+    (chegara bozorlarida xaridor/sotuvchi xorijlik bo'lishi mumkin); ularga SMS yuborilmaydi."""
     from apps.core.sms import normalize_phone
 
-    digits = "".join(c for c in str(raw or "") if c.isdigit())
+    s = str(raw or "").strip()
+    digits = "".join(c for c in s if c.isdigit())
     if digits in ("", "998"):
         return ""
+    if s.startswith("+") and not digits.startswith("998"):
+        return "+" + digits if 8 <= len(digits) <= 15 else None
     n = normalize_phone(digits)
     if n is None:
         return None

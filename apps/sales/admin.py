@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from apps.core.admin import EvidenceAdmin, EvidenceInline
+
 from .models import (
     Correction,
     DailyClose,
@@ -15,13 +17,13 @@ from .models import (
 )
 
 
-class SaleItemInline(admin.TabularInline):
+class SaleItemInline(EvidenceInline):
     model = SaleItem
     extra = 0
 
 
 @admin.register(Sale)
-class SaleAdmin(admin.ModelAdmin):
+class SaleAdmin(EvidenceAdmin):
     list_display = (
         "shop",
         "total",
@@ -38,31 +40,31 @@ class SaleAdmin(admin.ModelAdmin):
 
 
 @admin.register(StockIn)
-class StockInAdmin(admin.ModelAdmin):
+class StockInAdmin(EvidenceAdmin):
     list_display = ("shop", "product", "quantity", "in_packs", "unit_price", "created_at")
     list_filter = ("shop__market",)
 
 
-class DailyCloseLineInline(admin.TabularInline):
+class DailyCloseLineInline(EvidenceInline):
     model = DailyCloseLine
     extra = 0
 
 
 @admin.register(DailyClose)
-class DailyCloseAdmin(admin.ModelAdmin):
+class DailyCloseAdmin(EvidenceAdmin):
     list_display = ("shop", "date", "computed_sales", "entered_sales")
     list_filter = ("date", "shop__market")
     inlines = [DailyCloseLineInline]
 
 
-admin.site.register(SaleReturn)
-admin.site.register(WriteOff)
-admin.site.register(Correction)
-admin.site.register(Debt)
-admin.site.register(RegisterClose)
+admin.site.register(SaleReturn, EvidenceAdmin)
+admin.site.register(WriteOff, EvidenceAdmin)
+admin.site.register(Correction, EvidenceAdmin)
+admin.site.register(Debt, EvidenceAdmin)
+admin.site.register(RegisterClose, EvidenceAdmin)
 
 
 @admin.register(ReceiptReport)
-class ReceiptReportAdmin(admin.ModelAdmin):
+class ReceiptReportAdmin(EvidenceAdmin):
     list_display = ("sale", "paid_amount", "created_at", "alert")
     readonly_fields = ("sale", "paid_amount", "comment", "alert", "created_at")

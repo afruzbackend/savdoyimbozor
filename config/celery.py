@@ -47,6 +47,11 @@ app.conf.beat_schedule = {
         "task": "apps.sales.tasks.debt_sms_reminders",
         "schedule": crontab(hour="10,15", minute=0),  # 15:00 — tarmoq xatosi bo'lganlar qayta
     },
+    # Har kecha 03:45 da muddati o'tgan sessiyalar tozalanadi
+    "clear-sessions": {
+        "task": "apps.core.tasks.clear_sessions",
+        "schedule": crontab(hour=3, minute=45),
+    },
     # Har kuni 20:00 da sotuvchilarga kun yakuni/kassa yopishni eslatish
     "close-reminders": {
         "task": "apps.sales.tasks.close_reminders",

@@ -3,10 +3,14 @@ bevosita dalili (xaridor pulni qo'lida to'lagan)."""
 
 from __future__ import annotations
 
+import logging
+
 from django.db import transaction
 from django.utils import timezone
 
 from apps.sales.models import ReceiptReport
+
+log = logging.getLogger(__name__)
 
 
 def _som(n) -> str:
@@ -45,5 +49,5 @@ def file_buyer_report(sale, paid_amount: int, comment: str = "") -> ReceiptRepor
 
                 notify_alert(alert)
             except Exception:  # noqa: BLE001 — xabar asosiy oqimni buzmasin
-                pass
+                log.exception("Signal xabari yuborilmadi (alert #%s)", alert.pk)
     return report

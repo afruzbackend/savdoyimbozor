@@ -6,7 +6,8 @@
 <div class="grid grid-3" style="margin-bottom:var(--sp-4)">
   <div class="card center">
     <small class="muted">Rostlik darajasi</small>
-    {% if latest and latest.has_data %}<div class="truth-big" style="color:var({% if latest.truth_pct >= 80 %}--ok{% elif latest.truth_pct >= 50 %}--warn{% else %}--bad{% endif %})">{{ latest.truth_pct }}%</div>
+    {% if recent %}<div class="truth-big" style="color:var({% if level == 'green' %}--ok{% elif level == 'yellow' %}--warn{% else %}--bad{% endif %})">{{ recent.truth }}%</div>
+    <small class="muted">oxirgi <span class="num">{{ recent_days }}</span>&nbsp;kun · o'lchangan: <span class="num">{{ recent.days }}</span>&nbsp;kun</small>
     {% else %}<div class="truth-big">—</div><small class="muted">ma'lumot yig'ilmoqda</small>{% endif %}
   </div>
   <div class="card center"><small class="muted">Bugungi savdo</small><div class="truth-big num" style="font-size:var(--t-3)">{{ metrics.today|intcomma }}</div><small class="muted">so'm</small></div>
@@ -23,7 +24,7 @@
 </div>
 <div class="grid grid-3" style="margin-bottom:var(--sp-4)">
   <div class="card"><small class="muted">Sotuvlar soni</small><div class="num" style="font-size:var(--t-2);font-weight:700">{{ metrics.count|intcomma }}</div></div>
-  <div class="card"><small class="muted">Jami cheklar</small><div class="num" style="font-size:var(--t-2);font-weight:700">{{ metrics.count|intcomma }}</div></div>
+  <div class="card"><small class="muted">O'rtacha chek</small><div class="num" style="font-size:var(--t-2);font-weight:700">{{ metrics.avg_check|intcomma }}</div><small class="muted">so'm</small></div>
   <div class="card"><small class="muted">Qoldiqdagi mahsulot turlari</small><div class="num" style="font-size:var(--t-2);font-weight:700">{{ metrics.remaining }}</div></div>
 </div>
 
