@@ -37,8 +37,8 @@
           <span class="user-chip-name">{{ user.get_full_name|default:user.username }}</span>
           <small class="muted">{{ user.get_role_display }}</small>
         </span>
-        <button type="button" class="user-gear" data-tip="Sozlamalar" title="Sozlamalar"
-                onclick="this.classList.add('spin');setTimeout(function(b){return function(){b.classList.remove('spin')}}(this),600);document.getElementById('settings-modal').hidden=false">
+        <button type="button" class="user-gear" data-tip="Sozlamalar" aria-label="Sozlamalar"
+                onclick="this.__t=(this.__t||0)+180;this.style.setProperty('--turn',this.__t+'deg');document.getElementById('settings-modal').hidden=false">
           <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-settings"></use></svg></button>
       </div>
     </div>

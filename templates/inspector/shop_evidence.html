@@ -5,7 +5,8 @@
 <style>
   .doc{max-width:820px;margin:0 auto;padding:var(--sp-5);background:var(--surface);color:var(--ink)}
   .doc-head{display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--border-strong);padding-bottom:var(--sp-4);margin-bottom:var(--sp-4)}
-  .doc-head .emb{width:52px;height:52px;color:var(--brand-600)}
+  .doc-head .emb{width:52px;height:52px;flex:none;color:var(--brand-600)}
+  .doc-head .emb .emblem{width:52px;height:52px}
   .doc h1{font-size:var(--t-2);margin:0}
   .doc h2{font-size:var(--t-0);margin:var(--sp-4) 0 var(--sp-2);border-bottom:1px solid var(--border);padding-bottom:4px}
   .doc table{width:100%;border-collapse:collapse;font-size:var(--t--1)}
@@ -23,7 +24,7 @@
 {% endblock %}
 {% block body %}
 <div class="toolbar" data-noloc>
-  <a class="btn btn-ghost" href="{% url 'inspector:shop_detail' shop.pk %}">← Orqaga</a>
+  <a class="btn btn-ghost" href="{% url 'inspector:shop_detail' shop.pk %}"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-arrow-left"></use></svg> Orqaga</a>
   <button class="btn" onclick="window.print()">Chop etish / PDF</button>
 </div>
 <div class="doc">
@@ -43,20 +44,48 @@
     <div><span class="k">Manzil:</span> {{ shop.address|default:"—" }}</div>
     <div><span class="k">Davr:</span> {{ start|date:"d.m.Y" }} — {{ today|date:"d.m.Y" }}</div>
     <div><span class="k">Tekshiruvchi:</span> {{ inspector.get_full_name|default:inspector.username }}</div>
-    <div><span class="k">Joriy rostlik:</span> <b>{% if latest %}{{ latest.truth_pct }}%{% else %}—{% endif %}</b></div>
+    <div><span class="k">O'rtacha rostlik (o'lchangan kunlar):</span> <b>{% if avg_truth is not None %}{{ avg_truth }}%{% else %}o'lchanmagan{% endif %}</b>
+      <span class="muted">· {{ measured_days }}/{{ period_days }} <span>kun</span></span></div>
   </div>
 
   <h2>Asosiy xulosa</h2>
   <div class="big-money">
-    <div><div class="k muted">Yashirilgan savdo (30 kun, taxminiy)</div><div class="v" style="color:var(--bad)">{{ hidden_sales|intcomma }} so'm</div></div>
+    <div><div class="k muted">Soliqdan yashirilgan savdo (30 kun, taxminiy)</div><div class="v" style="color:var(--bad)">{{ hidden_sales|intcomma }} so'm</div></div>
     <div><div class="k muted">Potensial qo'shimcha soliq ({{ tax_rate }}%, taxminiy)</div><div class="v" style="color:var(--ok)">{{ potential_tax|intcomma }} so'm</div></div>
   </div>
   <table>
-    <tr><td>Kiritilgan savdo (30 kun)</td><td class="num">{{ entered_total|intcomma }} so'm</td></tr>
-    <tr><td>Deklaratsiya (kassa)</td><td class="num">{{ cash_total|intcomma }} so'm</td></tr>
+    <tr><td>Kiritilgan savdo (30 kun) <small class="muted">— sotuvchi tizimga yozgan cheklar</small></td><td class="num">{{ entered_total|intcomma }} so'm</td></tr>
+    <tr><td>Deklaratsiya (30 kun) <small class="muted">— soliqqa e'lon qilingan tushum (onlayn kassa / Soliq / Excel)</small></td><td class="num">{{ cash_total|intcomma }} so'm</td></tr>
+    <tr><td>Farq (kiritilgan − deklaratsiya)</td><td class="num">{{ diff_total|intcomma }} so'm</td></tr>
     <tr><td>O'rtacha chegirma</td><td class="num">{{ invest.shop_discount }}% (<span>o'xshash do'konlar:</span> {{ invest.market_discount }}%)</td></tr>
     <tr><td>Tannarxga yaqin sotuvlar</td><td class="num">{{ invest.near_cost_pct }}% ({{ invest.near_cost }}/{{ invest.near_cost_total }}){% if invest.peer_near_cost_pct is not None %} · <span>o'xshash do'konlar:</span> {{ invest.peer_near_cost_pct }}%{% endif %}</td></tr>
   </table>
+
+  {% comment %}Tekshiruvchi va do'kon egasi uchun: raqamlar qayerdan chiqdi (sudda tushuntirish uchun){% endcomment %}
+  <h2>Rostlik qanday aniqlanadi</h2>
+  <p class="muted" style="font-size:var(--t--1);margin:0 0 var(--sp-2)">Sotuvchi tizimga yozgan savdo (kiritilgan)
+    undan mustaqil manbalar bilan solishtiriladi. Har manba bo'yicha moslik: kichik qiymat / katta qiymat × 100
+    (kam ham, ko'p ham yozilsa tushadi). Rostlik — mavjud manbalarning og'irlikli o'rtachasi.</p>
+  {% if part_rows %}
+  <table>
+    <thead><tr><th>Manba ({{ last_measured.date|date:"d.m.Y" }})</th><th class="num">Moslik</th></tr></thead>
+    <tbody>
+    {% for r in part_rows %}<tr><td>{{ r.label }}</td><td class="num">{% if r.value is not None %}{{ r.value }}%{% else %}<span class="muted">ma'lumot yo'q</span>{% endif %}</td></tr>{% endfor %}
+    <tr><td><b>Rostlik</b></td><td class="num"><b>{{ last_measured.truth_pct }}%</b></td></tr>
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted" style="font-size:var(--t--1)">Bu davrda savdo hajmini tekshiruvchi manba (kassa deklaratsiyasi, kamera,
+    kun yakuni sanog'i) bo'lmagan — rostlik o'lchanmagan. Faqat narx yetarli emas.</p>
+  {% endif %}
+  <ul class="muted" style="font-size:var(--t--1);margin:var(--sp-2) 0 0;padding-left:18px">
+    <li><b>Kiritilgan savdo</b> — sotuvchi tizimga yozgan cheklar jami (tez sotuv, skaner, oflayn navbat).</li>
+    <li><b>Deklaratsiya</b> — shu kunlar uchun soliqqa e'lon qilingan tushum: onlayn kassa / Soliq ma'lumoti yoki Excel.</li>
+    <li><b>Soliqdan yashirilgan savdo</b> — har kun: haqiqiy savdo bahosi (kiritilgan, kamera bahosi va qoldiq bahosining
+      eng kattasi) minus deklaratsiya; manfiy kunlar hisobga olinmaydi. Kiritilgan deklaratsiyadan ko'p bo'lsa —
+      sotuvchi tizimga yozgan, lekin soliqqa e'lon qilmagan tushum.</li>
+    <li>Natija — tekshiruvga <b>signal</b>, jarima uchun yakuniy dalil emas.</li>
+  </ul>
 
   <h2>Signallar</h2>
   <table>

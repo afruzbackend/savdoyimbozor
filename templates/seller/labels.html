@@ -3,7 +3,7 @@
 {% block title %}Barkod yorliqlari{% endblock %}
 {% block heading %}Barkod yorliqlari{% endblock %}
 {% block topbar_actions %}
-<a class="btn btn-ghost" href="{% url 'seller:products' %}">← Mahsulotlar</a>
+<a class="btn btn-ghost" href="{% url 'seller:products' %}"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-arrow-left"></use></svg> Mahsulotlar</a>
 <button class="btn" type="button" onclick="window.print()">Chop etish</button>
 {% endblock %}
 {% block content %}

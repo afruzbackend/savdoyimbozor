@@ -78,12 +78,6 @@ def service_worker(request):
 
 
 @login_required
-def panel_home(request):
-    """Super admin bosh sahifasi (P4'da to'ldiriladi)."""
-    return render(request, "panel/home.html")
-
-
-@login_required
 def error_preview(request, code):
     """Xato sahifalarini ko'rish (namoyish/dizayn tekshiruvi): /prefs/xato/404/ va h.k."""
     from django.http import Http404

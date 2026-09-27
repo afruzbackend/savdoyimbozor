@@ -305,11 +305,27 @@ def shop_evidence(request, pk):
     hidden = sum(s.hidden_sales for s in scores)
     potential_tax = int(hidden * cfg.tax_rate_percent / 100)
     peers = shop.similar_shops()
+    # "Joriy (bugungi) rostlik" chalg'itardi: bugun deklaratsiya hali kelmagan bo'ladi. Davr bo'yicha
+    # faqat O'LCHANGAN kunlar o'rtachasi + oxirgi o'lchangan kun qismlari (nima bilan solishtirildi)
+    measured = [s for s in scores if s.measured]
+    avg_truth = round(sum(s.truth_pct for s in measured) / len(measured)) if measured else None
+    last_measured = measured[-1] if measured else None
+    part_rows = []
+    if last_measured:
+        labels = {"cash": "Kassa / deklaratsiya", "camera": "Kamera", "stock": "Qoldiq (kun yakuni)",
+                  "price": "Narx (bozor bilan)"}
+        part_rows = [{"label": lbl, "value": last_measured.parts.get(k)} for k, lbl in labels.items()]
 
     ctx = {
         "shop": shop,
         "latest": latest,
         "level": _level(latest.truth_pct, cfg) if latest and latest.measured else "none",
+        "avg_truth": avg_truth,
+        "measured_days": len(measured),
+        "period_days": (today - start).days + 1,
+        "last_measured": last_measured,
+        "part_rows": part_rows,
+        "diff_total": sum(s.entered_sales for s in scores) - sum(s.cash_amount for s in scores),
         "start": start,
         "today": today,
         "hidden_sales": hidden,
@@ -386,7 +402,9 @@ def inspection_create(request):
     shops = _visible_shops(request)
     alert_id = request.GET.get("alert")
     alert = Alert.objects.filter(pk=_pk(alert_id), shop__in=shops).first() if alert_id else None
-    preselect = alert.shop if alert else None
+    # Do'kon sahifasidagi "Tekshiruv" tugmasi ?shop= bilan keladi — raqamni qayta qidirmaslik uchun
+    preselect = alert.shop if alert else (
+        shops.filter(pk=_pk(request.GET.get("shop"))).first() if request.GET.get("shop") else None)
 
     if request.method == "POST":
         from django.contrib import messages as _msg

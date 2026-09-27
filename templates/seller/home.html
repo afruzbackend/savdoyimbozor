@@ -51,7 +51,7 @@
       <div class="card-title">Savdo yo'nalishi{% if shop.category %}: <b>{{ shop.category.name }}</b>{% endif %}</div>
       <small class="muted">{% if product_count %}{{ product_count }} ta mahsulot qo'shilgan · yo'nalishingizga mos tayyor ro'yxat{% else %}Yo'nalishingizga mos tayyor mahsulotlar — bosib qo'shing{% endif %}</small>
     </div>
-    <a class="btn btn-ghost" href="{% url 'seller:products' %}" style="flex:none">Mahsulotlar →</a>
+    <a class="btn btn-ghost" href="{% url 'seller:products' %}" style="flex:none"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg> Mahsulotlar</a>
   </div>
   <div class="row" style="flex-wrap:wrap;gap:var(--sp-2)">
     {% for c in trade_catalog %}

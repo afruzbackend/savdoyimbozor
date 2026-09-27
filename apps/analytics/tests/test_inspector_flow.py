@@ -27,7 +27,7 @@ def test_evidence_page_renders(iclient, shop):
     assert r.status_code == 200
     html = r.content.decode()
     assert "Tekshiruv dalil" in html
-    assert "Yashirilgan savdo" in html
+    assert "yashirilgan savdo" in html and "Rostlik qanday aniqlanadi" in html
 
 
 @pytest.mark.django_db

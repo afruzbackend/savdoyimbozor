@@ -10,11 +10,19 @@ from conftest import PW
 PANEL_HOST = "panel.localhost"
 
 
+def _with_product_type(cat):
+    """Hisob ochishda savdo turida kamida bitta mahsulot turi bo'lishi shart."""
+    from apps.catalog.models import ProductCategory
+
+    ProductCategory.objects.create(name=f"{cat.name} turi", shop_category=cat)
+    return cat
+
+
 @pytest.mark.django_db
 def test_admin_creates_shop_with_location(aclient, market):
     from apps.catalog.models import ShopCategory
 
-    cat = ShopCategory.objects.create(name="Meva-sabzavot")
+    cat = _with_product_type(ShopCategory.objects.create(name="Meva-sabzavot"))
     r = aclient.post(
         "/hisob/yangi/",
         {
@@ -113,7 +121,7 @@ def test_new_shop_increases_market_count(aclient, market):
     yashirin 'shop' select qiymati e'tiborga olinmasligi kerak."""
     from apps.catalog.models import ShopCategory
 
-    cat = ShopCategory.objects.create(name="Kiyim")
+    cat = _with_product_type(ShopCategory.objects.create(name="Kiyim"))
     before = market.shops.count()
     r = aclient.post(
         "/hisob/yangi/",
@@ -134,7 +142,7 @@ def test_new_shop_ignores_stray_shop_value(aclient, market, shop):
     mavjud do'konga biriktirmasdan yangi do'kon yaratadi."""
     from apps.catalog.models import ShopCategory
 
-    cat = ShopCategory.objects.create(name="Kiyim")
+    cat = _with_product_type(ShopCategory.objects.create(name="Kiyim"))
     before = market.shops.count()
     r = aclient.post(
         "/hisob/yangi/",

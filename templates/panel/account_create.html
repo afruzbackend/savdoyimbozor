@@ -28,7 +28,8 @@
 
       <div x-show="mode==='new'">
         <div class="grid grid-2">
-          <div class="field"><label class="label">Do'kon raqami (avto — betakror)</label><input class="input num" name="number" x-ref="number" placeholder="avto"></div>
+          <div class="field"><label class="label">Do'kon raqami (bo'sh — avto)</label><input class="input num" name="number" x-ref="number" placeholder="avto" autocomplete="off">
+            <div class="field-err" id="number-taken" hidden></div></div>
           <div class="field"><label class="label">STIR</label><input class="input num" name="stir" placeholder="123456789" required></div>
         </div>
         <div class="grid grid-2">
@@ -68,20 +69,35 @@
 {% endblock %}
 {% block extra_js %}
 {{ next_by_market|json_script:"market-next" }}
+{{ taken_numbers|json_script:"market-taken" }}
 <script>
-  // Bozor tanlanganda: koordinata (markaz) + keyingi BETAKROR do'kon raqami avto to'ldiriladi.
+  // Bozor tanlanganda: koordinata (markaz) + keyingi BETAKROR do'kon raqami taklif qilinadi.
+  // Admin o'zi raqam yozsa — tegilmaydi; band bo'lsa darrov qizil ("band — egasi ...") va
+  // saqlashda server ham rad etadi (ilgari jimgina keyingi raqam berilardi: 27 → 28).
   (function(){
     var ms=document.querySelector('[name=market]');
     var la=document.querySelector('[name=latitude]'), ln=document.querySelector('[name=longitude]');
-    var num=document.querySelector('[name=number]');
-    var nextMap={}; try{ nextMap=JSON.parse(document.getElementById('market-next').textContent);}catch(e){}
+    var num=document.querySelector('[name=number]'), err=document.getElementById('number-taken');
+    var nextMap={}, taken={};
+    try{ nextMap=JSON.parse(document.getElementById('market-next').textContent);}catch(e){}
+    try{ taken=JSON.parse(document.getElementById('market-taken').textContent);}catch(e){}
     if(!ms) return;
+    var auto=true;  // raqamni admin o'zi o'zgartirmagan
+    function check(){
+      if(!num || !err) return;
+      var o=ms.options[ms.selectedIndex], owner=o && (taken[o.value]||{})[num.value.trim()];
+      num.classList.toggle('err', !!owner);
+      err.hidden=!owner;
+      err.textContent = owner ? ('№'+num.value.trim()+' bu bozorda band (egasi: '+owner+'). Bo\'sh raqam: №'+(nextMap[o.value]||'')) : '';
+    }
     function fill(){
       var o=ms.options[ms.selectedIndex]; if(!o) return;
       if(la && !la.value && o.dataset.lat) la.value=o.dataset.lat;
       if(ln && !ln.value && o.dataset.lng) ln.value=o.dataset.lng;
-      if(num) num.value = nextMap[o.value] || '';  // keyingi bo'sh raqam
+      if(num && auto) num.value = nextMap[o.value] || '';
+      check();
     }
+    if(num) num.addEventListener('input', function(){ auto = !num.value; check(); });
     ms.addEventListener('change', fill); fill();
   })();
 </script>

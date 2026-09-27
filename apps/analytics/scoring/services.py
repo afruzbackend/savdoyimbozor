@@ -10,6 +10,10 @@ from __future__ import annotations
 from apps.core.dates import on_day
 from apps.core.format import som
 
+# Savdo HAJMINI mustaqil tekshiradigan qismlar. Narx qismi — faqat qo'shimcha: yolg'iz o'zi rostlikni
+# o'lchamaydi (1 000 so'm yozgan do'kon ham narxi to'g'ri bo'lsa 100% chiqardi).
+VOLUME_PARTS = ("cash", "camera", "stock")
+
 
 def match(a: float, b: float) -> float | None:
     """Ikki qiymat mosligi (%). Kam ham, ko'p ham yozsa tushadi.
@@ -513,7 +517,9 @@ def recompute_for_date(day, final: bool | None = None) -> int:
                 "entered_sales": entered,
                 "cash_amount": cash,
                 "hidden_sales": hidden,
-                "measured": any(v is not None for v in parts.values()),
+                # O'lchangan = savdo HAJMINI tekshiruvchi manba bor (kassa/kamera/qoldiq). Faqat narx
+                # hajmni tekshirmaydi: 1 000 so'm yozgan do'kon ham "100% yashil" chiqardi.
+                "measured": any(parts[k] is not None for k in VOLUME_PARTS),
             },
         )
         count += 1
@@ -557,8 +563,8 @@ def recompute_for_date(day, final: bool | None = None) -> int:
             if _anomaly_from(shop, day, entered, prior_by.get(shop.id, []), cfg, inspector):
                 existing_alerts.add((shop.id, Alert.Kind.ANOMALY))
 
-        if not any(v is not None for v in parts.values()):
-            continue
+        if not any(parts[k] is not None for k in VOLUME_PARTS):
+            continue  # hajm manbasi yo'q — rostlik o'lchanmagan, signal ham yo'q
         lvl = level_for(result["truth"], cfg.green_threshold, cfg.yellow_threshold)
         stale = open_truth.get(shop.id)
         if lvl == "green":

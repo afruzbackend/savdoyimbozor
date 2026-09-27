@@ -5,10 +5,17 @@
 <div class="grid" style="grid-template-columns:340px 1fr;gap:var(--sp-4);align-items:start">
   <div class="card">
     <div class="card-title" style="margin-bottom:var(--sp-3)">Yangi savdo turi</div>
-    <form method="post" class="row gap-2">{% csrf_token %}
+    <form method="post">{% csrf_token %}
       <input type="hidden" name="action" value="add">
-      <input class="input grow" name="name" placeholder="masalan: Gullar, Elektronika" required>
-      <button class="btn" type="submit">Qo'shish</button>
+      <div class="field"><label class="label" for="sc-name">Nomi</label>
+        <input class="input" id="sc-name" name="name" placeholder="masalan: Guruchlar, Elektronika" maxlength="120" required></div>
+      <div class="field"><label class="label" for="sc-items">Mahsulot turlari <small class="muted">(kamida 1, vergul bilan)</small></label>
+        <textarea class="input" id="sc-items" name="product_types" rows="2" required
+                  placeholder="masalan: Lazer guruch, Devzira, Mosh"></textarea>
+        <div class="hint">Sotuvchi «Yangi mahsulot» oynasida aynan shularni ko'radi. Keyin har biriga birlik va variant tanlanadi.</div></div>
+      <div class="field"><span class="label">Asosiy birlik</span>
+        <select class="select-native" name="default_unit">{% for v,l in units %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+      <button class="btn btn-block" type="submit">Qo'shish va mahsulot turlariga o'tish</button>
     </form>
     <p class="hint" style="margin-top:var(--sp-3)">Savdo turi do'kon ochishda tanlanadi va sotuvchiga
       shu yo'nalishga mos tayyor mahsulot ro'yxatini beradi.</p>
@@ -22,7 +29,8 @@
       <thead><tr><th>Nomi</th><th class="num">Do'konlar</th><th class="num">Mahsulot turlari</th><th>Xaridor ulushi</th><th></th></tr></thead>
       <tbody>
       {% for c in categories %}
-        <tr><td>{{ c.name }}</td><td class="num">{{ c.nshops }}</td><td class="num">{{ c.nprod }}</td>
+        <tr><td>{{ c.name }}</td><td class="num">{{ c.nshops }}</td>
+          <td class="num">{% if c.nprod %}<a href="{% url 'panel:product_categories' %}?turi={{ c.pk }}">{{ c.nprod }}</a>{% else %}<a class="badge badge-warn" href="{% url 'panel:product_categories' %}?turi={{ c.pk }}">Yo'q — qo'shing</a>{% endif %}</td>
           <td>
             <form method="post" class="row gap-1" style="align-items:center">{% csrf_token %}
               <input type="hidden" name="action" value="ratio"><input type="hidden" name="id" value="{{ c.pk }}">

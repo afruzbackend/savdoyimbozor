@@ -17,7 +17,7 @@
     <div style="flex:0 0 auto">{% include 'components/_datefield.html' with name='sana' iso=at|date:'Y-m-d' label='Sana' %}</div>
     <div class="field" style="margin:0;flex:0 0 110px"><label class="label">Soat</label>
       <input class="input num" name="vaqt" value="{% if at %}{{ at|date:'H:i' }}{% endif %}" placeholder="14:00"
-             inputmode="numeric" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]"></div>
+             inputmode="numeric" maxlength="5" data-time autocomplete="off"></div>
     <button class="btn" type="submit"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-search"></use></svg> Ko'rsatish</button>
     {% if at %}<a class="btn btn-ghost" href="{% if market %}{% url 'inspector:inventory_market' market.pk %}{% else %}{% url 'inspector:inventory' %}{% endif %}">Hozirgi holat</a>{% endif %}
   </div>

@@ -7,6 +7,7 @@ from django.conf import settings as django_settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.accounts.models import Role, User
@@ -239,6 +240,14 @@ def user_toggle(request, pk):
     return redirect("panel:users")
 
 
+def _taken_numbers() -> dict:
+    """{bozor_id: {raqam: egasi}} — formada yozayotgandayoq "band" deb ko'rsatish uchun."""
+    out = {}
+    for mid, num, owner in Shop.objects.values_list("market_id", "number", "owner_name"):
+        out.setdefault(str(mid), {})[str(num)] = owner or "—"
+    return out
+
+
 def _next_shop_number(market) -> str:
     """Bozordagi eng katta raqamli do'kon +1 (betakror). Raqamlar unikal bo'lsin."""
     nums = [
@@ -274,14 +283,26 @@ def account_create(request):
                 if category is None:
                     messages.error(request, "Savdo turini tanlang.")
                     return redirect("panel:account_create")
+                if not category.product_categories.exists():
+                    messages.error(request, f"«{category.name}» savdo turida mahsulot turi yo'q — sotuvchi bo'sh "
+                                            "ro'yxat ko'rardi. Avval Savdo turlari sahifasida qo'shing.")
+                    return redirect("panel:account_create")
                 if not _digits(request.POST.get("stir")):
                     messages.error(request, "STIR ni yozing (login shundan hosil bo'ladi).")
                     return redirect("panel:account_create")
 
-                # Do'kon raqami UNIKAL: bo'sh yoki band bo'lsa — keyingi bo'sh raqam
+                # Do'kon raqami UNIKAL. Bo'sh — keyingi bo'sh raqam. Band bo'lsa — XATO (ilgari jimgina
+                # keyingisi berilardi: 27 yozilsa 28 bo'lib qolardi, admin sezmasdi)
                 number = request.POST.get("number", "").strip()[:20]
-                if not number or Shop.objects.filter(market=market, number=number).exists():
+                if not number:
                     number = _next_shop_number(market)
+                else:
+                    taken = Shop.objects.filter(market=market, number=number).first()
+                    if taken is not None:
+                        messages.error(request, f"№{number} «{market.name}» bozorida band (egasi: "
+                                                f"{taken.owner_name or '—'}). Boshqa raqam yozing yoki bo'sh "
+                                                f"qoldiring — keyingi bo'sh raqam №{_next_shop_number(market)} beriladi.")
+                        return redirect("panel:account_create")
 
                 shop = Shop.objects.create(
                     market=market,
@@ -334,6 +355,7 @@ def account_create(request):
             "shops": Shop.objects.select_related("market").filter(staff__isnull=True),
             "markets": markets,
             "next_by_market": next_by_market,
+            "taken_numbers": _taken_numbers(),
             "categories": ShopCategory.objects.all(),
             "roles": [(Role.SELLER, "Sotuvchi"), (Role.INSPECTOR, "Tekshiruvchi"),
                       (Role.PROSECUTOR, "Prokuror (kuzatuvchi)")],
@@ -879,20 +901,65 @@ def user_edit(request, pk):
     )
 
 
+def _add_shop_category(request):
+    """Yangi savdo turi + uning mahsulot turlari (kamida 1 — MAJBURIY). Mahsulot turisiz savdo turi
+    sotuvchiga bo'sh ro'yxat berardi. Saqlangach — o'sha tur filtrlangan "Mahsulot turlari" sahifasiga
+    (birlik va variantni tekshirish uchun)."""
+    from django.db import transaction
+
+    from apps.catalog.models import ProductCategory, Unit
+
+    name = " ".join(request.POST.get("name", "").split())[:120]
+    items = []
+    for raw in request.POST.get("product_types", "").replace(";", ",").replace("\n", ",").split(","):
+        n = " ".join(raw.split())[:120]
+        if n and n.lower() not in {x.lower() for x in items}:
+            items.append(n)
+    unit = request.POST.get("default_unit") if request.POST.get("default_unit") in Unit.values else Unit.PIECE
+    if not name:
+        messages.error(request, "Savdo turi nomini yozing.")
+        return redirect("panel:categories")
+    if ShopCategory.objects.filter(name__iexact=name).exists():
+        messages.error(request, f"«{name}» savdo turi allaqachon bor.")
+        return redirect("panel:categories")
+    if not items:
+        messages.error(request, "Kamida bitta mahsulot turini yozing (masalan: Guruch, Mosh).")
+        return redirect("panel:categories")
+    busy = {c.name.lower(): c for c in ProductCategory.objects.filter(
+        name__in=items).select_related("shop_category")}
+    # Nomi band (boshqa savdo turida) — ikki marta qo'shilmaydi; hammasi band bo'lsa — rad
+    fresh = [n for n in items if n.lower() not in busy or busy[n.lower()].shop_category_id is None]
+    if not fresh:
+        messages.error(request, "Bu mahsulot turlari boshqa savdo turlarida bor: "
+                                + ", ".join(f"{c.name} ({c.shop_category.name})" for c in busy.values()
+                                            if c.shop_category_id) + ". Yangi nom yozing.")
+        return redirect("panel:categories")
+    with transaction.atomic():
+        sc = ShopCategory.objects.create(name=name)
+        for n in fresh:
+            pc = busy.get(n.lower())
+            if pc is not None:  # egasiz eski tur — shu savdo turiga biriktiriladi
+                pc.shop_category = sc
+                pc.save(update_fields=["shop_category"])
+            else:  # variant turi va chirish me'yori nomidan taxmin qilinadi (keyin tahrirlanadi)
+                ProductCategory.objects.create(name=n, shop_category=sc, default_unit=unit)
+    skipped = [c.name for c in busy.values() if c.shop_category_id and c.name.lower() not in
+               {f.lower() for f in fresh}]
+    request.audit_detail = f"Savdo turi: {name} ({len(fresh)} mahsulot turi)"
+    messages.success(request, f"«{name}» qo'shildi, {len(fresh)} ta mahsulot turi bilan. Birlik va "
+                              "variantlarini tekshiring, kerak bo'lsa yana qo'shing.")
+    if skipped:
+        messages.warning(request, "Boshqa savdo turida bor, qo'shilmadi: " + ", ".join(skipped))
+    return redirect(f"{reverse('panel:product_categories')}?turi={sc.pk}")
+
+
 @superadmin_required
 def categories(request):
     """Savdo turlari (ShopCategory) — qo'shish/o'chirish."""
     if request.method == "POST":
         act = request.POST.get("action")
         if act == "add":
-            name = " ".join(request.POST.get("name", "").split())[:120]
-            if not name:
-                messages.error(request, "Savdo turi nomini yozing.")
-            elif ShopCategory.objects.filter(name__iexact=name).exists():
-                messages.error(request, f"«{name}» savdo turi allaqachon bor.")
-            else:
-                ShopCategory.objects.create(name=name)
-                messages.success(request, "Savdo turi qo'shildi.")
+            return _add_shop_category(request)
         elif act == "ratio":
             # Kamera bahosi uchun xaridor ulushi (bo'sh — umumiy sozlama)
             cat = ShopCategory.objects.filter(pk=_pk(request.POST.get("id"))).first()
@@ -936,10 +1003,13 @@ def categories(request):
         nshops=Count("shops", distinct=True), nprod=Count("product_categories", distinct=True)))
     for c in cats:
         c.suggest = suggest.get(c.pk)
+    from apps.catalog.models import Unit
+
     return render(
         request,
         "panel/categories.html",
-        {"categories": cats, "global_ratio": SystemSettings.get_solo().buyer_ratio},
+        {"categories": cats, "global_ratio": SystemSettings.get_solo().buyer_ratio,
+         "units": Unit.choices},
     )
 
 

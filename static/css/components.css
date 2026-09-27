@@ -15,6 +15,7 @@
 .btn:active{transform:translateY(1px)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-ghost{background:transparent;color:var(--ink);border-color:var(--border-strong)}
+.btn-sm{padding:6px 12px;font-size:var(--t--1);gap:6px}
 .btn-ghost:hover{background:var(--surface-sunken)}
 .btn-quiet{background:transparent;color:var(--ink-muted);padding:8px 10px}
 .btn-quiet:hover{background:var(--surface-sunken);color:var(--ink)}
@@ -361,13 +362,15 @@ tr.row-muted td{color:var(--ink-faint)}
   width:34px;height:34px;border:none;background:transparent;color:var(--ink-muted);
   cursor:pointer;transition:color .12s}
 .user-gear:hover{color:var(--primary)}
-/* Faqat GAYKANING O'ZI aylanadi — tugma ramkasi joyida qimir etmay turadi */
-.user-gear svg{transform-origin:50% 50%}
-.user-gear:hover svg{animation:gearSpin 2s linear infinite}   /* hover — uzluksiz aylanadi */
-.user-gear.spin svg{animation:gearSpin .6s ease}              /* bosilganda tez bir aylanish */
-@keyframes gearSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){
-  .user-gear:hover svg,.user-gear.spin svg{animation:none}}
+/* Faqat GAYKANING O'ZI aylanadi — tugma ramkasi joyida qimir etmay turadi.
+   Bitta mantiq, sakrashsiz: hover — ichki qism chorak aylanadi (qaytishi ham silliq);
+   bosilganda — tashqi qism hozirgi burchagidan yana yarim aylanadi (--turn JS'da o'sib boradi).
+   Ilgari hover'dagi cheksiz animatsiyani bosilgandagisi almashtirib, burchak 0 ga sakrardi. */
+.user-gear svg{transform-origin:50% 50%;transform:rotate(var(--turn,0deg));
+  transition:transform .6s cubic-bezier(.3,.7,.3,1)}
+.user-gear .icon use{transition:transform .45s cubic-bezier(.3,.7,.3,1)}
+.user-gear:hover .icon use,.user-gear:focus-visible .icon use{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){.user-gear svg,.user-gear .icon use{transition:none}}
 /* Sozlamalar oynasi (modal) — hammasi ichida hal bo'ladi */
 .settings-card{max-width:440px;width:100%;padding:0;overflow:hidden;text-align:left}
 .settings-head{display:flex;align-items:center;justify-content:space-between;
@@ -613,7 +616,7 @@ tr.row-muted td{color:var(--ink-faint)}
 .brand-emblem:hover{transform:scale(1.06);box-shadow:var(--shadow-md)}
 .brand-emblem:active{transform:scale(.96)}
 .brand-emblem .emblem{width:100%;height:100%}
-img.emblem{object-fit:contain;border-radius:9px}
+img.emblem{object-fit:contain;border-radius:9px;max-width:100%;height:auto}
 /* Logo tema bo'yicha: light = rangli, dark = oq siluet (BITTASI ko'rinadi) */
 .emblem-light{display:block}
 .emblem-dark{display:none}
@@ -685,6 +688,7 @@ use[href$="#i-bar-chart-3"]{--ic:icGrowUp;transform-origin:center bottom}
 use[href$="#i-trending-up"]{--ic:icDiag}
 use[href$="#i-bell"]{--ic:icRing;transform-origin:center top}
 use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
+use[href$="#i-settings"]{--ic:icTurn}
 @keyframes icSlideL{0%{transform:translateX(-115%);opacity:0}100%{transform:none;opacity:1}}
 @keyframes icSlideR{0%{transform:translateX(115%);opacity:0}100%{transform:none;opacity:1}}
 @keyframes icDrop{0%{transform:translateY(-115%);opacity:0}65%{transform:translateY(8%);opacity:1}100%{transform:none}}
@@ -695,6 +699,7 @@ use[href$="#i-scan-line"],use[href$="#i-search"]{--ic:icScan}
 @keyframes icGrowUp{0%{transform:scaleY(0)}70%{transform:scaleY(1.08)}100%{transform:none}}
 @keyframes icDiag{0%{transform:translate(-70%,70%);opacity:0}100%{transform:none;opacity:1}}
 @keyframes icRing{0%,100%{transform:none}15%{transform:rotate(16deg)}30%{transform:rotate(-14deg)}45%{transform:rotate(10deg)}60%{transform:rotate(-6deg)}75%{transform:rotate(3deg)}}
+@keyframes icTurn{0%{transform:rotate(0)}100%{transform:rotate(180deg)}}
 @keyframes icScan{0%,100%{transform:none}35%{transform:translateY(-22%)}70%{transform:translateY(22%)}}
 @keyframes icPop{0%{transform:scale(.35);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:none}}
 /* Faol sahifa ochilganda — bir marta; tanlangan to'lov turi — tanlanganda */

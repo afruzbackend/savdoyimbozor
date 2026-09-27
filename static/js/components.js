@@ -273,6 +273,56 @@
     });
   });
 
+  // ---- Soat maydoni [data-time]: yozilayotganda o'zi "15:00" ko'rinishiga keladi ----
+  // 1500 → 15:00, 930 → 09:30, 9 → 09:00 (chiqishda). Noto'g'ri bo'lsa — o'zimizning qizil xabar
+  // (brauzerning "Используйте требуемый формат" oynasi emas); GET formalarda ham ishlaydi.
+  function fmtTime(raw, final) {
+    var d = String(raw || "").replace(/\D/g, "");
+    if (/^[3-9]/.test(d)) d = "0" + d;  // "930" — soat bitta raqam: darrov 09:30
+    d = d.slice(0, 4);
+    if (final) {
+      if (d.length === 1 || d.length === 2) d = ("0" + d).slice(-2) + "00";
+      else if (d.length === 3) d = "0" + d;
+    }
+    return d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d;
+  }
+  function timeOk(v) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(v); }
+  function timeErr(inp, on) {
+    inp.classList.toggle("err", on);
+    var f = inp.closest(".field") || inp.parentNode;
+    var e = f.querySelector(".field-err[data-time-err]");
+    if (on && !e) {
+      e = document.createElement("div");
+      e.className = "field-err";
+      e.setAttribute("data-time-err", "");
+      e.textContent = "Vaqt noto'g'ri — masalan 14:30";
+      f.appendChild(e);
+    } else if (!on && e) { e.remove(); }
+  }
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (!t.matches || !t.matches("input[data-time]")) return;
+    var v = fmtTime(t.value, false);
+    if (v !== t.value) t.value = v;
+    if (t.classList.contains("err") && timeOk(v)) timeErr(t, false);
+  });
+  document.addEventListener("focusout", function (e) {
+    var t = e.target;
+    if (!t.matches || !t.matches("input[data-time]") || !t.value) return;
+    t.value = fmtTime(t.value, true);
+    timeErr(t, !timeOk(t.value));
+  });
+  document.addEventListener("submit", function (e) {
+    var bad = null;
+    (e.target.querySelectorAll ? e.target.querySelectorAll("input[data-time]") : []).forEach(function (t) {
+      if (t.value) t.value = fmtTime(t.value, true);
+      var wrong = (t.value && !timeOk(t.value)) || (!t.value && t.required);
+      timeErr(t, wrong);
+      if (wrong && !bad) bad = t;
+    });
+    if (bad) { e.preventDefault(); e.stopImmediatePropagation(); bad.focus(); }
+  }, true);
+
   // ---- Miqdor maydoni mahsulot birligiga qarab ----
   // dona/quti/bog'lam — butun son (qadam 1, raqam klaviaturasi); kg/litr/metr/qop — kasr (2,5 kg).
   // Bitta qadam qotirilsa yo 2,5 kg chirigan pomidor kiritilmas, yo 1,5 kurtka o'tib ketardi.

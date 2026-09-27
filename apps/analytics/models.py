@@ -57,12 +57,13 @@ class DailyScore(TimeStampedModel):
 
     @property
     def has_data(self) -> bool:
-        """Solishtirish uchun biror manba (kassa/kamera/qoldiq/narx) bormi.
+        """Savdo hajmini tekshiruvchi manba (kassa/kamera/qoldiq) bormi — narx yolg'iz o'zi yetmaydi.
 
         Hech biri bo'lmasa rostlik O'LCHANMAYDI — 0% (yashiruvchi) EMAS,
         balki "ma'lumot yetarli emas" holati. Xarita/hisobotda kulrang ko'rsatiladi.
         """
-        return any(v is not None for v in (self.parts or {}).values())
+        parts = self.parts or {}
+        return any(parts.get(k) is not None for k in ("cash", "camera", "stock"))
 
 
 class Alert(TimeStampedModel):

@@ -31,7 +31,7 @@
 {% endblock %}
 {% block body %}
 <div class="toolbar" data-noloc>
-  <a class="btn btn-ghost" href="{% url 'inspector:shop_detail' shop.pk %}">← Do'kon</a>
+  <a class="btn btn-ghost" href="{% url 'inspector:shop_detail' shop.pk %}"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-arrow-left"></use></svg> Do'kon</a>
   <button class="btn" onclick="window.print()">Chop etish / PDF</button>
 </div>
 <div class="doc">

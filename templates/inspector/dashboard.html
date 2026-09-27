@@ -59,7 +59,7 @@
 <div class="grid" style="grid-template-columns:1.3fr 1fr;gap:var(--sp-4)">
   <div class="card">
     <div class="card-header"><span class="card-title">Eng xavfli do'konlar{% if score_date != today %} <small class="muted num" style="font-weight:400">· {{ score_date|uzdate }}</small>{% endif %}</span>
-      <a href="{% url 'inspector:map' %}" class="btn-quiet">Xarita →</a></div>
+      <a href="{% url 'inspector:map' %}" class="btn btn-ghost btn-sm"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-map"></use></svg> Xaritani ochish</a></div>
     <div class="table-wrap">
       <table class="data">
         <thead><tr><th>Do'kon</th><th>Toifa</th><th class="num">Kiritilgan</th><th class="num">Deklaratsiya</th><th class="num">Rostlik</th></tr></thead>
@@ -80,7 +80,7 @@
 
   <div class="card">
     <div class="card-header"><span class="card-title">So'nggi signallar</span>
-      <a href="{% url 'inspector:alerts' %}" class="btn-quiet">Barchasi →</a></div>
+      <a href="{% url 'inspector:alerts' %}" class="btn btn-ghost btn-sm"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-bell"></use></svg> Barcha signallar</a></div>
     {% for a in alerts %}
       <div style="padding:10px 0;border-bottom:1px solid var(--border)">
         <div class="row" style="justify-content:space-between;gap:8px">

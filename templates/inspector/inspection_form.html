@@ -37,7 +37,11 @@
     <div class="field"><label class="label">Izoh</label>
       <textarea class="textarea" name="notes" rows="3"></textarea></div>
     <div class="field"><label class="label">Foto (dalolat)</label>
-      <input class="input" type="file" name="photo" accept="image/*" capture="environment"></div>
+      <label class="file-drop">
+        <input type="file" name="photo" accept="image/*" capture="environment" hidden>
+        <span class="file-btn"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-camera"></use></svg> Suratga olish</span>
+        <span class="file-name muted" data-noloc>Tanlanmagan</span>
+      </label></div>
     <button class="btn btn-lg" type="submit">Saqlash</button>
   </form>
 </div>
