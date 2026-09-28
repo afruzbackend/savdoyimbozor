@@ -15,6 +15,9 @@ solishtirib rostlik darajasi beradigan va yashiruvchini signal beradigan Django 
 `docker compose up --build` yoki lokal (README'ga qarang). Demo:
 `seed_demo --reset` (loginlar admin/nazorat/sotuvchi/prokuror, parol demo1234),
 `simulate_camera` (kamerasiz jonli demo), `recompute` (rostlik+signal).
+Deploy: `docs/DEPLOY.md`; serverda `manage.py preflight` (XATO bo'lsa topshirilmaydi — demo parol,
+HTTPS, Redis kesh, zaxira, migratsiya). Kutubxonalar: `requirements.txt` + `constraints.txt` (ichki
+bog'liqliklar ham qat'iy; versiya oshirilsa constraints qayta yechiladi).
 
 ## Applar (`apps/`)
 - `core` — SystemSettings (barcha chegaralar), AuditLog, TimeStampedModel, HostRouting + Audit middleware, panel (super admin) views.

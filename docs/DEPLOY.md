@@ -60,6 +60,22 @@ curl -I https://bozor.soliq.uz/healthz/                                   # 200
 Migratsiya va statik fayllar `web` konteyneri ishga tushganda avtomatik (`RUN_MIGRATIONS=1`).
 Konteynerlar **root emas** (uid 10001) ishlaydi.
 
+Keyin **avtomatik tekshiruv** (quyidagi 10-bo'limdagi ro'yxat) — `[XATO]` bo'lsa topshirmang:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec web python manage.py preflight
+```
+U tekshiradi: DEBUG, SECRET_KEY, HTTPS/HSTS/cookie, ALLOWED_HOSTS, CSRF, PUBLIC_BASE_URL, migratsiyalar,
+Redis kesh (umumiy), baza/disk/Celery/zaxira holati, collectstatic, bosh admin, **demo parolli hisob
+yo'qligi** (`demo1234`), xodimlarda 2FA.
+
+Himoya qatlamlari (sozlangan, qo'shimcha ish kerak emas):
+- nginx: `/login/`, `/api/`, ochiq `/chek/` uchun IP bo'yicha so'rov chegarasi (NAT'dagi sotuvchilar
+  uchun keng), sekin ulanish (slowloris) taymautlari, statik fayllar oldindan siqilgan (`gzip_static`).
+- Ilova: login bloki (IP va hisob/IP), API chegarasi — foydalanuvchi bo'yicha `API_RATE_USER`
+  (standart 300/min), kamera — o'z tokeni bo'yicha `API_RATE_CAMERA` (240/min).
+- Docker loglari aylanadi (har konteyner 5 × 20 MB) — disk to'lmaydi.
+- Kutubxonalar: `requirements.txt` + `constraints.txt` (ichki bog'liqliklar ham qat'iy) — har build bir xil.
+
 Qulaylik uchun: `alias dc='docker compose -f docker-compose.yml -f docker-compose.prod.yml'`.
 
 ## 5. Birinchi admin
@@ -102,12 +118,15 @@ dc exec web python manage.py createsuperuser
 ```bash
 git pull                       # yoki relizni ko'chiring
 pip-audit -r requirements.txt  # (ixtiyoriy, CI'da) ma'lum zaifliklar yo'qligini tekshirish
+# Kutubxona versiyasini oshirsangiz — constraints.txt ni ham qayta yeching (fayl boshidagi izoh)
 dc build && dc up -d           # migratsiya avtomatik
+dc exec web python manage.py preflight
 ```
 Oldin zaxira oling. Orqaga qaytish: oldingi obraz tegi + o'sha kungi zaxira.
 
 ## 10. Topshirishdan oldin tekshiruv ro'yxati
 - [ ] `https://` ochiladi, `http://` yo'naltiradi, sertifikat amal qiladi
+- [ ] `dc exec web python manage.py preflight` — `[XATO]` yo'q
 - [ ] `dc exec web python manage.py check --deploy` — muammo yo'q
 - [ ] `seed_demo` ishlatilmagan (demo loginlar yo'q: `sotuvchi`, `nazorat`, `admin`, `prokuror`)
 - [ ] Admin va barcha xodimlarda 2FA yoqilgan

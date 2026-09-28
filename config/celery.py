@@ -16,10 +16,11 @@ app.conf.beat_schedule = {
         "task": "apps.core.tasks.heartbeat",
         "schedule": crontab(minute="*"),
     },
-    # Har 5 daqiqada bugungi rostlik ballarini yangilash
+    # Bugungi rostlik ballarini yangilash (standart har 5 daqiqa). Do'konlar ko'p bo'lsa (>3 000)
+    # oraliqni oshiring: .env da RECOMPUTE_EVERY_MIN=15 (bitta hisob ~30 ms × do'kon soni)
     "recompute-today": {
         "task": "apps.analytics.tasks.recompute_today",
-        "schedule": crontab(minute="*/5"),
+        "schedule": crontab(minute=f"*/{max(1, min(59, int(os.environ.get('RECOMPUTE_EVERY_MIN', '5'))))}"),
     },
     # Har kecha 01:00 da o'tgan kunni yakuniy hisoblash + bozor narxi
     "recompute-yesterday": {

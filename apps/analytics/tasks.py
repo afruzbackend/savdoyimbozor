@@ -5,12 +5,22 @@ from celery import shared_task
 
 @shared_task
 def recompute_today():
-    """Bugungi rostlik ballarini yangilaydi (har 5 daqiqada)."""
+    """Bugungi rostlik ballarini yangilaydi (har RECOMPUTE_EVERY_MIN daqiqada, standart 5).
+
+    Qulf: oldingi hisob tugamagan bo'lsa yangisi o'tkazib yuboriladi — minglab do'konda hisob
+    oraliqdan uzoq cho'zilsa, navbatda ustma-ust vazifalar yig'ilib protsessorni to'ldirmasin.
+    """
+    from django.core.cache import cache
     from django.utils import timezone
 
     from .scoring.services import recompute_for_date
 
-    return recompute_for_date(timezone.localdate())
+    if not cache.add("lock:recompute_today", 1, timeout=30 * 60):
+        return "skip: oldingi hisob davom etmoqda"
+    try:
+        return recompute_for_date(timezone.localdate())
+    finally:
+        cache.delete("lock:recompute_today")
 
 
 @shared_task

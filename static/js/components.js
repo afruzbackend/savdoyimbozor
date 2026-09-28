@@ -881,6 +881,10 @@
             headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
             body: JSON.stringify(item) });
           if (r.ok) continue;
+          if (r.status === 429) {  // server chegarasi — to'xtaymiz, qolgani keyingi urinishda
+            rest = rest.concat(q.slice(i));
+            break;
+          }
           if (r.status === 401 || r.status === 403) { auth = true; rest.push(item); continue; }
           if (r.status === 409) { foreign++; rest.push(item); continue; }
           if (r.status >= 400 && r.status < 500) {

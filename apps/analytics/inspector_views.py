@@ -76,15 +76,17 @@ def dashboard(request):
     from types import SimpleNamespace
 
     recent = _recent_scores(shops, today)
-    shop_objs = shops.filter(id__in=list(recent)).select_related("category", "market")
+    truths = [r["truth"] for r in recent.values()]
+    avg_truth = round(sum(truths) / len(truths)) if truths else None
+    # Faqat eng xavfli 8 tasining do'kon obyekti yuklanadi (respublika bo'yicha minglab emas)
+    worst = sorted(recent, key=lambda sid: (recent[sid]["truth"], sid))[:8]
+    shop_objs = shops.filter(id__in=worst).select_related("category", "market")
     measured = [
         SimpleNamespace(shop=sh, shop_id=sh.id, truth_pct=recent[sh.id]["truth"],
                         entered_sales=recent[sh.id]["entered"], cash_amount=recent[sh.id]["cash"],
                         days=recent[sh.id]["days"])
         for sh in shop_objs
     ]
-    truths = [s.truth_pct for s in measured]
-    avg_truth = round(sum(truths) / len(truths)) if truths else None
 
     alerts = Alert.objects.filter(shop__in=shops).select_related("shop", "shop__market")
     new_alerts = alerts.filter(status=Alert.Status.NEW)
@@ -977,14 +979,16 @@ def reports(request):
     insp = Inspection.objects.filter(shop__in=shops, **days_between("created_at", start, end))
     confirmed = insp.filter(result=Inspection.Result.CONFIRMED).count()
     false_sig = insp.filter(result=Inspection.Result.FALSE).count()
+    from django.db.models import Q, Sum
+
+    agg = scores.aggregate(e=Sum("entered_sales"), c=Sum("cash_amount"),
+                           t=Avg("truth_pct", filter=Q(measured=True)))
     ctx = {
         "start": start,
         "end": end,
-        "entered": sum(s.entered_sales for s in scores),
-        "cash": sum(s.cash_amount for s in scores),
-        "avg_truth": round(
-            scores.filter(measured=True).aggregate(a=Avg("truth_pct"))["a"] or 0
-        ),
+        "entered": int(agg["e"] or 0),
+        "cash": int(agg["c"] or 0),
+        "avg_truth": round(agg["t"] or 0),
         "alert_count": Alert.objects.filter(shop__in=shops, date__range=(start, end)).count(),
         "inspection_count": insp.count(),
         "confirmed": confirmed,
@@ -992,7 +996,7 @@ def reports(request):
         "accuracy": (
             round(confirmed / (confirmed + false_sig) * 100) if (confirmed + false_sig) else None
         ),
-        "fines": sum(i.fine_amount or 0 for i in insp),
+        "fines": int(insp.aggregate(f=Sum("fine_amount"))["f"] or 0),
     }
     return render(request, "inspector/reports.html", ctx)
 
@@ -1000,8 +1004,6 @@ def reports(request):
 @login_required
 def statistics(request):
     """Sotuv dinamikasi (grafik) + sotuvchilar statistikasi (jadval, trend bilan)."""
-    from collections import defaultdict
-
     from django.db.models import Count, Q, Sum
 
     from apps.core.models import SystemSettings
@@ -1010,67 +1012,47 @@ def statistics(request):
     shops = _visible_shops(request)
     start, end = _report_range(request)
 
-    scores = list(
-        DailyScore.objects.filter(shop__in=shops, date__range=(start, end)).select_related("shop")
-    )
+    # Hammasi BAZADA agregatlanadi: ilgari davrdagi barcha kunlik ballar (respublika bo'yicha
+    # 10 000 do'kon × 30 kun = 300 000 obyekt) Python xotirasiga yuklanardi.
+    base = DailyScore.objects.filter(shop__in=shops, date__range=(start, end))
+    measured = Q(measured=True)
 
     # 1) Sotuv dinamikasi — kunlik agregat (barcha ko'rinadigan do'konlar bo'yicha)
-    by_date = defaultdict(lambda: {"entered": 0, "cash": 0, "truth": [], "count": 0})
-    for s in scores:
-        d = by_date[s.date]
-        d["entered"] += s.entered_sales
-        d["cash"] += s.cash_amount
-        if s.measured:
-            d["truth"].append(s.truth_pct)
-        d["count"] += 1
+    by_date = {
+        r["date"]: {"entered": r["e"] or 0, "cash": r["c"] or 0,
+                    "truth": round(r["t"]) if r["t"] is not None else None}
+        for r in base.values("date").annotate(e=Sum("entered_sales"), c=Sum("cash_amount"),
+                                              t=Avg("truth_pct", filter=measured))
+    }
     from apps.analytics.charts import day_series
 
     # Sanalar UZLUKSIZ: hisoblanmagan kun (masalan 22.09) o'qdan tushib qolmaydi — bo'sh turadi
     days = sorted(by_date)
-    dynamics = day_series(
-        {d: {"entered": by_date[d]["entered"], "cash": by_date[d]["cash"],
-             "truth": round(sum(by_date[d]["truth"]) / len(by_date[d]["truth"]))
-             if by_date[d]["truth"] else None} for d in days},
-        days[0], min(end, timezone.localdate()),
-    ) if days else {"labels": []}
+    dynamics = day_series(by_date, days[0], min(end, timezone.localdate())) if days else {"labels": []}
 
     # 2) Sotuvchilar statistikasi — har do'kon: savdo, o'rtacha rostlik, signal, trend
-    per_shop = defaultdict(lambda: {"entered": 0, "cash": 0, "truth": []})
-    mid = start + (end - start) / 2  # trend: davr ikkiga bo'linadi
-    half = defaultdict(lambda: {"a": [], "b": []})  # a=birinchi yarim, b=ikkinchi yarim
-    for s in scores:
-        p = per_shop[s.shop_id]
-        p["entered"] += s.entered_sales
-        p["cash"] += s.cash_amount
-        if s.measured:
-            p["truth"].append(s.truth_pct)
-            half[s.shop_id]["b" if s.date >= mid else "a"].append(s.truth_pct)
-
+    mid = start + (end - start) / 2  # trend: davr ikkiga bo'linadi (a — birinchi, b — ikkinchi yarim)
     alert_counts = dict(
         Alert.objects.filter(shop__in=shops, date__range=(start, end))
         .values_list("shop")
         .annotate(n=Count("id"))
     )
-    shop_by_id = {s.id: s for s in shops}
-
     rows = []
-    for sid, p in per_shop.items():
-        shop = shop_by_id.get(sid)
-        if shop is None:
-            continue
-        avg_truth = round(sum(p["truth"]) / len(p["truth"])) if p["truth"] else None
-        a, b = half[sid]["a"], half[sid]["b"]
-        trend = None
-        if a and b:
-            trend = round(sum(b) / len(b) - sum(a) / len(a))
+    for r in base.values("shop_id").annotate(
+        e=Sum("entered_sales"), c=Sum("cash_amount"), t=Avg("truth_pct", filter=measured),
+        ta=Avg("truth_pct", filter=measured & Q(date__lt=mid)),
+        tb=Avg("truth_pct", filter=measured & Q(date__gte=mid)),
+    ):
+        avg_truth = round(r["t"]) if r["t"] is not None else None
+        trend = round(r["tb"] - r["ta"]) if r["ta"] is not None and r["tb"] is not None else None
         rows.append(
             {
-                "shop": shop,
-                "entered": p["entered"],
-                "cash": p["cash"],
+                "shop_id": r["shop_id"],
+                "entered": r["e"] or 0,
+                "cash": r["c"] or 0,
                 "avg_truth": avg_truth,
                 "level": _level(avg_truth, cfg) if avg_truth is not None else "none",
-                "alerts": alert_counts.get(sid, 0),
+                "alerts": alert_counts.get(r["shop_id"], 0),
                 "trend": trend,
             }
         )
@@ -1092,6 +1074,10 @@ def statistics(request):
 
     seller_count = len(rows)
     page = paginate(request, rows, per_page=50)
+    # Do'kon obyektlari faqat KO'RSATILADIGAN sahifa uchun (50 ta), hammasi emas
+    shop_by_id = shops.in_bulk([r["shop_id"] for r in page.object_list])
+    page.object_list = [dict(r, shop=shop_by_id[r["shop_id"]]) for r in page.object_list
+                        if r["shop_id"] in shop_by_id]
     ctx = {
         "start": start,
         "end": end,
@@ -1114,9 +1100,8 @@ def export_excel(request):
 
     shops = _visible_shops(request)
     start, end = _report_range(request)
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Hisobot"
+    wb = openpyxl.Workbook(write_only=True)  # oqimli: respublika hisobotida ham xotira tejaladi
+    ws = wb.create_sheet("Hisobot")
     ws.append(
         [
             "Bozor",

@@ -58,5 +58,6 @@ services:
       - "443:443"   # 80 — asosiy fayldan (ACME + https'ga yo'naltirish)
     volumes:
       - ./docker/nginx-tls.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/proxy_params.inc:/etc/nginx/conf.d/proxy_params.inc:ro
       - ./docker/certs:/etc/nginx/certs:ro
       - ./docker/acme:/var/www/acme:ro

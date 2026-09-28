@@ -15,8 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
  && apt-get update && apt-get install -y --no-install-recommends libpq5 postgresql-client-16 \
  && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# requirements.txt — to'g'ridan-to'g'ri kutubxonalar; constraints.txt — ichki bog'liqliklar bilan to'liq
+# qat'iy to'plam (har build bir xil: kombu/billiard kabi bog'liqlik o'zi yangilanib deploy'ni buzmasin)
+COPY requirements.txt constraints.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -c constraints.txt
 
 COPY . .
 

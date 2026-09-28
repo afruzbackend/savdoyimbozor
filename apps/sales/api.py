@@ -203,13 +203,15 @@ def today_summary_api(request):
     if shop is None:
         return Response({"detail": "Do'kon yo'q."}, status=400)
     today = timezone.localdate()
-    qs = Sale.objects.filter(shop=shop, **on_day("created_at", today))
-    total = sum(s.total for s in qs)
+    from django.db.models import Count, Sum
+
+    agg = Sale.objects.filter(shop=shop, **on_day("created_at", today)).aggregate(
+        n=Count("id"), t=Sum("total"), d=Sum("discount"))
     return Response(
         {
             "date": str(today),
-            "count": qs.count(),
-            "total": total,
-            "discount": sum(s.discount for s in qs),
+            "count": agg["n"],
+            "total": agg["t"] or 0,
+            "discount": agg["d"] or 0,
         }
     )

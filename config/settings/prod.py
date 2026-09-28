@@ -30,6 +30,9 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
 X_FRAME_OPTIONS = "DENY"
 
+# API faqat JSON: brauzerda "Browsable API" sahifasi (endpointlar, maydonlar ro'yxati) ochilmasin
+REST_FRAMEWORK = {**REST_FRAMEWORK, "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"]}  # noqa: F405
+
 # Django 5.1 da STATICFILES_STORAGE olib tashlangan (e'tiborsiz qolardi) — STORAGES orqali.
 # WhiteNoise: fayl nomida xesh (abadiy kesh) + oldindan gzip/brotli siqilgan nusxalar.
 STORAGES = {

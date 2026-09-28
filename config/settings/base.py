@@ -63,7 +63,8 @@ MIDDLEWARE = [
     # Statik fayllarni Django o'zi uzatadi (DEBUG=False bo'lsa ham) — WhiteNoise:
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.locale.LocaleMiddleware",
+    # Til — faqat foydalanuvchi tanlovi (brauzer Accept-Language emas; LocaleMiddleware o'rniga)
+    "apps.core.middleware.ChosenLanguageMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -199,6 +200,18 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.BrowsableAPIRenderer",
     ],
     "DATETIME_FORMAT": "%Y-%m-%d %H:%M",
+    # Suiiste'moldan himoya: o'g'irlangan sessiya/skript API'ni to'ldirib tashlay olmasin.
+    # Oflayn navbat 429 da to'xtaydi va keyinroq davom etadi (components.js) — sotuv yo'qolmaydi.
+    # Kamera — IP bo'yicha emas, o'z TOKENI bo'yicha (bozordagi kameralar bitta NAT ortida).
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.AnonRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "user": env("API_RATE_USER", default="300/min"),
+        "anon": env("API_RATE_ANON", default="60/min"),
+        "camera": env("API_RATE_CAMERA", default="240/min"),
+    },
 }
 
 # --- Celery ---

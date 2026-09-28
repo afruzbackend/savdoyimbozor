@@ -185,7 +185,9 @@ def products(request):
     if request.method == "POST" and request.POST.get("action") in ("edit", "archive", "restore"):
         return _product_edit(request, shop)
     if request.method == "POST":
-        cat = ProductCategory.objects.filter(pk=_pk(request.POST.get("category"))).first()
+        # Faqat o'z savdo turi katalogidan: so'rovni qo'lda o'zgartirib boshqa turni (bozor narxi
+        # medianasi boshqacha) tanlab, narx qismini sun'iy ko'tarib bo'lmasin
+        cat = catalog_qs.filter(pk=_pk(request.POST.get("category"))).first()
         # Nom: katalog nomi + ixtiyoriy nav/rang (masalan "Olma — qizil")
         variant = request.POST.get("variant", "").strip()
         base_name = cat.name if cat else request.POST.get("name", "").strip()

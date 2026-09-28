@@ -10,6 +10,7 @@ django-environ==0.11.2
 psycopg[binary]==3.3.6
 pillow==12.3.0
 openpyxl==3.1.5
+defusedxml==0.7.1  # openpyxl Excel XML bombalaridan (billion laughs) himoyalanadi
 qrcode==8.2  # xaridorga QR chek (BSD, SVG)
 
 # --- Fon vazifalari ---

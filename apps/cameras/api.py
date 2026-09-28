@@ -26,10 +26,16 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+    throttle_classes,
+)
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from apps.api.throttles import CameraRateThrottle
 from apps.core.format import to_int
 from apps.shops.models import Shop
 
@@ -51,6 +57,7 @@ def _touch(camera, status=Camera.Status.ONLINE):
 
 @api_view(["GET"])
 @authentication_classes([])
+@throttle_classes([CameraRateThrottle])
 @permission_classes([AllowAny])
 def camera_config(request):
     """AI worker ishga tushganda konfiguratsiyani oladi (zonalar, do'konlar, chegaralar)."""
@@ -75,6 +82,7 @@ def camera_config(request):
 
 @api_view(["POST"])
 @authentication_classes([])
+@throttle_classes([CameraRateThrottle])
 @permission_classes([AllowAny])
 def ingest_events(request):
     """Bitta yoki bir nechta hodisa qabul qiladi. Har qanday hodisa = kamera tirik."""
@@ -163,6 +171,7 @@ def _parse_ts(raw, now):
 
 @api_view(["POST"])
 @authentication_classes([])
+@throttle_classes([CameraRateThrottle])
 @permission_classes([AllowAny])
 def heartbeat(request):
     camera = _auth(request)

@@ -1,8 +1,20 @@
+# Konteyner loglari cheklanadi: aks holda json log fayllari oylar davomida diskni to'ldiradi
+x-logging: &default_logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+# DIQQAT: web/celery/beat .env faylini TO'LIQ oladi (env_file) — SMS_*, TELEGRAM_BOT_TOKEN, API_RATE_*,
+# RECOMPUTE_EVERY_MIN va h.k. Ilgari faqat quyida nomi yozilganlar o'tardi: .env dagi SMS/Telegram
+# sozlamasi konteynerga yetmay, jimgina o'chiq qolardi. Quyidagi qiymatlar .env'dagidan ustun.
 x-django-env: &django_env
   DJANGO_SETTINGS_MODULE: config.settings.prod
   # Majburiy: .env da SECRET_KEY (python -c "import secrets; print(secrets.token_urlsafe(50))")
   SECRET_KEY: ${SECRET_KEY:?.env faylida SECRET_KEY o'rnating}
   DEBUG: "False"
+  # Dev .env nusxasidan eager rejim prod'ga o'tib ketmasin (fon vazifalari web ichida bajarilardi)
+  CELERY_TASK_ALWAYS_EAGER: "False"
   DATABASE_URL: postgres://bozor:${DB_PASSWORD:-bozor}@db:5432/bozor
   CELERY_BROKER_URL: redis://redis:6379/0
   CELERY_RESULT_BACKEND: redis://redis:6379/1
@@ -33,6 +45,7 @@ x-django-env: &django_env
 
 services:
   db:
+    logging: *default_logging
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: bozor
@@ -47,11 +60,16 @@ services:
       retries: 10
 
   redis:
+    logging: *default_logging
     image: redis:7-alpine
     volumes:
       - redisdata:/data
 
   web:
+    logging: *default_logging
+    env_file:
+      - path: .env
+        required: false
     build: .
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3
     environment:
@@ -74,6 +92,10 @@ services:
       start_period: 40s
 
   celery:
+    logging: *default_logging
+    env_file:
+      - path: .env
+        required: false
     build: .
     command: celery -A config worker -l info
     environment: *django_env
@@ -86,6 +108,10 @@ services:
       - redis
 
   beat:
+    logging: *default_logging
+    env_file:
+      - path: .env
+        required: false
     build: .
     command: celery -A config beat -l info
     environment: *django_env
@@ -94,6 +120,7 @@ services:
       - redis
 
   nginx:
+    logging: *default_logging
     image: nginx:1.27-alpine
     ports:
       - "80:80"

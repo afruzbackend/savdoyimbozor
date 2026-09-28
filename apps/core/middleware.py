@@ -37,6 +37,27 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
         return response
 
 
+class ChosenLanguageMiddleware(MiddlewareMixin):
+    """Server tomonidagi til FAQAT foydalanuvchi tanlovidan (django_language cookie), bo'lmasa — uz.
+
+    Django'ning LocaleMiddleware'i brauzer Accept-Language'iga ham qaraydi. O'zbekistonda brauzerlar
+    ko'pincha rus tilida: o'zbekcha interfeysda sanalar "24 сентября" bo'lib chiqardi.
+    """
+
+    def process_request(self, request):
+        from django.utils import translation
+
+        lang = request.COOKIES.get(settings.LANGUAGE_COOKIE_NAME, "")
+        if lang not in dict(settings.LANGUAGES) or lang == "uz-cyrl":
+            lang = settings.LANGUAGE_CODE  # kirill — lotin manbadan JS'da hosil bo'ladi
+        translation.activate(lang)
+        request.LANGUAGE_CODE = translation.get_language()
+
+    def process_response(self, request, response):
+        response.headers.setdefault("Content-Language", getattr(request, "LANGUAGE_CODE", "uz"))
+        return response
+
+
 class IdleTimeoutMiddleware(MiddlewareMixin):
     """Xodim (admin/tekshiruvchi/prokuror) STAFF_IDLE_MINUTES faol bo'lmasa — tizimdan chiqariladi.
 
