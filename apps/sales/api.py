@@ -81,9 +81,18 @@ def create_sale_api(request):
     # Oflayn navbatdan kelgan sotuv: HAQIQIY vaqtiga yoziladi (yuborilgan kunga emas) va qoldiq
     # hisobda yetmasa ham qabul qilinadi — tovar qo'ldan ketib bo'lgan. Aks holda 23:50 dagi sotuv
     # ertangi kunga tushib, kechagi kun "kam savdo / kassa ortiqchasi" bo'lib chiqardi.
+    data = request.data
     from datetime import timedelta
 
     offline = bool(data.get("offline"))
+    if not offline:
+        # Oflayn navbatdagi sotuv allaqachon bo'lib o'tgan — rad etilmaydi (yo'qolmasin); yangi sotuv esa
+        # kechagi kun yakunlanmaguncha qabul qilinmaydi
+        from .services.closing import pending_close_day, pending_message
+
+        pending = pending_close_day(shop)
+        if pending is not None:
+            return Response({"detail": pending_message(pending), "redirect": "/kun-yakuni/"}, status=423)
     sold_at = None
     note = str(data.get("note") or "")
     if offline:

@@ -913,3 +913,25 @@ use[href$="#i-settings"]{--ic:icTurn}
   border-radius:var(--r);background:var(--surface-sunken)}
 .fine-total b{font-size:var(--t-2)}
 .fine-total small{flex-basis:100%}
+
+/* ---------- Tez sotuv / skaner: "Sotildi" doim qo'l ostida ----------
+   Telefonda: summa → klaviatura → to'lov → pastda yopishgan "Sotildi · summa" (pastki menyu ustida).
+   Keng ekranда: chapda summa+klaviatura (savat), o'ngda to'lov turi va Sotildi — skrolsiz. */
+.sale-layout{max-width:460px;margin:0 auto}
+.sale-layout-scan{max-width:560px}
+.sale-side{margin-top:var(--sp-4)}
+.sale-submit-bar{position:sticky;bottom:0;z-index:25;padding:14px 0 10px;margin-top:var(--sp-2);
+  background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.sale-submit{padding:18px;font-size:var(--t-1);box-shadow:var(--shadow-md)}
+@media (max-width:860px){
+  /* pastki menyu (≈58px) ustida turadi */
+  .sale-submit-bar{bottom:calc(58px + env(safe-area-inset-bottom))}
+}
+@media (min-width:1000px){
+  .sale-layout,.sale-layout-scan{max-width:1000px;display:grid;column-gap:var(--sp-5);align-items:start;
+    grid-template-columns:minmax(0,1fr) 380px;grid-template-areas:"main side" "main submit";
+    grid-template-rows:auto 1fr}
+  .sale-main{grid-area:main}
+  .sale-side{grid-area:side;margin-top:0}
+  .sale-submit-bar{grid-area:submit;position:sticky;top:var(--sp-4);bottom:auto;background:none;padding:var(--sp-3) 0 0}
+}

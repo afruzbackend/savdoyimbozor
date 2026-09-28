@@ -5,7 +5,9 @@
 {% block topbar_actions %}<a class="btn btn-ghost" href="{% url 'seller:scan' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-scan-line"></use></svg> Skaner</a>{% endblock %}
 
 {% block content %}
-<div x-data="saleScreen()" x-init="init()" style="max-width:460px;margin:0 auto">
+{# Tuzilish: summa + klaviatura (chap) · to'lov turi (o'ng) · "Sotildi" — telefonda pastda DOIM ko'rinadi #}
+<div x-data="saleScreen()" x-init="init()" class="sale-layout">
+<div class="sale-main">
 
   {# Offline navbat ko'rsatkichi #}
   <div class="msg warning" x-show="pending>0" x-cloak style="display:flex;align-items:center;gap:8px">
@@ -59,8 +61,11 @@
     </button>
   </div>
 
+</div>{# /sale-main #}
+
+<aside class="sale-side">
   {# To'lov turi — ikonkali #}
-  <div class="pay-select" style="margin:var(--sp-4) 0">
+  <div class="pay-select" style="margin:0 0 var(--sp-3)">
     <button type="button" :aria-selected="pay==='cash'" @click="pay='cash'">
       <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg> Naqd</button>
     <button type="button" :aria-selected="pay==='card'" @click="pay='card'">
@@ -78,18 +83,22 @@
   <label class="switch" style="margin-bottom:var(--sp-3)"><input type="checkbox" x-model="wholesale"><span class="track"></span><span class="thumb"></span>
     <span style="font-size:var(--t--1)">Ulgurji savdo</span></label>
 
-  {# Sotildi #}
-  <button class="btn btn-lg btn-block" style="padding:18px" :disabled="total<=0||saving" @click="submit()">
-    <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>
-    <span x-text="saving?'Saqlanmoqda...':'Sotildi'"></span>
-  </button>
-
   {# Oxirgi sotuv cheki — xaridor QR'ni skanerlaydi #}
   <button type="button" class="btn btn-ghost btn-block receipt-btn" x-show="lastReceipt" x-cloak
           @click="window.showReceiptQR(lastReceipt)">
     <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-receipt"></use></svg>
     Xaridorga chek (QR) · <b class="num" x-text="lastReceipt ? window.BN.fmt(lastReceipt.total)+&quot; so'm&quot; : ''"></b>
   </button>
+
+</aside>
+
+  {# Sotildi — summa bilan; telefonda ekran pastida yopishib turadi (klaviaturadan ko'z uzmasdan) #}
+  <div class="sale-submit-bar">
+    <button class="btn btn-lg btn-block sale-submit" :disabled="total<=0||saving" @click="submit()">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>
+      <span x-text="saving ? 'Saqlanmoqda...' : (total > 0 ? 'Sotildi · ' + fmt(total) : 'Sotildi')"></span>
+    </button>
+  </div>
 
   {# Muvaffaqiyat animatsiyasi #}
   <div class="sale-ok" x-ref="okOverlay" aria-hidden="true">
@@ -206,9 +215,10 @@
         this.saving = false;
         if (!r.ok) {
           // Server rad etdi — navbatga EMAS (abadiy qayta yuborilmasin), sababini ko'rsatamiz
-          let m = 'Xatolik — qayta urinib ko\'ring';
-          try { const err = await r.json(); if (err.detail) m = err.detail; } catch (_) {}
+          let m = 'Xatolik — qayta urinib ko\'ring', go = '';
+          try { const err = await r.json(); if (err.detail) m = err.detail; go = err.redirect || ''; } catch (_) {}
           window.toast(m, 'bad');
+          if (r.status === 423 && go) setTimeout(() => { location.href = go; }, 1800);
           return;
         }
         const d = await r.json();

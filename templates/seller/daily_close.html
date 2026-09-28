@@ -4,10 +4,14 @@
 {% block heading %}Kun yakuni{% endblock %}
 {% block content %}
 <div class="card" style="max-width:720px">
+  {% if pending %}
+  <div class="msg warning"><b>{{ close_day|date:"d.m.Y" }}</b> kuni yakunlanmagan — sotuv va kirim shu sanoqdan
+    keyin ochiladi. Bugun hali sotuv bo'lmagan: rastadagi <b>hozirgi</b> qoldiqni sanab yozing.</div>
+  {% endif %}
   <p class="muted">Kechqurun har mahsulotni sanab, <b>qolganini</b> yozing. Tizim sotilganini hisoblaydi:
      <span class="num">ertalab + kirim − chiqarish − kechqurun</span> va kiritilgan savdo bilan solishtiradi.</p>
   {% if existing %}
-  <div class="msg info">Bugun yakunlangan: hisoblangan <b class="num">{{ existing.computed_sales|intcomma }}</b> ·
+  <div class="msg info">{% if pending %}{{ close_day|date:"d.m.Y" }}{% else %}Bugun{% endif %} yakunlangan: hisoblangan <b class="num">{{ existing.computed_sales|intcomma }}</b> ·
      kiritilgan <b class="num">{{ existing.entered_sales|intcomma }}</b> so'm. Qayta yuborsangiz yangilanadi.</div>
   {% endif %}
   <form method="post" enctype="multipart/form-data" data-queue-guard>{% csrf_token %}

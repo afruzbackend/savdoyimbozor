@@ -415,6 +415,30 @@
     if (bad) { e.preventDefault(); e.stopImmediatePropagation(); bad.focus(); }
   }, true);
 
+  // ---- "0" turgan son maydoni: bosilganda 0 o'chadi (avval o'chirib, keyin yozish shart emas) ----
+  // Hech narsa yozmay chiqsa — 0 qaytadi (qiymat ma'nosi o'zgarmaydi). Alpine x-model ham xabardor.
+  function isZeroVal(v) { return /^\s*0+(?:[.,]0*)?\s*$/.test(String(v || "")); }
+  function zeroable(t) {
+    return t && t.tagName === "INPUT" && !t.readOnly && !t.disabled &&
+      (t.type === "number" || (t.matches && t.matches(".num,[data-money],[inputmode=numeric],[inputmode=decimal]"))) &&
+      !(t.matches && t.matches("[data-phone],[data-time],[data-keep-zero]"));
+  }
+  document.addEventListener("focusin", function (e) {
+    var t = e.target;
+    if (zeroable(t) && isZeroVal(t.value)) {
+      t.__zero = t.value;
+      t.value = "";
+      t.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  });
+  document.addEventListener("focusout", function (e) {
+    var t = e.target;
+    if (t && t.__zero !== undefined) {
+      if (t.value === "") { t.value = t.__zero; t.dispatchEvent(new Event("input", { bubbles: true })); }
+      delete t.__zero;
+    }
+  });
+
   // ---- Umumiy: maydon ostidagi qizil xabar (brauzerning default oynasi o'rniga) ----
   function markErr(inp, on, key, text) {
     inp.classList.toggle("err", on);

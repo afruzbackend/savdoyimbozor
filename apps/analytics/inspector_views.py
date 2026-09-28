@@ -237,6 +237,26 @@ def _investigation(shop, peers, start, today):
 
 
 @login_required
+def shop_export(request, pk):
+    """Do'kon ko'rsatkichlari kunma-kun: savdo, deklaratsiya, rostlik va uning qismlari, yashirilgan savdo."""
+    import re
+
+    from apps.core.exports import FORMATS, day_rows, summary_rows, table_response
+
+    shop = get_object_or_404(_visible_shops(request), pk=pk)
+    days = {"7": 7, "14": 14, "30": 30, "90": 90}.get(request.GET.get("davr"), 30)
+    end = timezone.localdate()
+    start = end - timedelta(days=days - 1)
+    headers, rows = day_rows(shop, start, end, extra=True)
+    fmt = request.GET.get("fmt") if request.GET.get("fmt") in FORMATS else "xlsx"
+    name = re.sub(r"[^0-9A-Za-z_-]+", "_", str(shop.number))[:30] or "dokon"
+    return table_response(fmt, f"dokon_{name}_{start:%Y%m%d}_{end:%Y%m%d}", [
+        ("Kunlar", headers, rows),
+        ("Umumiy", ["Ko'rsatkich", "Qiymat"], summary_rows(shop, start, end, rows)),
+    ])
+
+
+@login_required
 def shop_detail(request, pk):
     from apps.core.models import SystemSettings
 
@@ -1096,57 +1116,24 @@ def statistics(request):
 
 @login_required
 def export_excel(request):
-    import openpyxl
+    """Tanlangan davr bo'yicha barcha ko'rinadigan do'konlar (Excel yoki ?fmt=csv)."""
+    from django.db.models import Q, Sum
+
+    from apps.core.exports import FORMATS, table_response
 
     shops = _visible_shops(request)
     start, end = _report_range(request)
-    wb = openpyxl.Workbook(write_only=True)  # oqimli: respublika hisobotida ham xotira tejaladi
-    ws = wb.create_sheet("Hisobot")
-    ws.append(
-        [
-            "Bozor",
-            "Do'kon",
-            "STIR",
-            "Egasi",
-            "O'rtacha rostlik %",
-            "Kiritilgan (so'm)",
-            "Deklaratsiya (so'm)",
-        ]
-    )
-    from django.db.models import Q, Sum
-
+    headers = ["Bozor", "Do'kon", "STIR", "Egasi", "O'rtacha rostlik %", "Kiritilgan (so'm)", "Deklaratsiya (so'm)"]
     rows = (
         DailyScore.objects.filter(shop__in=shops, date__range=(start, end))
         .values("shop__market__name", "shop__number", "shop__stir", "shop__owner_name")
-        .annotate(
-            t=Avg("truth_pct", filter=Q(measured=True)),
-            e=Sum("entered_sales"),
-            c=Sum("cash_amount"),
-        )
+        .annotate(t=Avg("truth_pct", filter=Q(measured=True)), e=Sum("entered_sales"), c=Sum("cash_amount"))
+        .order_by("shop__market__name", "shop__number")
     )
-
-    from apps.core.format import excel_row  # har katak formula in'ektsiyasidan himoyalangan
-
-    for r in rows:
-        ws.append(
-            excel_row([
-                r["shop__market__name"],
-                r["shop__number"],
-                r["shop__stir"],
-                r["shop__owner_name"],
-                round(r["t"]) if r["t"] is not None else "—",
-                int(r["e"] or 0),
-                int(r["c"] or 0),
-            ])
-        )
-    from django.http import HttpResponse
-
-    resp = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-    resp["Content-Disposition"] = f'attachment; filename="hisobot_{start}_{end}.xlsx"'
-    wb.save(resp)
-    return resp
+    data = ([r["shop__market__name"], r["shop__number"], r["shop__stir"], r["shop__owner_name"],
+             round(r["t"]) if r["t"] is not None else "—", int(r["e"] or 0), int(r["c"] or 0)] for r in rows)
+    fmt = request.GET.get("fmt") if request.GET.get("fmt") in FORMATS else "xlsx"
+    return table_response(fmt, f"hisobot_{start}_{end}", [("Hisobot", headers, data)])
 
 
 # ============================================================================

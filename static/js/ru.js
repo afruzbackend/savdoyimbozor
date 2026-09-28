@@ -1551,6 +1551,18 @@ window.RU_DICT = {
   "oxirgi": "последние",
   "Fayl juda katta (10 MB dan ortiq) — bo'lib yuklang.": "Файл слишком большой (более 10 МБ) — загрузите частями.",
   "Sozlamalar saqlandi, lekin ballarni qayta hisoblab bo'lmadi — keyingi fon hisobida yangilanadi.": "Настройки сохранены, но пересчитать баллы не удалось — обновятся при следующем фоновом расчёте.",
+  "Kun yakuni majburiy: kechagi savdo kuni sanalmaguncha sotuv va kirim yopiq": "Итог дня обязателен: пока вчерашний торговый день не пересчитан, продажи и приход закрыты",
+  "Tez sotuv va nasiya mahsulotga bog'lanmaydi — qoldiqdan faqat kun yakunidagi sanoq ayiradi. Yoqilganda sotuvchi ertalab avval kechagi kunni sanab yopadi (oflayn navbatdagi sotuvlar qabul qilinaveradi).": "Быстрая продажа и долг не привязаны к товару — из остатка их вычитает только пересчёт в конце дня. Если включено, продавец утром сначала пересчитывает и закрывает вчерашний день (продажи из офлайн-очереди принимаются).",
+  "hozirgi": "текущий",
+  "kuni yakunlanmagan — sotuv va kirim shu sanoqdan keyin ochiladi. Bugun hali sotuv bo'lmagan: rastadagi": "— день не закрыт; продажи и приход откроются после этого пересчёта. Сегодня продаж ещё не было: пересчитайте",
+  "qoldiqni sanab yozing.": "остаток на прилавке и запишите.",
+  "yakunlangan: hisoblangan": "закрыт: рассчитано",
+  "Kun yakuniga o'tish": "Перейти к итогу дня",
+  "Rastadagi qoldiqni sanab kunni yakunlang: tez sotuv va nasiyadagi mahsulotlar shunda qoldiqdan ayriladi.": "Пересчитайте остаток на прилавке и закройте день: так товары из быстрых продаж и долга вычтутся из остатка.",
+  "kun yakuni qilinmagan — sotuv yopiq": "— итог дня не подведён, продажи закрыты",
+  "PDF / chop etish": "PDF / печать",
+  "Oxirgi 30 kun, kunma-kun": "Последние 30 дней, по дням",
+  "30 kun, kunma-kun: savdo, deklaratsiya, rostlik qismlari": "30 дней, по дням: продажи, декларация, части правдивости",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
@@ -1560,6 +1572,8 @@ window.RU_FRAGMENTS = [
 
   // Razmerli tovar
   ["razmerini tanlang: ", "выберите размер: "],
+  ["Sotildi · ", "Продано · "],
+  [" kun yakuni qilinmagan: tez sotuv va nasiyadagi mahsulotlar qoldiqdan ayrilmagan. Avval rastadagi qoldiqni sanab kunni yakunlang — keyin sotuv ochiladi.", " итог дня не подведён: товары из быстрых продаж и долга не вычтены из остатка. Сначала пересчитайте остаток и закройте день — затем продажи откроются."],
   ["Telefon noto'g'ri — bo'sh qoldirildi (do'kon sahifasida tuzating): ", "Неверный телефон — оставлен пустым (исправьте на странице магазина): "],
   [" kun, oxirgisi ", " дн., последний "],
   [" · o'lchanmagan", " · не измерено"],

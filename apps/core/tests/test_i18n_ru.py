@@ -41,7 +41,7 @@ def translated(text):
 
 
 # Ataylab tarjima qilinmaydi: brend, texnik atamalar, o'zbekcha misol (tahlilchi o'zbekcha tushunadi)
-ALLOWED = {"Bozor Nazorat", "Excel", "TOP", "Token", "RTSP (substream)", "SMS",
+ALLOWED = {"Bozor Nazorat", "Excel", "CSV", "TOP", "Token", "RTSP (substream)", "SMS",
            "«pomidor o'n besh kilo sakkiz mingdan, kartoshka 2 qop»"}
 
 

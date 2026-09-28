@@ -2,6 +2,15 @@
 {% load static humanize %}
 {% block title %}Hisobot{% endblock %}
 {% block heading %}Mening hisobotim{% endblock %}
+{% block topbar_actions %}
+  <div class="row gap-2">
+    <a class="btn btn-ghost" href="{% url 'seller:report_export' %}?fmt=xlsx&amp;davr=30" data-tip="Oxirgi 30 kun, kunma-kun">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Excel</a>
+    <a class="btn btn-ghost" href="{% url 'seller:report_export' %}?fmt=csv&amp;davr=30">CSV</a>
+    <button type="button" class="btn btn-ghost" onclick="window.print()">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-printer"></use></svg> PDF / chop etish</button>
+  </div>
+{% endblock %}
 {% block content %}
 <div class="grid grid-3" style="margin-bottom:var(--sp-4)">
   <div class="card center">

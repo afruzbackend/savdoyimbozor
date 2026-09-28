@@ -3,6 +3,9 @@
 {% block title %}№{{ shop.number }} — {{ shop.owner_name }}{% endblock %}
 {% block heading %}№{{ shop.number }} · {{ shop.owner_name }}{% endblock %}
 {% block topbar_actions %}
+  <a class="btn btn-ghost" href="{% url 'inspector:shop_export' shop.pk %}?fmt=xlsx&amp;davr=30" data-tip="30 kun, kunma-kun: savdo, deklaratsiya, rostlik qismlari">
+    <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Excel</a>
+  <a class="btn btn-ghost" href="{% url 'inspector:shop_export' shop.pk %}?fmt=csv&amp;davr=30">CSV</a>
   <a class="btn btn-ghost" href="{% url 'inspector:shop_evidence' shop.pk %}">
     <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Dalil to'plami</a>
   {% if not readonly %}<a class="btn" href="{% url 'inspector:inspection_create' %}?shop={{ shop.pk }}">

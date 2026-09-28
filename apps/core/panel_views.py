@@ -677,6 +677,8 @@ def settings_edit(request):
             return redirect("panel:settings")
         if request.POST.get("require_2fa_staff_present"):
             new["require_2fa_staff"] = request.POST.get("require_2fa_staff") == "on"
+        if request.POST.get("require_daily_close_present"):
+            new["require_daily_close"] = request.POST.get("require_daily_close") == "on"
         changed = [f"{f}: {getattr(s, f)}→{v}" for f, v in new.items() if getattr(s, f) != v]
         for f, v in new.items():
             setattr(s, f, v)

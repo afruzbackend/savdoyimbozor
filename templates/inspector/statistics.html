@@ -5,6 +5,7 @@
 {% block topbar_actions %}
   <a class="btn" href="{% url 'inspector:export' %}?start={{ start|date:'Y-m-d' }}&end={{ end|date:'Y-m-d' }}">
     <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-download"></use></svg> Excel</a>
+  <a class="btn btn-ghost" href="{% url 'inspector:export' %}?fmt=csv&amp;start={{ start|date:'Y-m-d' }}&amp;end={{ end|date:'Y-m-d' }}">CSV</a>
 {% endblock %}
 {% block content %}
 <form method="get" class="card" style="display:flex;gap:var(--sp-3);align-items:end;margin-bottom:var(--sp-4);flex-wrap:wrap">

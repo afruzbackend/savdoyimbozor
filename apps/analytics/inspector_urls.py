@@ -10,6 +10,7 @@ urlpatterns = [
     path("xarita/<int:pk>/", v.market_map, name="map_market"),
     path("dokon/<int:pk>/", v.shop_detail, name="shop_detail"),
     path("dokon/<int:pk>/dalil/", v.shop_evidence, name="shop_evidence"),
+    path("dokon/<int:pk>/eksport/", v.shop_export, name="shop_export"),
     path("qidiruv/", v.shop_search, name="shop_search"),
     path("signallar/", v.alerts_list, name="alerts"),
     path("signallar/<int:pk>/amal/", v.alert_action, name="alert_action"),

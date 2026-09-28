@@ -71,6 +71,13 @@
       <div class="field"><label class="label">Maks kirish urinishi</label><input class="input num" type="number" name="login_max_attempts" value="{{ s.login_max_attempts }}"></div>
       <div class="field"><label class="label">Blok davomiyligi (daq)</label><input class="input num" type="number" name="login_lock_minutes" value="{{ s.login_lock_minutes }}"></div>
     </div>
+    <input type="hidden" name="require_daily_close_present" value="1">
+    <label class="switch-row" style="margin-top:var(--sp-2)">
+      <span><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg>
+        Kun yakuni majburiy: kechagi savdo kuni sanalmaguncha sotuv va kirim yopiq</span>
+      <input type="checkbox" name="require_daily_close" {% if s.require_daily_close %}checked{% endif %}></label>
+    <p class="hint" style="margin:var(--sp-1) 0 var(--sp-3)">Tez sotuv va nasiya mahsulotga bog'lanmaydi — qoldiqdan faqat kun
+      yakunidagi sanoq ayiradi. Yoqilganda sotuvchi ertalab avval kechagi kunni sanab yopadi (oflayn navbatdagi sotuvlar qabul qilinaveradi).</p>
     <input type="hidden" name="require_2fa_staff_present" value="1">
     <label class="switch-row" style="margin-top:var(--sp-2)">
       <span><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-shield-check"></use></svg>

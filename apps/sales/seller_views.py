@@ -1,6 +1,7 @@
 """Sotuvchi interfeysi ko'rinishlari."""
 
 import json
+import re
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
@@ -141,6 +142,7 @@ def home(request):
         {
             "shop": shop,
             "need_opening": need_opening,
+            "pending_close": _pending_close(shop),
             "today_total": agg["total"] or 0,
             "today_count": agg["n"] or 0,
             "recent": recent,
@@ -151,11 +153,29 @@ def home(request):
     )
 
 
+def _pending_close(shop):
+    from .services.closing import pending_close_day
+
+    return pending_close_day(shop)
+
+
+def _close_gate(request, shop):
+    """Kechagi savdo kuni yakunlanmagan bo'lsa — kun yakuniga yo'naltiradi (aks holda None)."""
+    from .services.closing import pending_close_day
+
+    # Xabar alohida chiqarilmaydi: kun yakuni sahifasining o'zida yopilmagan kun banneri turadi
+    if pending_close_day(shop) is None:
+        return None
+    return redirect("seller:daily_close")
+
+
 @login_required
 def sale_screen(request):
     shop = _shop(request)
     if shop is None:
         return redirect("seller:home")
+    if (gate := _close_gate(request, shop)) is not None:
+        return gate
     cfg = pricing.frontend_config(SystemSettings.get_solo())
     return render(request, "seller/sale.html", {"shop": shop, "pricing_config": cfg})
 
@@ -165,6 +185,8 @@ def scan_screen(request):
     shop = _shop(request)
     if shop is None:
         return redirect("seller:home")
+    if (gate := _close_gate(request, shop)) is not None:
+        return gate
     cfg = pricing.frontend_config(SystemSettings.get_solo())
     return render(request, "seller/scan.html", {"shop": shop, "pricing_config": cfg})
 
@@ -447,6 +469,9 @@ def stock_in(request):
     shop = _shop(request)
     if shop is None:
         return redirect("seller:home")
+    # Kirim ham: ertalab sanoqdan oldin kelgan tovar kechagi kechki qoldiqqa qo'shilib ketmasin
+    if (gate := _close_gate(request, shop)) is not None:
+        return gate
     if request.method == "POST":
         price = to_int(request.POST.get("unit_price"), 0)
         qty = to_dec(request.POST.get("quantity"))
@@ -589,6 +614,8 @@ def stock_in_quick_save(request):
     shop = _shop(request)
     if shop is None or request.method != "POST":
         return redirect("seller:stock_in")
+    if (gate := _close_gate(request, shop)) is not None:
+        return gate
     try:
         rows = json.loads(request.POST.get("rows") or "[]")
     except ValueError:
@@ -717,12 +744,16 @@ def _morning_baselines(shop, today, prods, mv, existing):
 
 @login_required
 def daily_close(request):
+    from .services.closing import pending_close_day
     from .services.stock import day_movements, sold_qty
 
     shop = _shop(request)
     if shop is None:
         return redirect("seller:home")
-    today = timezone.localdate()
+    # Kechagi savdo kuni yopilmagan bo'lsa — avval O'SHA kun yakunlanadi (bugun hali sotuv yo'q:
+    # rastadagi hozirgi qoldiq = kechagi kechki qoldiq). Boshqa o'tgan kunni tanlab yozib bo'lmaydi.
+    pending = pending_close_day(shop)
+    today = pending or timezone.localdate()
     prods = sorted_products(Product.objects.filter(shop=shop, is_active=True))
     existing = DailyClose.objects.filter(shop=shop, date=today).first()
     mv = day_movements(shop, today)
@@ -839,6 +870,8 @@ def daily_close(request):
             "existing": existing,
             "reg": reg,
             "today_close": today_close,
+            "close_day": today,
+            "pending": pending,
         },
     )
 
@@ -1083,6 +1116,30 @@ def debts(request):
             "sms_on": sms.enabled(),
         },
     )
+
+
+def _safe_name(x) -> str:
+    return re.sub(r"[^0-9A-Za-z_-]+", "_", str(x or ""))[:30] or "dokon"
+
+
+@login_required
+def report_export(request):
+    """Mening hisobotim — kunma-kun savdo, cheklar, chegirma, deklaratsiya, rostlik (Excel / CSV).
+    Kichik yoki bo'sh kun ham qatorda (0) — davr uzluksiz."""
+    from apps.core.exports import FORMATS, day_rows, summary_rows, table_response
+
+    shop = _shop(request)
+    if shop is None:
+        return redirect("seller:home")
+    days = {"7": 7, "14": 14, "30": 30, "90": 90}.get(request.GET.get("davr"), 30)
+    end = timezone.localdate()
+    start = end - timedelta(days=days - 1)
+    headers, rows = day_rows(shop, start, end)
+    fmt = request.GET.get("fmt") if request.GET.get("fmt") in FORMATS else "xlsx"
+    return table_response(fmt, f"hisobot_{_safe_name(shop.number)}_{start:%Y%m%d}_{end:%Y%m%d}", [
+        ("Kunlar", headers, rows),
+        ("Umumiy", ["Ko'rsatkich", "Qiymat"], summary_rows(shop, start, end, rows)),
+    ])
 
 
 @login_required

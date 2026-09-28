@@ -4,7 +4,8 @@
 {% block heading %}Skaner sotuv{% endblock %}
 {% block topbar_actions %}<a class="btn btn-ghost" href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg> Tez rejim</a>{% endblock %}
 {% block content %}
-<div x-data="scanSale()" style="max-width:560px;margin:0 auto">
+<div x-data="scanSale()" class="sale-layout sale-layout-scan">
+<div class="sale-main">
   <div class="card" style="margin-bottom:var(--sp-4)">
     <label class="label">Barkod yoki nom</label>
     <div class="row gap-2">
@@ -39,6 +40,9 @@
     </template>
   </div>
 
+</div>{# /sale-main #}
+
+<aside class="sale-side">
   <div class="card" style="text-align:center">
     <small class="muted">Jami</small>
     <div class="truth-big num" style="font-size:var(--t-4)" x-text="fmt(total)+' so\'m'"></div>
@@ -69,15 +73,21 @@
       <input class="input num" x-model="debtorPhone" inputmode="tel" autocomplete="tel" data-phone placeholder="+998 90 123 45 67">
       <div class="debtor-due" :class="dueErr&&'due-err'">{% include 'components/_duefield.html' with name='debtor_due' model='debtorDue' label='Qaytarish sanasi' %}</div>
     </div>
-    <button class="btn btn-lg btn-block" :disabled="total<=0||saving" @click="submit()">
-      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>
-      <span x-text="saving?'Saqlanmoqda...':'Sotildi'"></span></button>
 
     {# Oxirgi sotuv cheki — xaridor QR'ni skanerlaydi #}
     <button type="button" class="btn btn-ghost btn-block receipt-btn" x-show="lastReceipt" x-cloak
             @click="window.showReceiptQR(lastReceipt)">
       <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-receipt"></use></svg>
       Xaridorga chek (QR) · <b class="num" x-text="lastReceipt ? window.BN.fmt(lastReceipt.total)+&quot; so'm&quot; : ''"></b>
+    </button>
+  </div>
+
+</aside>
+
+  <div class="sale-submit-bar">
+    <button class="btn btn-lg btn-block sale-submit" :disabled="total<=0||saving" @click="submit()">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-check"></use></svg>
+      <span x-text="saving ? 'Saqlanmoqda...' : (total > 0 ? 'Sotildi · ' + fmt(total) + ' so\'m' : 'Sotildi')"></span>
     </button>
   </div>
 
@@ -150,8 +160,9 @@
           window.saleQueue.add(body); window.toast('Internet yo\'q — navbatga saqlandi','warn');
           this.reset(); this.saving=false; return; }
         this.saving=false;
-        if(!r.ok){ let m='Xatolik — qayta urinib ko\'ring';
-          try{ const err=await r.json(); if(err.detail) m=err.detail; }catch(e){}
+        if(!r.ok){ let m='Xatolik — qayta urinib ko\'ring', go='';
+          try{ const err=await r.json(); if(err.detail) m=err.detail; go=err.redirect||''; }catch(e){}
+          if(r.status===423 && go) setTimeout(()=>{ location.href=go; }, 1800);
           window.toast(m,'bad'); return; }
         const d=await r.json();
         this.showOk(d.total);
