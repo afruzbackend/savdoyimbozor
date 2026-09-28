@@ -935,3 +935,12 @@ use[href$="#i-settings"]{--ic:icTurn}
   .sale-side{grid-area:side;margin-top:0}
   .sale-submit-bar{grid-area:submit;position:sticky;top:var(--sp-4);bottom:auto;background:none;padding:var(--sp-3) 0 0}
 }
+
+/* ---------- "Yopiq" ekrani (kun yakuni qilinmagan) — sahifa o'z joyida qoladi ---------- */
+.locked-card{max-width:560px;margin:var(--sp-5) auto;text-align:center;padding:var(--sp-6) var(--sp-5)}
+.locked-ic{display:inline-grid;place-items:center;width:64px;height:64px;border-radius:18px;
+  background:var(--warn-bg);color:var(--warn-ink);margin-bottom:var(--sp-3)}
+.locked-title{font-size:var(--t-2);margin:0 0 var(--sp-2)}
+.locked-text{color:var(--ink-muted);margin:0 auto var(--sp-3);max-width:46ch}
+.locked-steps{text-align:left;max-width:46ch;margin:0 auto var(--sp-4);padding-left:1.3em;color:var(--ink);
+  font-size:var(--t--1);line-height:1.7}

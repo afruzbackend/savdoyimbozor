@@ -1,0 +1,26 @@
+{% extends 'seller/base.html' %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block heading %}{{ page_title }}{% endblock %}
+{% block content %}
+{# Sahifa boshqa joyga otib yubormaydi: shu yerda nima uchun yopiqligi va nima qilish kerakligi #}
+<div class="card locked-card">
+  <span class="locked-ic"><svg class="icon-lg"><use href="{% static 'icons/sprite.svg' %}#i-package"></use></svg></span>
+  <h2 class="locked-title">{{ what }} vaqtincha yopiq</h2>
+  <p class="locked-text"><b class="num">{{ pending|date:"d.m.Y" }}</b> kuni yakunlanmagan. Tez sotuv va nasiyaga
+    berilgan mahsulotlar qoldiqdan faqat kun yakunidagi sanoq bilan ayriladi — shuning uchun avval o'sha kun
+    sanaladi.</p>
+  <ol class="locked-steps">
+    <li>Rastadagi har mahsulot qoldig'ini sanang (bugun hali sotuv bo'lmagan).</li>
+    <li>Sandiqdagi naqdni sanab yozing va rastani suratga oling.</li>
+    <li>«Kunni yakunlash» — shundan keyin {{ what_lower }} darhol ochiladi.</li>
+  </ol>
+  <div class="row gap-2" style="justify-content:center;flex-wrap:wrap">
+    <a class="btn btn-lg" href="{% url 'seller:daily_close' %}">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Kun yakuniga o'tish</a>
+    <a class="btn btn-ghost btn-lg" href="{% url 'seller:home' %}">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-home"></use></svg> Bosh sahifa</a>
+  </div>
+  <p class="hint" style="margin-top:var(--sp-3)">Internet yo'q paytda qilingan va navbatda turgan sotuvlar yo'qolmaydi — ular qabul qilinaveradi.</p>
+</div>
+{% endblock %}

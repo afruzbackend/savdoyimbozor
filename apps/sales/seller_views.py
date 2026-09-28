@@ -98,9 +98,9 @@ def notification_open(request, pk):
 def home(request):
     shop = _shop(request)
     _gen_debt_notifications(request.user, shop)
-    # Savdo bo'lmagan kun tushuntirilmagan bo'lsa — majburiy e'tirozga yo'naltiramiz
-    if shop is not None and _pending_nosales(shop).exists():
-        return redirect("seller:appeals")
+    # Savdosiz kun tushuntirilmagan bo'lsa — bosh sahifa baribir ochiladi (ilgari E'tiroz sahifasiga
+    # majburan otib yuborardi, "bosh sahifaga kirib bo'lmayapti" bo'lardi); vazifa tepada kartada turadi
+    nosales = list(_pending_nosales(shop)[:10]) if shop is not None else []
     today = timezone.localdate()
     sales = Sale.objects.filter(shop=shop, **on_day("created_at", today)) if shop else Sale.objects.none()
     agg = sales.aggregate(total=Sum("total"), n=Count("id"))  # bitta so'rovda jami+soni
@@ -143,6 +143,7 @@ def home(request):
             "shop": shop,
             "need_opening": need_opening,
             "pending_close": _pending_close(shop),
+            "nosales": nosales,
             "today_total": agg["total"] or 0,
             "today_count": agg["n"] or 0,
             "recent": recent,
@@ -159,14 +160,28 @@ def _pending_close(shop):
     return pending_close_day(shop)
 
 
-def _close_gate(request, shop):
-    """Kechagi savdo kuni yakunlanmagan bo'lsa — kun yakuniga yo'naltiradi (aks holda None)."""
+GATED_PAGES = {
+    "sale": ("Tez sotuv", "Sotuv"),
+    "scan": ("Skaner sotuv", "Sotuv"),
+    "stock_in": ("Kirim", "Kirim"),
+}
+
+
+def _close_gate(request, shop, page="sale"):
+    """Kechagi savdo kuni yakunlanmagan bo'lsa — "yopiq" ekrani (aks holda None).
+
+    Boshqa sahifaga jimgina otib yubormaydi (foydalanuvchi "bossam boshqa joyga o'tib ketyapti"
+    deb adashardi): shu sahifaning o'zida nima uchun yopiqligi va kun yakuniga tugma turadi.
+    """
     from .services.closing import pending_close_day
 
-    # Xabar alohida chiqarilmaydi: kun yakuni sahifasining o'zida yopilmagan kun banneri turadi
-    if pending_close_day(shop) is None:
+    day = pending_close_day(shop)
+    if day is None:
         return None
-    return redirect("seller:daily_close")
+    title, what = GATED_PAGES.get(page, GATED_PAGES["sale"])
+    return render(request, "seller/locked.html", {
+        "shop": shop, "page_title": title, "what": what, "what_lower": what.lower(), "pending": day,
+    })
 
 
 @login_required
@@ -174,7 +189,7 @@ def sale_screen(request):
     shop = _shop(request)
     if shop is None:
         return redirect("seller:home")
-    if (gate := _close_gate(request, shop)) is not None:
+    if (gate := _close_gate(request, shop, "sale")) is not None:
         return gate
     cfg = pricing.frontend_config(SystemSettings.get_solo())
     return render(request, "seller/sale.html", {"shop": shop, "pricing_config": cfg})
@@ -185,7 +200,7 @@ def scan_screen(request):
     shop = _shop(request)
     if shop is None:
         return redirect("seller:home")
-    if (gate := _close_gate(request, shop)) is not None:
+    if (gate := _close_gate(request, shop, "scan")) is not None:
         return gate
     cfg = pricing.frontend_config(SystemSettings.get_solo())
     return render(request, "seller/scan.html", {"shop": shop, "pricing_config": cfg})
@@ -470,7 +485,7 @@ def stock_in(request):
     if shop is None:
         return redirect("seller:home")
     # Kirim ham: ertalab sanoqdan oldin kelgan tovar kechagi kechki qoldiqqa qo'shilib ketmasin
-    if (gate := _close_gate(request, shop)) is not None:
+    if (gate := _close_gate(request, shop, "stock_in")) is not None:
         return gate
     if request.method == "POST":
         price = to_int(request.POST.get("unit_price"), 0)
@@ -614,7 +629,7 @@ def stock_in_quick_save(request):
     shop = _shop(request)
     if shop is None or request.method != "POST":
         return redirect("seller:stock_in")
-    if (gate := _close_gate(request, shop)) is not None:
+    if (gate := _close_gate(request, shop, "stock_in")) is not None:
         return gate
     try:
         rows = json.loads(request.POST.get("rows") or "[]")

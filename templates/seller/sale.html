@@ -218,7 +218,7 @@
           let m = 'Xatolik — qayta urinib ko\'ring', go = '';
           try { const err = await r.json(); if (err.detail) m = err.detail; go = err.redirect || ''; } catch (_) {}
           window.toast(m, 'bad');
-          if (r.status === 423 && go) setTimeout(() => { location.href = go; }, 1800);
+          if (r.status === 423) setTimeout(() => { location.reload(); }, 1500);  // shu joyda "yopiq" ekrani
           return;
         }
         const d = await r.json();

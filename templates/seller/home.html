@@ -6,6 +6,22 @@
 <a class="btn" href="{% url 'seller:sale' %}"><svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-banknote"></use></svg> Yangi sotuv</a>
 {% endblock %}
 {% block content %}
+{% if nosales %}
+{# Majburiy vazifa: savdosiz kun sababi — sahifani o'g'irlamasdan, tepada #}
+<div class="card opening-card" style="margin-bottom:var(--sp-4);border-color:var(--bad)">
+  <div class="row gap-3" style="align-items:center;flex-wrap:wrap">
+    <span class="stat-ic" style="width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:var(--bad-bg);color:var(--bad-ink)">
+      <svg class="icon"><use href="{% static 'icons/sprite.svg' %}#i-circle-alert"></use></svg></span>
+    <div style="flex:1 1 220px;min-width:0">
+      <div style="font-weight:700">Savdosiz kun sababini yozing <span class="muted" style="font-weight:500">(majburiy)</span></div>
+      <small class="muted">Do'kon ochiq, lekin savdo kiritilmagan kunlar:
+        <span class="num">{% for a in nosales %}{{ a.date|date:"d.m" }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>.
+        Bozor yopiq, kasallik va h.k. bo'lsa — qisqa yozing, nazoratchi ko'radi.</small>
+    </div>
+    <a class="btn" href="{% url 'seller:appeals' %}"><svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-notebook-pen"></use></svg> Sababini yozish</a>
+  </div>
+</div>
+{% endif %}
 {% if pending_close %}
 {# Kechagi savdo kuni yakunlanmagan — sotuv yopiq (tez sotuv/nasiya qoldiqdan faqat sanoq bilan ayriladi) #}
 <div class="card opening-card" style="margin-bottom:var(--sp-4);border-color:var(--warn)">

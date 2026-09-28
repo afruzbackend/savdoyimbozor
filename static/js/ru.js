@@ -1563,6 +1563,18 @@ window.RU_DICT = {
   "PDF / chop etish": "PDF / печать",
   "Oxirgi 30 kun, kunma-kun": "Последние 30 дней, по дням",
   "30 kun, kunma-kun: savdo, deklaratsiya, rostlik qismlari": "30 дней, по дням: продажи, декларация, части правдивости",
+  "(majburiy)": "(обязательно)",
+  ". Bozor yopiq, kasallik va h.k. bo'lsa — qisqa yozing, nazoratchi ko'radi.": ". Если рынок был закрыт, болезнь и т. п. — напишите коротко, проверяющий увидит.",
+  "Do'kon ochiq, lekin savdo kiritilmagan kunlar:": "Дни, когда магазин был открыт, но продажи не внесены:",
+  "Sababini yozish": "Написать причину",
+  "Savdosiz kun sababini yozing": "Укажите причину дня без продаж",
+  "Internet yo'q paytda qilingan va navbatda turgan sotuvlar yo'qolmaydi — ular qabul qilinaveradi.": "Продажи, сделанные без интернета и ожидающие в очереди, не пропадут — они будут приняты.",
+  "Rastadagi har mahsulot qoldig'ini sanang (bugun hali sotuv bo'lmagan).": "Пересчитайте остаток каждого товара на прилавке (сегодня продаж ещё не было).",
+  "Sandiqdagi naqdni sanab yozing va rastani suratga oling.": "Пересчитайте наличные в кассе и сфотографируйте прилавок.",
+  "darhol ochiladi.": "откроется сразу.",
+  "kuni yakunlanmagan. Tez sotuv va nasiyaga berilgan mahsulotlar qoldiqdan faqat kun yakunidagi sanoq bilan ayriladi — shuning uchun avval o'sha kun sanaladi.": "— день не закрыт. Товары из быстрых продаж и в долг вычитаются из остатка только пересчётом в конце дня — поэтому сначала пересчитывается тот день.",
+  "vaqtincha yopiq": "временно закрыт",
+  "«Kunni yakunlash» — shundan keyin": "«Закрыть день» — после этого",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.

@@ -38,10 +38,11 @@ def _api(client, offline=False):
 @pytest.mark.django_db
 def test_yesterday_not_closed_blocks_new_sales(sclient, shop, seller):
     _sale_on(shop, seller, 1)
-    r = sclient.get("/sotuv/", HTTP_HOST=SELLER_HOST)
-    assert r.status_code == 302 and r.url.endswith("/kun-yakuni/")
-    assert sclient.get("/skaner/", HTTP_HOST=SELLER_HOST).status_code == 302
-    assert sclient.get("/kirim/", HTTP_HOST=SELLER_HOST).status_code == 302
+    # Boshqa sahifaga otib yubormaydi: shu joyda "yopiq" ekrani va kun yakuniga tugma
+    for url, what in (("/sotuv/", "Sotuv"), ("/skaner/", "Sotuv"), ("/kirim/", "Kirim")):
+        r = sclient.get(url, HTTP_HOST=SELLER_HOST)
+        html = r.content.decode()
+        assert r.status_code == 200 and f"{what} vaqtincha yopiq" in html and "/kun-yakuni/" in html, url
     r = _api(sclient)
     assert r.status_code == 423 and r.json()["redirect"] == "/kun-yakuni/"
     # Oflayn navbatdagi sotuv allaqachon bo'lib o'tgan — rad etilmaydi (yo'qolmasin)
@@ -59,18 +60,21 @@ def test_closing_yesterday_in_the_morning_unlocks_sales(sclient, shop, seller):
     sclient.post("/kun-yakuni/", {"counted_cash": "50 000"}, HTTP_HOST=SELLER_HOST)
     assert DailyClose.objects.filter(shop=shop, date=yesterday).exists()
     assert not DailyClose.objects.filter(shop=shop, date=timezone.localdate()).exists()
-    assert sclient.get("/sotuv/", HTTP_HOST=SELLER_HOST).status_code == 200
+    assert "vaqtincha yopiq" not in sclient.get("/sotuv/", HTTP_HOST=SELLER_HOST).content.decode()
     assert _api(sclient).status_code == 201
 
 
 @pytest.mark.django_db
 def test_no_gate_without_recent_sales_or_when_disabled(sclient, shop, seller):
-    assert sclient.get("/sotuv/", HTTP_HOST=SELLER_HOST).status_code == 200  # kecha savdo yo'q
+    def locked():
+        return "vaqtincha yopiq" in sclient.get("/sotuv/", HTTP_HOST=SELLER_HOST).content.decode()
+
+    assert not locked()  # kecha savdo yo'q
     _sale_on(shop, seller, 10)  # 7 kundan eski — pilotdan oldingi ma'lumot yangi do'konni to'smaydi
-    assert sclient.get("/sotuv/", HTTP_HOST=SELLER_HOST).status_code == 200
+    assert not locked()
     _sale_on(shop, seller, 1)
     set_settings(require_daily_close=False)
-    assert sclient.get("/sotuv/", HTTP_HOST=SELLER_HOST).status_code == 200
+    assert not locked()
 
 
 @pytest.mark.django_db
@@ -123,3 +127,15 @@ def test_sell_button_always_reachable_and_zero_clears():
     assert ".sale-submit-bar{position:sticky" in css
     js = (base / "static/js/components.js").read_text(encoding="utf-8")
     assert "function isZeroVal" in js and "t.__zero" in js
+
+
+@pytest.mark.django_db
+def test_home_opens_even_with_unexplained_zero_sales_day(sclient, shop):
+    """Bosh sahifa E'tiroz sahifasiga majburan otib yubormaydi — vazifa kartada turadi."""
+    from apps.analytics.models import Alert
+
+    Alert.objects.create(shop=shop, date=timezone.localdate() - datetime.timedelta(days=2),
+                         kind=Alert.Kind.ZERO_SALES, level="red", reason="x")
+    r = sclient.get("/", HTTP_HOST=SELLER_HOST)
+    html = r.content.decode()
+    assert r.status_code == 200 and "Savdosiz kun sababini yozing" in html and "/e-tiroz/" in html

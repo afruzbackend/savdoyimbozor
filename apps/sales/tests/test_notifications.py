@@ -40,7 +40,8 @@ def test_notification_open_marks_read(sclient, seller):
 
 @pytest.mark.django_db
 def test_zero_sales_forces_appeal(sclient, shop):
-    """Tushuntirilmagan 'savdo yo'q' signali bo'lsa — home e'tirozga yo'naltiradi."""
+    """Tushuntirilmagan 'savdo yo'q' signali bo'lsa — bosh sahifa OCHILADI, vazifa tepada kartada
+    (ilgari E'tiroz sahifasiga majburan otib yuborardi — foydalanuvchi bosh sahifaga kira olmasdi)."""
     from datetime import timedelta
 
     from apps.analytics.models import Alert
@@ -51,8 +52,8 @@ def test_zero_sales_forces_appeal(sclient, shop):
         level="red", reason="test",
     )
     r = sclient.get("/", HTTP_HOST=SELLER_HOST)
-    assert r.status_code == 302
-    assert "/e-tiroz/" in r.url
+    assert r.status_code == 200
+    assert "Savdosiz kun sababini yozing" in r.content.decode() and "/e-tiroz/" in r.content.decode()
 
 
 @pytest.mark.django_db
