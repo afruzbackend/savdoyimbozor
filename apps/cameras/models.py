@@ -79,6 +79,8 @@ class CameraEvent(models.Model):
         VISIT = "visit", _("Xaridor tashrifi")
         TAMPER = "tamper", _("Kamera buzilishi")
         SALE = "sale", _("Sotuv kuzatuvi")
+        PRODUCT = "product", _("Mahsulot kuzatuvi")
+        PACKAGED = "packaged", _("Paketga joylash")
         GATE_IN = "gate_in", _("Kirim (darvoza)")
         HEARTBEAT = "heartbeat", _("Tiriklik")
 
@@ -104,3 +106,49 @@ class CameraEvent(models.Model):
 
     def __str__(self):
         return f"{self.get_type_display()} — {self.camera_id} @ {self.ts:%Y-%m-%d %H:%M}"
+
+
+class ProductObservation(TimeStampedModel):
+    """Kamera ko'rgan mahsulot yoki paketlash jarayoni.
+
+    Bu hodisa fiskal chek qatoriga avtomatik tenglashtirilmaydi: model noaniq
+    chiqishi mumkin. Moslik faqat keyingi tekshiruv oqimida tasdiqlanadi.
+    """
+
+    class Kind(models.TextChoices):
+        PRODUCT = "product", _("Mahsulot kuzatuvi")
+        PACKAGED = "packaged", _("Paketga joylandi")
+
+    class ReviewState(models.TextChoices):
+        PENDING = "pending", _("Tekshiruv kerak")
+        CONFIRMED = "confirmed", _("Tasdiqlangan")
+        REJECTED = "rejected", _("Rad etilgan")
+
+    camera = models.ForeignKey(Camera, on_delete=models.CASCADE, related_name="product_observations")
+    shop = models.ForeignKey("shops.Shop", on_delete=models.PROTECT, related_name="product_observations")
+    event_id = models.CharField(_("Worker hodisa ID"), max_length=64, unique=True)
+    kind = models.CharField(_("Kuzatuv turi"), max_length=12, choices=Kind.choices)
+    product_label = models.CharField(_("Model aniqlagan nom"), max_length=300)
+    product_code = models.CharField(_("Model aniqlagan kod"), max_length=128, blank=True)
+    quantity = models.DecimalField(_("Miqdor"), max_digits=12, decimal_places=3)
+    confidence = models.DecimalField(_("Ishonch"), max_digits=4, decimal_places=3)
+    started_at = models.DateTimeField(_("Boshlanish vaqti"), db_index=True)
+    ended_at = models.DateTimeField(_("Tugash vaqti"), db_index=True)
+    review_state = models.CharField(
+        _("Tekshiruv holati"), max_length=12, choices=ReviewState.choices,
+        default=ReviewState.PENDING,
+    )
+    evidence = models.JSONField(_("Dalil"), default=dict, blank=True)
+
+    class Meta:
+        verbose_name = _("Mahsulot/paket kuzatuvi")
+        verbose_name_plural = _("Mahsulot/paket kuzatuvlari")
+        ordering = ["-ended_at", "-id"]
+        indexes = [
+            models.Index(fields=["shop", "ended_at"]),
+            models.Index(fields=["camera", "ended_at"]),
+            models.Index(fields=["review_state", "ended_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_kind_display()}: {self.product_label} × {self.quantity:g}"

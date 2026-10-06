@@ -2,6 +2,7 @@
 
 from datetime import UTC
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -402,6 +403,67 @@ class StockMove(models.Model):
             self.prev_hash, self.shop_id, self.product_id, self.kind, self.qty,
             self.balance, self.unit_price, self.ref, self.created_at,
         )
+
+
+class StockAdjustment(TimeStampedModel):
+    """Admin kiritadigan jismoniy sanoq tuzatishi.
+
+    Product.stock bevosita tahrir qilinmaydi: bu yozuv saqlanganda StockMove.Kind.COUNT
+    harakatini yaratadi. Yozuv keyinchalik o'zgartirilmaydi;
+    xato bo'lsa yangi tuzatish kiritiladi.
+    """
+
+    product = models.ForeignKey(
+        "catalog.Product", on_delete=models.PROTECT, related_name="stock_adjustments",
+        verbose_name=_("Mahsulot"),
+    )
+    counted_qty = models.DecimalField(
+        _("Topilgan qoldiq"), max_digits=12, decimal_places=3
+    )
+    reason = models.CharField(_("Sabab"), max_length=300)
+    user = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="stock_adjustments", verbose_name=_("Kiritgan foydalanuvchi"),
+    )
+
+    class Meta:
+        verbose_name = _("Qoldiq tuzatishi")
+        verbose_name_plural = _("Qoldiq tuzatishlari")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.product} → {self.counted_qty:g}"
+
+    def clean(self):
+        from apps.catalog.models import whole_qty_error
+
+        if self.counted_qty is not None and self.counted_qty < 0:
+            raise ValidationError({"counted_qty": "Qoldiq manfiy bo'lmasin."})
+        if self.product_id:
+            if error := whole_qty_error(self.product.unit, self.counted_qty, self.product.name):
+                raise ValidationError({"counted_qty": error})
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValueError("Qoldiq tuzatishi o'zgartirilmaydi; yangisini kiriting.")
+        # Tuzatish va jurnal bitta tranzaksiyada: qisman saqlangan qoldiq qolmaydi.
+        from django.db import transaction
+
+        from .services.stock import record_move
+
+        with transaction.atomic():
+            self.full_clean()
+            super().save(*args, **kwargs)
+            record_move(
+                self.product,
+                StockMove.Kind.COUNT,
+                set_to=self.counted_qty,
+                ref=f"StockAdjustment#{self.pk}",
+                user=self.user,
+            )
+
+    def delete(self, *args, **kwargs):
+        raise ValueError("Qoldiq tuzatishi o'chirilmaydi.")
 
 
 def stock_move_hash(prev, shop_id, product_id, kind, qty, balance, price, ref, at) -> str:

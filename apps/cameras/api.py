@@ -11,10 +11,13 @@ Hodisa formati (POST /api/events/):
   bitta:   {"type","shop_id","timestamp","payload"}
   ko'p:    {"events": [ {...}, {...} ]}
 
-type: visit | tamper | sale | gate_in | heartbeat
+type: visit | tamper | sale | product | packaged | gate_in | heartbeat
   visit    payload: {dwell_seconds, track_id}            shop_id majburiy
   tamper   payload: {kind: covered|moved|offline|blurred, duration_seconds}
   sale     payload: {product_guess, confidence}          shop_id majburiy
+  product  payload: {event_id, product_label, product_code?, quantity, confidence,
+                     started_at, ended_at, evidence?}    shop_id majburiy
+  packaged payload: product bilan bir xil; avtomatik tasdiq emas, tekshiruvga tushadi
   gate_in  payload: {plate?, count}                       (darvoza)
 
 Video bozordan chiqmaydi — faqat hodisa (raqam/JSON) yuboriladi. Shubhali
@@ -36,10 +39,10 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from apps.api.throttles import CameraRateThrottle
-from apps.core.format import to_int
+from apps.core.format import to_dec, to_int
 from apps.shops.models import Shop
 
-from .models import Camera, CameraEvent
+from .models import Camera, CameraEvent, ProductObservation
 
 
 def _auth(request):
@@ -130,6 +133,35 @@ def ingest_events(request):
             continue  # heartbeat faqat last_seen ni yangilaydi (pastda)
         if etype == CameraEvent.Type.TAMPER:
             tampered = True
+        if etype in (CameraEvent.Type.PRODUCT, CameraEvent.Type.PACKAGED):
+            # Mahsulot/paket modeli faqat aniq identifikator, miqdor, interval va
+            # ishonch bilan ishlaydi. Noaniq natija PENDING bo'lib qoladi.
+            event_id = str(payload.get("event_id") or "").strip()[:64]
+            label = str(payload.get("product_label") or "").strip()[:300]
+            qty = to_dec(payload.get("quantity"))
+            confidence = to_dec(payload.get("confidence"))
+            started = _parse_ts(payload.get("started_at"), now)
+            ended = _parse_ts(payload.get("ended_at"), now)
+            if not (shop and event_id and label and qty and qty > 0 and confidence is not None
+                    and 0 <= confidence <= 1 and started and ended and started <= ended):
+                skipped += 1
+                continue
+            _obs, obs_created = ProductObservation.objects.get_or_create(
+                event_id=event_id,
+                defaults={
+                    "camera": camera, "shop": shop,
+                    "kind": ProductObservation.Kind.PRODUCT if etype == CameraEvent.Type.PRODUCT
+                    else ProductObservation.Kind.PACKAGED,
+                    "product_label": label,
+                    "product_code": str(payload.get("product_code") or "")[:128],
+                    "quantity": qty, "confidence": confidence,
+                    "started_at": started, "ended_at": ended,
+                    "evidence": payload.get("evidence") if isinstance(payload.get("evidence"), dict) else {},
+                },
+            )
+            if not obs_created:
+                skipped += 1
+                continue
         # Manfiy/ulkan son kamera bahosini (va rostlikni) buzmasin
         count = to_int(payload.get("count", 1), 1)
         count = max(0, min(count if count is not None else 1, MAX_COUNT))

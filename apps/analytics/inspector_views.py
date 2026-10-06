@@ -891,7 +891,7 @@ def shop_inventory(request, pk):
     """
     from apps.catalog.models import Product
     from apps.sales.models import StockMove
-    from apps.sales.services.stock import last_count_at, stock_at, verify_chain
+    from apps.sales.services.stock import last_count_at, last_count_by_product, stock_at, verify_chain
 
     shop = get_object_or_404(_visible_shops(request), pk=pk)
     at = _parse_at(request)
@@ -909,8 +909,12 @@ def shop_inventory(request, pk):
             for pid, (bal, price, t) in snap.items()
             if pid in by_id
         ]
+    # Do'konning oxirgi sanoq vaqti boshqa mahsulotga tegishli bo'lishi mumkin.
+    # Shu sabab har qatorda faqat O'SHA SKUning COUNT yozuvi ko'rsatiladi.
+    counts_by_product = last_count_by_product([shop], at or timezone.now())
     for ln in lines:
         ln["value"] = int(max(ln["qty"], 0) * ln["price"])
+        ln["last_count"] = counts_by_product.get(ln["p"].pk)
     from apps.catalog.sizes import product_order
 
     lines.sort(key=lambda ln: product_order(ln["p"]))  # model → razmer (36, 37 ... yonma-yon)

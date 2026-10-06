@@ -19,9 +19,8 @@ def _sale(client, body):
 
 @pytest.mark.django_db
 def test_every_movement_is_journaled(sclient, shop, product):
-    product.stock = Decimal("0")
     product.sell_price = 10000
-    product.save()
+    product.save(update_fields=["sell_price"])
     sclient.post("/kirim/", {"product": product.pk, "quantity": "50", "unit_price": "7000"},
                  HTTP_HOST=SELLER_HOST)
     _sale(sclient, {"items": [{"product_id": product.pk, "name": "x", "qty": 5,
@@ -29,9 +28,9 @@ def test_every_movement_is_journaled(sclient, shop, product):
     sclient.post("/kun-yakuni/", {"photo": photo_file(), f"evening_{product.pk}": "44", "counted_cash": "50000"},
                  HTTP_HOST=SELLER_HOST)
     moves = list(StockMove.objects.filter(product=product).order_by("created_at", "id"))
-    assert [m.kind for m in moves] == ["in", "sale", "count"]
-    assert [m.balance for m in moves] == [Decimal("50"), Decimal("45"), Decimal("44")]
-    assert moves[2].qty == Decimal("-1")  # sanoq 1 dona kam topdi
+    assert [m.kind for m in moves] == ["opening", "in", "sale", "count"]
+    assert [m.balance for m in moves] == [Decimal("100"), Decimal("150"), Decimal("145"), Decimal("44")]
+    assert moves[3].qty == Decimal("-1")  # sanoq 1 dona kam topdi
     product.refresh_from_db()
     assert product.stock == Decimal("44")
     assert verify_chain(shop)[0] is True
@@ -39,15 +38,13 @@ def test_every_movement_is_journaled(sclient, shop, product):
 
 @pytest.mark.django_db
 def test_stock_at_past_moment(sclient, shop, product):
-    product.stock = Decimal("0")
-    product.save()
     sclient.post("/kirim/", {"product": product.pk, "quantity": "30", "unit_price": "1"},
                  HTTP_HOST=SELLER_HOST)
     mid = timezone.now()
     sclient.post("/kirim/", {"product": product.pk, "quantity": "20", "unit_price": "1"},
                  HTTP_HOST=SELLER_HOST)
-    assert stock_at([shop], mid)[product.pk][0] == Decimal("30")
-    assert stock_at([shop], timezone.now())[product.pk][0] == Decimal("50")
+    assert stock_at([shop], mid)[product.pk][0] == Decimal("130")
+    assert stock_at([shop], timezone.now())[product.pk][0] == Decimal("150")
     assert product.pk not in stock_at([shop], mid - timedelta(hours=1))
 
 
@@ -70,8 +67,7 @@ def test_tampering_breaks_chain(sclient, shop, product):
 def test_writeoff_cannot_go_negative_under_lock(sclient, shop, product):
     from apps.sales.services.stock import NegativeStock, record_move
 
-    product.stock = Decimal("3")
-    product.save()
+    record_move(product, StockMove.Kind.COUNT, set_to=Decimal("3"), ref="test count")
     with pytest.raises(NegativeStock):
         record_move(product, StockMove.Kind.WRITEOFF, delta=-5, allow_negative=False)
     product.refresh_from_db()

@@ -21,8 +21,8 @@
         <div style="font-weight:700">{{ moment|uzdatetime }}{% if not at %} <span class="badge badge-neutral">hozir</span>{% endif %}</div></div>
       <div><small class="muted">Ombor umumiy qiymati</small>
         <div class="truth-big num" style="font-size:var(--t-2)">{{ total|intcomma }} <span style="font-size:var(--t-0)">so'm</span></div></div>
-      <div><small class="muted">Oxirgi jismoniy sanoq</small>
-        <div>{% if last_count %}{{ last_count|uzdatetime }}{% else %}<span class="badge badge-warn">sanalmagan</span>{% endif %}</div></div>
+      <div><small class="muted">Do'kondagi eng so'nggi sanoq</small>
+        <div>{% if last_count %}{{ last_count|uzdatetime }}{% else %}<span class="badge badge-warn">hali sanoq yo'q</span>{% endif %}</div></div>
     </div>
     <div class="chain-box {% if chain_ok %}ok{% else %}bad{% endif %}">
       {% if chain_ok %}
@@ -48,7 +48,7 @@
   <div class="card" style="margin-bottom:var(--sp-4)">
     <div class="table-wrap">
       <table class="data">
-        <thead><tr><th>Mahsulot</th><th>Barkod</th><th class="num">Qoldiq</th><th class="num">Narx</th><th class="num">Qiymat</th>{% if at %}<th>Oxirgi harakat</th>{% endif %}</tr></thead>
+        <thead><tr><th>Mahsulot</th><th>Barkod</th><th class="num">Qoldiq</th><th class="num">Narx</th><th class="num">Qiymat</th><th>SKU sanoq holati</th>{% if at %}<th>Oxirgi harakat</th>{% endif %}</tr></thead>
         <tbody>
         {% for ln in lines %}
         <tr class="{% if ln.qty < 0 %}row-bad{% endif %}">
@@ -56,9 +56,10 @@
           <td class="num">{{ ln.qty|floatformat:'-3' }} {{ ln.p.get_unit_display }}</td>
           <td class="num">{{ ln.price|intcomma }}</td>
           <td class="num"><b>{{ ln.value|intcomma }}</b></td>
+          <td>{% if ln.last_count %}<span class="badge badge-ok">sanalgan</span><div class="muted num" style="font-size:var(--t--1);white-space:nowrap">{{ ln.last_count|uzdatetime }}</div>{% else %}<span class="badge badge-warn">sanalmagan</span>{% endif %}</td>
           {% if at %}<td class="muted num" style="white-space:nowrap">{{ ln.last|uzdatetime }}</td>{% endif %}
         </tr>
-        {% empty %}<tr><td colspan="6" class="muted">Qoldiqda mahsulot yo'q.</td></tr>{% endfor %}
+        {% empty %}<tr><td colspan="7" class="muted">Qoldiqda mahsulot yo'q.</td></tr>{% endfor %}
         </tbody>
       </table>
     </div>

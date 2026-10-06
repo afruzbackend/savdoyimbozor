@@ -126,10 +126,10 @@ input:-webkit-autofill:focus,.textarea:-webkit-autofill{
 .stat-pop:nth-child(4){animation-delay:.21s}
 @keyframes statPop{to{opacity:1;transform:none}}
 .stat-card{display:flex;align-items:center;gap:var(--sp-3)}
-.stat-card .stat-ic{width:40px;height:40px;flex:none;border-radius:11px;display:grid;place-items:center;
+.stat-ic{width:40px;height:40px;flex:none;border-radius:11px;display:grid;place-items:center;
   background:var(--brand-50);color:var(--primary)}
-:root[data-theme="dark"] .stat-card .stat-ic{background:var(--brand-900);color:var(--brand-200)}
-.stat-card .stat-ic .icon{width:22px;height:22px}
+:root[data-theme="dark"] .stat-ic{background:var(--brand-900);color:var(--brand-200)}
+.stat-ic .icon{width:22px;height:22px}
 /* Do'kon ikonkasi — jalyuz (eshik) yopilib-ochilib turadi */
 .shop-anim{width:26px;height:26px;overflow:hidden}
 .shop-anim .shutter{transform-origin:center top;animation:shopShutter 4.5s ease-in-out infinite}
@@ -177,6 +177,13 @@ tr.row-muted td{color:var(--ink-faint)}
   font-size:var(--t-0);cursor:pointer;transition:border-color .12s,background .12s,color .12s}
 .pay-select button .icon{width:30px;height:30px}
 @media (max-width:420px){.pay-select button{padding:14px 4px;font-size:var(--t--1);gap:7px}}
+/* 320–390px da to'rtta tugma bitta qatorda juda tor bo'ladi: matn kesilmasin,
+   Nasiya ham boshqa to'lovlar bilan teng kattalikda ko'rinsin. */
+@media (max-width:390px){
+  .pay-select{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .pay-select button{min-height:70px;flex-direction:row;gap:8px;padding:10px 12px;white-space:nowrap}
+  .pay-select button .icon{width:22px;height:22px;flex:none}
+}
 .pay-select button:hover{border-color:var(--primary)}
 .pay-select button[aria-selected="true"]{border-color:var(--primary);background:var(--brand-50);
   color:var(--primary);box-shadow:0 0 0 1px var(--primary) inset}

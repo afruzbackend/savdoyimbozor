@@ -848,10 +848,11 @@ def daily_close(request):
             if photo is not None:
                 close.photo = photo
             close.save()
-        # Kassa (Z-hisobot) — kun yakunining majburiy qismi (maydalik + nasiya qaytishi hisobda)
-        _z, diff = close_register(
-            shop, today, counted, request.user, note=request.POST.get("cash_note", "")
-        )
+            # Kassa (Z-hisobot) — kun yakunining majburiy qismi. Shu joydagi xato
+            # barcha DailyClose/StockMove yozuvlarini ham bekor qiladi.
+            _z, diff = close_register(
+                shop, today, counted, request.user, note=request.POST.get("cash_note", "")
+            )
         note = ""
         if diff > 0:
             note = f" · Kassada ortiqcha: {som(diff)} so'm"

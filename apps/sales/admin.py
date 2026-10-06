@@ -12,6 +12,7 @@ from .models import (
     Sale,
     SaleItem,
     SaleReturn,
+    StockAdjustment,
     StockIn,
     WriteOff,
 )
@@ -62,6 +63,28 @@ admin.site.register(WriteOff, EvidenceAdmin)
 admin.site.register(Correction, EvidenceAdmin)
 admin.site.register(Debt, EvidenceAdmin)
 admin.site.register(RegisterClose, EvidenceAdmin)
+
+
+@admin.register(StockAdjustment)
+class StockAdjustmentAdmin(admin.ModelAdmin):
+    """Qoldiqni faqat imzoli sanoq tuzatishi orqali o'zgartirish."""
+
+    list_display = ("product", "counted_qty", "reason", "user", "created_at")
+    search_fields = ("product__name", "reason", "user__username")
+    autocomplete_fields = ("product",)
+    readonly_fields = ("user", "created_at")
+
+    def has_change_permission(self, request, obj=None):
+        return obj is None
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def save_model(self, request, obj, form, change):
+        if change:
+            return
+        obj.user = request.user
+        obj.save()
 
 
 @admin.register(ReceiptReport)

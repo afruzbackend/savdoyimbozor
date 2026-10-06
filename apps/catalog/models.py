@@ -1,6 +1,8 @@
 """Katalog: do'kon toifasi, umumiy mahsulot toifasi (bozor narxi uchun), mahsulot."""
 
-from django.db import models
+from django.db import models, transaction
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import TimeStampedModel
@@ -162,6 +164,11 @@ class Product(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        # post_save dagi boshlang'ich StockMove xato bersa, SKU ham saqlanmaydi.
+        with transaction.atomic():
+            return super().save(*args, **kwargs)
+
     @property
     def is_whole(self):
         """Butun son bilan sanaladimi (dona/quti/bog'lam) — forma maydoni qadami shunga qarab."""
@@ -170,3 +177,20 @@ class Product(TimeStampedModel):
     @property
     def is_low_stock(self):
         return self.low_stock_threshold and self.stock <= self.low_stock_threshold
+
+
+@receiver(post_save, sender=Product)
+def record_opening_stock_move(sender, instance, created, raw=False, **kwargs):
+    """Har yangi SKU uchun 0 bo'lsa ham jurnal boshlanishini muhrlaydi."""
+    if not created or raw:
+        return
+    # Import paytida circular import bo'lmasin; mahsulot saqlangandan keyin jurnal yoziladi.
+    from apps.sales.models import StockMove
+    from apps.sales.services.stock import record_move
+
+    record_move(
+        instance,
+        StockMove.Kind.OPENING,
+        set_to=instance.stock,
+        ref="Mahsulot ochilishi",
+    )

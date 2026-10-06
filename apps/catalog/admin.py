@@ -31,3 +31,6 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ("is_active", "category")
     search_fields = ("name", "barcode")
     autocomplete_fields = ("shop", "category")
+    # Qoldiq StockMove jurnalisiz o'zgarmasin. Tuzatish faqat Savdo →
+    # "Qoldiq tuzatishlari" orqali, sabab va mas'ul foydalanuvchi bilan qilinadi.
+    readonly_fields = ("stock",)

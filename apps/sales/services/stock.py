@@ -170,7 +170,11 @@ def stock_at(shops, at) -> dict:
 
 
 def last_count_at(shops, at) -> dict:
-    """Har do'kon uchun `at` gacha oxirgi JISMONIY sanoq vaqti (kun yakuni)."""
+    """Har do'kon uchun `at` gacha eng oxirgi sanoq vaqti.
+
+    Bu faqat qisqa do'kon sarlavhasi uchun: u barcha SKU sanalganini anglatmaydi.
+    SKU bo'yicha ishonch holati uchun `last_count_by_product` ishlatiladi.
+    """
     from ..models import StockMove
 
     rows = (
@@ -178,5 +182,23 @@ def last_count_at(shops, at) -> dict:
         .order_by("shop_id", "-created_at")
         .distinct("shop_id")
         .values_list("shop_id", "created_at")
+    )
+    return dict(rows)
+
+
+def last_count_by_product(shops, at) -> dict:
+    """Har SKU uchun `at` gacha oxirgi jismoniy sanoq: {product_id: vaqt}.
+
+    COUNT faqat sotuvchi kun yakunida yoki asosli qoldiq tuzatishida yoziladi.
+    Demak mahsulotning bu jadvalda yo'qligi aniq "sanalmagan" holatidir; boshqa
+    SKUning yangi sanoq vaqti unga ko'chirilmaydi.
+    """
+    from ..models import StockMove
+
+    rows = (
+        StockMove.objects.filter(shop__in=shops, created_at__lte=at, kind=StockMove.Kind.COUNT)
+        .order_by("product_id", "-created_at", "-id")
+        .distinct("product_id")
+        .values_list("product_id", "created_at")
     )
     return dict(rows)

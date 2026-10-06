@@ -91,3 +91,5 @@ har kamera `token` bilan). AI worker skeleti: [`ai_worker/worker.py`](ai_worker/
 ## Sifat
 `pytest` (105 test) · `ruff check` · `python manage.py check`. Loyiha xaritasi:
 [`CLAUDE.md`](CLAUDE.md). To'liq talablar: [`docs/SPEC.md`](docs/SPEC.md).
+
+
