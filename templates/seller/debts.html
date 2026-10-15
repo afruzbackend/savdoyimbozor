@@ -13,7 +13,7 @@
       <div class="field"><label class="label">Summa (so'm)</label><input class="input num" name="amount" inputmode="numeric" data-money autocomplete="off" required></div>
       {% include 'components/_duefield.html' with name='due_date' label='Qaytarish sanasi' %}
       <div class="field"><label class="label">Izoh</label><input class="input" name="note"></div>
-      <label class="switch" style="margin-bottom:var(--sp-3)"><input type="checkbox" name="sms_remind" checked><span class="track"></span><span class="thumb"></span>
+      <label class="switch" style="display:flex;margin-bottom:var(--sp-3)"><input type="checkbox" name="sms_remind" checked><span class="track"></span><span class="thumb"></span>
         <span style="font-size:var(--t--1)">Xaridorga SMS eslatma{% if not sms_on %} <small class="muted">(tizimda SMS hali ulanmagan)</small>{% endif %}</span></label>
       <button class="btn btn-block" type="submit">Qo'shish</button>
     </form>

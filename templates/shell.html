@@ -89,6 +89,32 @@
         <svg class="icon-sm"><use href="{% static 'icons/sprite.svg' %}#i-eye"></use></svg> Faqat ko'rish</span>{% endif %}{% block topbar_actions %}{% endblock %}</div>
     </header>
     <div class="page-ornament" aria-hidden="true" data-noloc>{% include 'components/_doppi.html' %}</div>
+    {% if urgent_red_alerts %}
+    <div class="urgent-alert-bar" id="ub-alerts" role="alert" aria-live="polite">
+      <div class="ub-inner">
+        <svg class="icon ub-icon" aria-hidden="true"><use href="{% static 'icons/sprite.svg' %}#i-triangle-alert"></use></svg>
+        <div class="ub-body">
+          <strong>{% if urgent_red_alerts|length == 1 %}Yangi qizil signal:{% else %}Yangi qizil signallar:{% endif %}</strong>
+          {% for a in urgent_red_alerts %}
+          <span class="ub-item">
+            <a class="ub-link" href="{% url 'inspector:shop_detail' a.shop.pk %}">
+              №{{ a.shop.number }} {{ a.shop.owner_name }}
+            </a>
+            <span class="ub-reason">{{ a.reason|truncatechars:60 }}</span>
+          </span>
+          {% endfor %}
+        </div>
+        <div class="ub-actions">
+          <a class="ub-btn-go" href="{% url 'inspector:alerts' %}?level=red">Barchasini ko'rish</a>
+          <button class="ub-close" type="button"
+                  onclick="var b=document.getElementById('ub-alerts');b.style.transition='opacity .3s';b.style.opacity='0';setTimeout(function(){b.hidden=true},320);"
+                  aria-label="Yopish">
+            <svg class="icon-sm" aria-hidden="true"><use href="{% static 'icons/sprite.svg' %}#i-x"></use></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endif %}
     <main class="content">
       {% if messages %}{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
       {% block content %}{% endblock %}

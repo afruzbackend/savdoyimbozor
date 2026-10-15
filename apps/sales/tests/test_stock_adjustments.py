@@ -15,9 +15,11 @@ def test_product_admin_makes_stock_readonly(admin_user):
 
 @pytest.mark.django_db
 def test_admin_adjustment_records_count_move(aclient, admin_user, product):
+    url = reverse("admin:sales_stockadjustment_add", urlconf="config.urls_panel")
     response = aclient.post(
-        reverse("admin:sales_stockadjustment_add"),
+        url,
         {"product": product.pk, "counted_qty": "87", "reason": "Jismoniy sanoq farqi"},
+        HTTP_HOST="panel.localhost",
     )
 
     assert response.status_code == 302

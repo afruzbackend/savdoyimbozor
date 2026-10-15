@@ -25,14 +25,14 @@ def test_every_movement_is_journaled(sclient, shop, product):
                  HTTP_HOST=SELLER_HOST)
     _sale(sclient, {"items": [{"product_id": product.pk, "name": "x", "qty": 5,
                                "unit_price": 10000}], "mode": "scan"})
-    sclient.post("/kun-yakuni/", {"photo": photo_file(), f"evening_{product.pk}": "44", "counted_cash": "50000"},
+    sclient.post("/kun-yakuni/", {"photo": photo_file(), f"evening_{product.pk}": "144", "counted_cash": "50000"},
                  HTTP_HOST=SELLER_HOST)
     moves = list(StockMove.objects.filter(product=product).order_by("created_at", "id"))
     assert [m.kind for m in moves] == ["opening", "in", "sale", "count"]
-    assert [m.balance for m in moves] == [Decimal("100"), Decimal("150"), Decimal("145"), Decimal("44")]
+    assert [m.balance for m in moves] == [Decimal("100"), Decimal("150"), Decimal("145"), Decimal("144")]
     assert moves[3].qty == Decimal("-1")  # sanoq 1 dona kam topdi
     product.refresh_from_db()
-    assert product.stock == Decimal("44")
+    assert product.stock == Decimal("144")
     assert verify_chain(shop)[0] is True
 
 

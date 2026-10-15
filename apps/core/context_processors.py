@@ -58,5 +58,11 @@ def ui_context(request):
                 shop__in=shops, status=Appeal.Status.NEW
             ).count()
             attention += ctx["nav_alerts_new"] + ctx["nav_appeals_new"]
+            # Qizil signal banneri: faqat yangi, qizil, ko'pi bilan 5 ta (barcha sahifada)
+            ctx["urgent_red_alerts"] = (
+                Alert.objects.filter(shop__in=shops, status=Alert.Status.NEW, level="red")
+                .select_related("shop", "shop__market")
+                .order_by("-created_at")[:5]
+            )
         ctx["nav_attention"] = attention
     return ctx

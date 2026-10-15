@@ -1575,6 +1575,23 @@ window.RU_DICT = {
   "kuni yakunlanmagan. Tez sotuv va nasiyaga berilgan mahsulotlar qoldiqdan faqat kun yakunidagi sanoq bilan ayriladi — shuning uchun avval o'sha kun sanaladi.": "— день не закрыт. Товары из быстрых продаж и в долг вычитаются из остатка только пересчётом в конце дня — поэтому сначала пересчитывается тот день.",
   "vaqtincha yopiq": "временно закрыт",
   "«Kunni yakunlash» — shundan keyin": "«Закрыть день» — после этого",
+  "Bu do'kondagi eng so'nggi SKU sanoq vaqti; to'liq holatni do'kon ma'lumotnomasida har mahsulot bo'yicha tekshiring.":
+    "Это время последнего пересчёта SKU в магазине; полную информацию по каждому товару проверяйте в карточке магазина.",
+  "Do'kondagi eng so'nggi sanoq": "Последний пересчёт в магазине",
+  "SKU sanoq holati": "Статус пересчёта SKU",
+  "hali sanoq yo'q": "пересчёта ещё нет",
+  "sanalgan": "пересчитано",
+  "Mahsulot kuzatuvi": "Наблюдение за товаром",
+  "Paketga joylash": "Упаковка в пакет",
+  "Paketga joylandi": "Упаковано в пакет",
+  "Bekor qilingan": "Отменено",
+  "Qaytarish cheki": "Чек возврата",
+  "Rasmiylashtirilgan": "Оформлен",
+  "Tekshiruv kerak": "Требуется проверка",
+  "Yangi qizil signal:": "Новый красный сигнал:",
+  "Yangi qizil signallar:": "Новые красные сигналы:",
+  "Yangi qizil signal": "Новый красный сигнал",
+  "Barchasini ko'rish": "Посмотреть все",
 };
 
 /* Dinamik matnlar (raqamli signal sabablari) uchun bo'lak almashtirish.
